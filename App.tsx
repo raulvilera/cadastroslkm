@@ -30,6 +30,9 @@ const App = () => {
   // Estado para controlar visualização (gestor/professor) para usuários com acesso dual
   const [viewMode, setViewMode] = useState<ViewMode>('gestor');
 
+  // Estado para bloquear redirecionamento durante recuperação de senha
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   useEffect(() => {
@@ -48,10 +51,9 @@ const App = () => {
           const searchCheck = window.location.search.includes('type=recovery') ||
             window.location.search.includes('access_token=');
 
-          let isDuringRecovery = hashCheck || searchCheck;
-
-          if (isDuringRecovery) {
+          if (hashCheck || searchCheck) {
             console.log('🔑 [APP] MODO RECUPERAÇÃO ATIVADO - Bloqueando redirecionamentos');
+            setIsRecoveryMode(true);
             setView('resetPassword');
           }
 
@@ -93,13 +95,14 @@ const App = () => {
 
             if (event === 'PASSWORD_RECOVERY') {
               console.log('🔑 [AUTH] Evento de Recuperação Detectado');
-              isDuringRecovery = true;
+              setIsRecoveryMode(true);
               setView('resetPassword');
               return;
             }
 
             if (session?.user) {
-              if (isDuringRecovery) {
+              if (isRecoveryMode || window.location.hash.includes('type=recovery')) {
+                console.log('🔄 [AUTH] Em modo recuperação, mantendo ResetPassword');
                 setView('resetPassword');
                 return;
               }
@@ -115,7 +118,7 @@ const App = () => {
                 setView('login');
               }
             } else if (event === 'SIGNED_OUT') {
-              isDuringRecovery = false;
+              setIsRecoveryMode(false);
               setUser(null);
               setView('login');
             }
@@ -124,7 +127,10 @@ const App = () => {
           authListener = subscription;
 
           // 4. Verificação inicial da sessão
-          if (!isDuringRecovery) {
+          const isInRecoveryURL = window.location.hash.includes('type=recovery') ||
+            window.location.search.includes('type=recovery');
+
+          if (!isRecoveryMode && !isInRecoveryURL) {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
               const role = await fetchRoleSafe(session.user.email!);
@@ -699,7 +705,7 @@ const App = () => {
 
       {/* Marcador de Versão para Depuração */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100]">
-        Build Version: 1.15.2
+        Build Version: V2026.1
       </div>
     </div>
   );
