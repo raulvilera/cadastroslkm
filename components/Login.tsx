@@ -263,7 +263,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: `https://gestao-lydia-kitz.vercel.app/`,
+        redirectTo: `${window.location.origin}/`,
       });
 
       if (resetError) {
