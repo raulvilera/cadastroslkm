@@ -51,13 +51,19 @@ const App = () => {
             setView('resetPassword');
           }
 
-          // Função auxiliar para buscar role com timeout e fallback
           const fetchRoleSafe = async (email: string) => {
-            const emailBase = email.toLowerCase().split('@')[0];
+            const lowerEmail = email.toLowerCase().trim();
+            const FIXED_GESTAO_EMAILS = ['cadastroslkm@gmail.com', 'cadatroslkm@gmail.com', 'gestao@escola.com'];
+
+            if (FIXED_GESTAO_EMAILS.includes(lowerEmail)) {
+              return 'gestor';
+            }
+
+            const emailBase = lowerEmail.split('@')[0];
             const query = supabase
               .from('authorized_professors')
               .select('role')
-              .or(`email.eq.${email},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+              .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
               .maybeSingle();
 
             const timeoutPromise = new Promise((_, reject) =>
