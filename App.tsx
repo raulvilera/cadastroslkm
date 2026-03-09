@@ -43,8 +43,12 @@ const App = () => {
       if (isSupabaseConfigured && supabase) {
         try {
           // O link de recuperação contém access_token ou type=recovery
-          let isDuringRecovery = window.location.hash.includes('type=recovery') ||
+          const hashCheck = window.location.hash.includes('type=recovery') ||
             window.location.hash.includes('access_token=');
+          const searchCheck = window.location.search.includes('type=recovery') ||
+            window.location.search.includes('access_token=');
+
+          let isDuringRecovery = hashCheck || searchCheck;
 
           if (isDuringRecovery) {
             console.log('🔑 [APP] MODO RECUPERAÇÃO ATIVADO - Bloqueando redirecionamentos');
@@ -88,6 +92,7 @@ const App = () => {
             console.log(`[APP] Auth Event: ${event}`);
 
             if (event === 'PASSWORD_RECOVERY') {
+              console.log('🔑 [AUTH] Evento de Recuperação Detectado');
               isDuringRecovery = true;
               setView('resetPassword');
               return;
