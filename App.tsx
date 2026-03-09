@@ -9,7 +9,7 @@ import { Incident, User, Student } from './types';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
-import { isProfessorRegistered } from './professorsData';
+import { isProfessorRegistered, FIXED_GESTAO_EMAILS } from './professorsData';
 
 // E-mail com acesso dual (gestor + professor)
 const DUAL_ACCESS_EMAIL = 'vilera@prof.educacao.sp.gov.br';
@@ -53,7 +53,6 @@ const App = () => {
 
           const fetchRoleSafe = async (email: string) => {
             const lowerEmail = email.toLowerCase().trim();
-            const FIXED_GESTAO_EMAILS = ['cadastroslkm@gmail.com', 'cadatroslkm@gmail.com', 'gestao@escola.com'];
 
             if (FIXED_GESTAO_EMAILS.includes(lowerEmail)) {
               return 'gestor';

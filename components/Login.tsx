@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail } from '../professorsData';
+import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, FIXED_GESTAO_EMAILS } from '../professorsData';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const validateInstitutionalEmail = (email: string) => {
     const lowerEmail = email.toLowerCase().trim();
     // E-mails permitidos: institucionais ou os de gestão específicos que não são @prof (como o do gmail)
-    const SPECIAL_MANAGEMENT = ['gestao@escola.com', 'cadastroslkm@gmail.com', 'cadatroslkm@gmail.com'];
+    const SPECIAL_MANAGEMENT = FIXED_GESTAO_EMAILS;
 
     if (SPECIAL_MANAGEMENT.includes(lowerEmail)) {
       return true;
@@ -106,7 +106,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         console.log('✅ [LOGIN] Autenticado! Buscando autorização para:', displayEmail);
 
         // E-mails de gestão com perfil fixo (não precisam de consulta ao banco)
-        const FIXED_GESTAO_EMAILS = ['cadastroslkm@gmail.com', 'cadatroslkm@gmail.com', 'gestao@escola.com'];
         if (FIXED_GESTAO_EMAILS.includes(displayEmail)) {
           console.log('✅ [LOGIN] E-mail de gestão com perfil fixo. Role: gestor');
           onLogin({ email: displayEmail, role: 'gestor' });
@@ -203,7 +202,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (data.user) {
         // E-mails de gestão com perfil fixo
-        const FIXED_GESTAO_EMAILS = ['cadastroslkm@gmail.com', 'cadatroslkm@gmail.com', 'gestao@escola.com'];
         let userRole: 'gestor' | 'professor' | null = null;
 
         if (FIXED_GESTAO_EMAILS.includes(lowerEmail)) {
