@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail } from '../professorsData';
+import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, FIXED_GESTAO_EMAILS } from '../professorsData';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const validateInstitutionalEmail = (email: string) => {
     const lowerEmail = email.toLowerCase().trim();
     // E-mails permitidos: institucionais ou os de gestão específicos que não são @prof (como o do gmail)
-    const SPECIAL_MANAGEMENT = ['gestao@escola.com', 'cadastroslkm@gmail.com'];
+    const SPECIAL_MANAGEMENT = FIXED_GESTAO_EMAILS;
 
     if (SPECIAL_MANAGEMENT.includes(lowerEmail)) {
       return true;
@@ -104,6 +104,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (data.user) {
         console.log('✅ [LOGIN] Autenticado! Buscando autorização para:', displayEmail);
+
+        // E-mails de gestão com perfil fixo (não precisam de consulta ao banco)
+        if (FIXED_GESTAO_EMAILS.includes(displayEmail)) {
+          console.log('✅ [LOGIN] E-mail de gestão com perfil fixo. Role: gestor');
+          onLogin({ email: displayEmail, role: 'gestor' });
+          return;
+        }
 
         // Função para buscar cargo no banco com timeout
         const fetchRoleWithTimeout = async () => {
@@ -194,19 +201,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       if (data.user) {
-        // Busca o role e autorização no banco de dados
-        const emailBase = lowerEmail.split('@')[0];
-        const { data: authData } = await supabase
-          .from('authorized_professors')
-          .select('role')
-          .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
-          .maybeSingle();
-
+        // E-mails de gestão com perfil fixo
         let userRole: 'gestor' | 'professor' | null = null;
-        if (authData) {
-          userRole = authData.role as 'gestor' | 'professor';
-        } else if (isProfessorRegistered(lowerEmail)) {
-          userRole = 'professor';
+
+        if (FIXED_GESTAO_EMAILS.includes(lowerEmail)) {
+          userRole = 'gestor';
+          console.log('✅ [CADASTRO] E-mail de gestão com perfil fixo. Role: gestor');
+        } else {
+          // Busca o role e autorização no banco de dados
+          const emailBase = lowerEmail.split('@')[0];
+          const { data: authData } = await supabase
+            .from('authorized_professors')
+            .select('role')
+            .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+            .maybeSingle();
+
+          if (authData) {
+            userRole = authData.role as 'gestor' | 'professor';
+          } else if (isProfessorRegistered(lowerEmail)) {
+            userRole = 'professor';
+          }
         }
 
         if (!userRole) {
@@ -263,18 +277,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: 'https://cadastroslkm.vercel.app/',
       });
 
       if (resetError) {
-        console.error('❌ [RESET] Erro ao enviar e-mail:', resetError);
+        console.error('❌ [RESET] Erro ao enviar e-mail:', resetError.message);
 
-        // Verifica se é erro de SMTP do Resend (Test Mode)
-        if (resetError.message.includes('450') || resetError.message.includes('testing emails')) {
-          throw new Error('O SERVIÇO DE E-MAIL ESTÁ EM MODO DE TESTE. O DOMÍNIO PRECISA SER VERIFICADO NO RESEND.');
+        const errMsg = resetError.message.toLowerCase();
+
+        if (errMsg.includes('450') || errMsg.includes('testing emails') || errMsg.includes('test mode')) {
+          throw new Error('O SERVIÇO DE E-MAIL ESTÁ EM MODO DE TESTE. CONTATE A GESTÃO.');
+        }
+        if (errMsg.includes('rate limit') || errMsg.includes('too many')) {
+          throw new Error('MUITAS SOLICITAÇÕES. AGUARDE ALGUNS MINUTOS E TENTE NOVAMENTE.');
+        }
+        if (errMsg.includes('smtp') || errMsg.includes('email') || errMsg.includes('send')) {
+          throw new Error('FALHA AO ENVIAR O E-MAIL. VERIFIQUE SE O ENDEREÇO ESTÁ CORRETO E TENTE NOVAMENTE.');
+        }
+        if (errMsg.includes('user not found') || errMsg.includes('not found')) {
+          throw new Error('E-MAIL NÃO ENCONTRADO NO SISTEMA. VERIFIQUE O ENDEREÇO DIGITADO.');
         }
 
-        throw new Error('ERRO AO PROCESSAR SOLICITAÇÃO. VERIFIQUE A CONFIGURAÇÃO SMTP NO SUPABASE OU TENTE NOVAMENTE.');
+        // Mostra o erro real traduzido genericamente
+        throw new Error('ERRO AO ENVIAR INSTRUÇÕES: ' + resetError.message.toUpperCase());
       }
 
       setMessage('SE O E-MAIL EXISTIR NO SISTEMA, VOCÊ RECEBERÁ AS INSTRUÇÕES EM BREVE.');
