@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, FIXED_GESTAO_EMAILS } from '../professorsData';
+import { PROFESSORS_DB, isProfessorRegistered, isGestor, getProfessorNameFromEmail } from '../professorsData';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -28,11 +28,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
   }, []);
 
-  // Mapeamento de aliases de e-mail para contas reais
-  const EMAIL_ALIASES: Record<string, string> = {
-    'alinecardoso1@prof.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br',
-    'alinecardoso1@professor.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br'
-  };
+  // Mapeamento de aliases de e-mail para contas reais (usado para compatibilidade com contas antigas)
+  const EMAIL_ALIASES: Record<string, string> = {};
 
 
   const resolveEmailAlias = (email: string): string => {
@@ -43,15 +40,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const validateInstitutionalEmail = (email: string) => {
     const lowerEmail = email.toLowerCase().trim();
     // E-mails permitidos: institucionais ou os de gestão específicos que não são @prof (como o do gmail)
-    const SPECIAL_MANAGEMENT = FIXED_GESTAO_EMAILS;
+    const SPECIAL_MANAGEMENT = ['gestao@escola.com', 'cadastroslkm@gmail.com'];
 
     if (SPECIAL_MANAGEMENT.includes(lowerEmail)) {
       return true;
     }
 
-    // Outros e-mails devem ser institucionais
+    // Verifica se o e-mail está cadastrado na lista local (aceita qualquer domínio cadastrado)
+    if (isProfessorRegistered(lowerEmail)) {
+      return true;
+    }
+
+    // Outros e-mails devem ser institucionais conhecidos
     return lowerEmail.endsWith('@prof.educacao.sp.gov.br') ||
-      lowerEmail.endsWith('@professor.educacao.sp.gov.br');
+      lowerEmail.endsWith('@professor.educacao.sp.gov.br') ||
+      lowerEmail.endsWith('@servidor.educacao.sp.gov.br');
   };
 
   const registeredName = useMemo(() => {
@@ -105,20 +108,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (data.user) {
         console.log('✅ [LOGIN] Autenticado! Buscando autorização para:', displayEmail);
 
-        // E-mails de gestão com perfil fixo (não precisam de consulta ao banco)
-        if (FIXED_GESTAO_EMAILS.includes(displayEmail)) {
-          console.log('✅ [LOGIN] E-mail de gestão com perfil fixo. Role: gestor');
-          onLogin({ email: displayEmail, role: 'gestor' });
-          return;
-        }
-
         // Função para buscar cargo no banco com timeout
         const fetchRoleWithTimeout = async () => {
           const emailBase = displayEmail.split('@')[0];
           const query = supabase
             .from('authorized_professors')
             .select('role')
-            .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+            .or(`email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
             .maybeSingle();
 
           const timeoutPromise = new Promise((_, reject) =>
@@ -138,9 +134,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         let userRole: 'gestor' | 'professor' | null = dbRole as any;
 
         // Fallback para lista local se não encontrou no banco
-        if (!userRole && isProfessorRegistered(displayEmail)) {
-          console.log('✅ [LOGIN] Autorizado via Lista Local! (Fallback)');
-          userRole = 'professor';
+        if (!userRole) {
+          if (isGestor(displayEmail)) {
+            console.log('✅ [LOGIN] Autorizado via Lista Local como GESTOR! (Fallback)');
+            userRole = 'gestor';
+          } else if (isProfessorRegistered(displayEmail)) {
+            console.log('✅ [LOGIN] Autorizado via Lista Local como PROFESSOR! (Fallback)');
+            userRole = 'professor';
+          }
         }
 
         if (userRole) {
@@ -201,26 +202,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       if (data.user) {
-        // E-mails de gestão com perfil fixo
+        // Busca o role e autorização no banco de dados
+        const emailBase = lowerEmail.split('@')[0];
+        const { data: authData } = await supabase
+          .from('authorized_professors')
+          .select('role')
+          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
+          .maybeSingle();
+
         let userRole: 'gestor' | 'professor' | null = null;
-
-        if (FIXED_GESTAO_EMAILS.includes(lowerEmail)) {
+        if (authData) {
+          userRole = authData.role as 'gestor' | 'professor';
+        } else if (isGestor(lowerEmail)) {
           userRole = 'gestor';
-          console.log('✅ [CADASTRO] E-mail de gestão com perfil fixo. Role: gestor');
-        } else {
-          // Busca o role e autorização no banco de dados
-          const emailBase = lowerEmail.split('@')[0];
-          const { data: authData } = await supabase
-            .from('authorized_professors')
-            .select('role')
-            .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
-            .maybeSingle();
-
-          if (authData) {
-            userRole = authData.role as 'gestor' | 'professor';
-          } else if (isProfessorRegistered(lowerEmail)) {
-            userRole = 'professor';
-          }
+        } else if (isProfessorRegistered(lowerEmail)) {
+          userRole = 'professor';
         }
 
         if (!userRole) {
@@ -263,7 +259,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const { data: authorized } = await supabase
           .from('authorized_professors')
           .select('email')
-          .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
           .maybeSingle();
 
         if (!authorized) {
@@ -277,29 +273,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: 'https://cadastroslkm.vercel.app/',
+        redirectTo: `https://gestao-lydia-kitz.vercel.app/`,
       });
 
       if (resetError) {
-        console.error('❌ [RESET] Erro ao enviar e-mail:', resetError.message);
+        console.error('❌ [RESET] Erro ao enviar e-mail:', resetError);
 
-        const errMsg = resetError.message.toLowerCase();
-
-        if (errMsg.includes('450') || errMsg.includes('testing emails') || errMsg.includes('test mode')) {
-          throw new Error('O SERVIÇO DE E-MAIL ESTÁ EM MODO DE TESTE. CONTATE A GESTÃO.');
-        }
-        if (errMsg.includes('rate limit') || errMsg.includes('too many')) {
-          throw new Error('MUITAS SOLICITAÇÕES. AGUARDE ALGUNS MINUTOS E TENTE NOVAMENTE.');
-        }
-        if (errMsg.includes('smtp') || errMsg.includes('email') || errMsg.includes('send')) {
-          throw new Error('FALHA AO ENVIAR O E-MAIL. VERIFIQUE SE O ENDEREÇO ESTÁ CORRETO E TENTE NOVAMENTE.');
-        }
-        if (errMsg.includes('user not found') || errMsg.includes('not found')) {
-          throw new Error('E-MAIL NÃO ENCONTRADO NO SISTEMA. VERIFIQUE O ENDEREÇO DIGITADO.');
+        // Verifica se é erro de SMTP do Resend (Test Mode)
+        if (resetError.message.includes('450') || resetError.message.includes('testing emails')) {
+          throw new Error('O SERVIÇO DE E-MAIL ESTÁ EM MODO DE TESTE. O DOMÍNIO PRECISA SER VERIFICADO NO RESEND.');
         }
 
-        // Mostra o erro real traduzido genericamente
-        throw new Error('ERRO AO ENVIAR INSTRUÇÕES: ' + resetError.message.toUpperCase());
+        throw new Error('ERRO AO PROCESSAR SOLICITAÇÃO. VERIFIQUE A CONFIGURAÇÃO SMTP NO SUPABASE OU TENTE NOVAMENTE.');
       }
 
       setMessage('SE O E-MAIL EXISTIR NO SISTEMA, VOCÊ RECEBERÁ AS INSTRUÇÕES EM BREVE.');
