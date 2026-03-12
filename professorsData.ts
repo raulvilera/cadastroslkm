@@ -7,13 +7,14 @@ export interface ProfessorData {
 }
 
 export const PROFESSORS_DB: ProfessorData[] = [
-    // Contas de gestão
+    // Contas de gestão (acesso exclusivo ao perfil Gestor)
     { email: 'gestao@escola.com', nome: 'GESTÃO ESCOLAR' },
     { email: 'vilera@prof.educacao.sp.gov.br', nome: 'RAUL VILERA - GESTÃO' },
     { email: 'cadastroslkm@gmail.com', nome: 'CADASTROS LKM - GESTÃO' },
-    { email: 'alinecardoso1@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
-    { email: 'alinecardoso1@professor.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
-    { email: 'aline.gestao@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
+    { email: 'anaosouza@prof.educacao.sp.gov.br', nome: 'ANA O. SOUZA - GESTÃO' },
+    { email: 'anaosouza@professor.educacao.sp.gov.br', nome: 'ANA O. SOUZA - GESTÃO' },
+    { email: 'alinecardoso@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
+    { email: 'alinecardoso@professor.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
     { email: 'deizylaura@prof.educacao.sp.gov.br', nome: 'DEIZY LAURA - GESTÃO' },
     { email: 'anderson.ikawa@servidor.educacao.sp.gov.br', nome: 'ANDERSON IKAWA - GESTÃO' },
 
@@ -186,7 +187,33 @@ const normalizeInstitutionalEmail = (email: string): string => {
     if (domain === 'prof.educacao.sp.gov.br' || domain === 'professor.educacao.sp.gov.br') {
         return `${user}@prof.educacao.sp.gov.br`;
     }
+    // @servidor.educacao.sp.gov.br não é normalizado para @prof — mantém o domínio original
     return email.toLowerCase().trim();
+};
+
+
+/**
+ * Lista de e-mails com role exclusivo de GESTOR (fallback local).
+ * Usado quando o banco Supabase não responde (timeout).
+ * IMPORTANTE: manter sincronizado com authorized_professors no Supabase.
+ */
+export const GESTORES_DB: string[] = [
+    'gestao@escola.com',
+    'cadastroslkm@gmail.com',
+    'vilera@prof.educacao.sp.gov.br',
+    'anaosouza@prof.educacao.sp.gov.br',
+    'alinecardoso@prof.educacao.sp.gov.br',
+    'deizylaura@prof.educacao.sp.gov.br',
+    'anderson.ikawa@servidor.educacao.sp.gov.br',
+];
+
+/**
+ * Verifica se o e-mail pertence à equipe de gestão (fallback local).
+ * Aceita tanto @prof quanto @professor para os domínios padrão SEDUC-SP.
+ */
+export const isGestor = (email: string): boolean => {
+    const normalizedTarget = normalizeInstitutionalEmail(email);
+    return GESTORES_DB.some(g => normalizeInstitutionalEmail(g) === normalizedTarget);
 };
 
 /**
