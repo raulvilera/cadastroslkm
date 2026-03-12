@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { PROFESSORS_DB, isProfessorRegistered, isGestor, getProfessorNameFromEmail } from '../professorsData';
+import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, getRoleFromLocalDB } from '../professorsData';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -28,8 +28,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
   }, []);
 
-  // Mapeamento de aliases de e-mail para contas reais (usado para compatibilidade com contas antigas)
-  const EMAIL_ALIASES: Record<string, string> = {};
+  // Mapeamento de aliases de e-mail para contas reais
+  const EMAIL_ALIASES: Record<string, string> = {
+    'alinecardoso1@prof.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br',
+    'alinecardoso1@professor.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br'
+  };
 
 
   const resolveEmailAlias = (email: string): string => {
@@ -46,15 +49,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return true;
     }
 
-    // Verifica se o e-mail está cadastrado na lista local (aceita qualquer domínio cadastrado)
-    if (isProfessorRegistered(lowerEmail)) {
-      return true;
-    }
-
-    // Outros e-mails devem ser institucionais conhecidos
+    // Outros e-mails devem ser institucionais
     return lowerEmail.endsWith('@prof.educacao.sp.gov.br') ||
-      lowerEmail.endsWith('@professor.educacao.sp.gov.br') ||
-      lowerEmail.endsWith('@servidor.educacao.sp.gov.br');
+      lowerEmail.endsWith('@professor.educacao.sp.gov.br');
   };
 
   const registeredName = useMemo(() => {
@@ -114,7 +111,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           const query = supabase
             .from('authorized_professors')
             .select('role')
-            .or(`email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
+            .or(`email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
             .maybeSingle();
 
           const timeoutPromise = new Promise((_, reject) =>
@@ -133,15 +130,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const dbRole = await fetchRoleWithTimeout();
         let userRole: 'gestor' | 'professor' | null = dbRole as any;
 
-        // Fallback para lista local se não encontrou no banco
+        // Fallback para lista local se não encontrou no banco — preserva role correto (gestor ou professor)
         if (!userRole) {
-          if (isGestor(displayEmail)) {
-            console.log('✅ [LOGIN] Autorizado via Lista Local como GESTOR! (Fallback)');
-            userRole = 'gestor';
-          } else if (isProfessorRegistered(displayEmail)) {
-            console.log('✅ [LOGIN] Autorizado via Lista Local como PROFESSOR! (Fallback)');
-            userRole = 'professor';
-          }
+          userRole = getRoleFromLocalDB(displayEmail);
+          if (userRole) console.log('✅ [LOGIN] Autorizado via Lista Local! Role:', userRole);
         }
 
         if (userRole) {
@@ -203,20 +195,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (data.user) {
         // Busca o role e autorização no banco de dados
+        // CORREÇÃO: inclui o e-mail exato digitado além dos dois domínios fixos
         const emailBase = lowerEmail.split('@')[0];
         const { data: authData } = await supabase
           .from('authorized_professors')
           .select('role')
-          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
+          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
           .maybeSingle();
 
         let userRole: 'gestor' | 'professor' | null = null;
         if (authData) {
           userRole = authData.role as 'gestor' | 'professor';
-        } else if (isGestor(lowerEmail)) {
-          userRole = 'gestor';
-        } else if (isProfessorRegistered(lowerEmail)) {
-          userRole = 'professor';
+        } else {
+          // Fallback local — usa role correto da PROFESSORS_DB (gestor ou professor)
+          userRole = getRoleFromLocalDB(lowerEmail);
         }
 
         if (!userRole) {
@@ -225,7 +217,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error('ACESSO NEGADO: SEU E-MAIL NÃO ESTÁ AUTORIZADO. CONTATE A GESTÃO.');
         }
 
-        // Com confirmação de e-mail desabilitada, o login é automático
+        // CORREÇÃO: data.session é null quando confirmação de e-mail está ativa no Supabase.
+        // Nesse caso, o usuário foi criado mas ainda não está logado.
+        // Quando confirmação está desabilitada, data.session existe e o login é automático.
+        if (!data.session) {
+          console.warn('⚠️ [CADASTRO] Supabase com confirmação de e-mail ATIVADA. Sessão não criada.');
+          setMessage('CADASTRO REALIZADO! VERIFIQUE SEU E-MAIL E CLIQUE NO LINK DE CONFIRMAÇÃO PARA ATIVAR SUA CONTA.');
+          return;
+        }
+
         console.log('✅ [CADASTRO] Usuário criado e autenticado automaticamente. Role:', userRole);
         setMessage('CADASTRO REALIZADO! ENTRANDO NO SISTEMA...');
         setTimeout(() => onLogin({ email: data.user!.email!, role: userRole! }), 1000);
@@ -259,7 +259,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const { data: authorized } = await supabase
           .from('authorized_professors')
           .select('email')
-          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
+          .or(`email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
           .maybeSingle();
 
         if (!authorized) {
