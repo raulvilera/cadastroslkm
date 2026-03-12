@@ -4,17 +4,17 @@
 export interface ProfessorData {
     email: string;
     nome: string;
+    role?: 'gestor' | 'professor';
 }
 
 export const PROFESSORS_DB: ProfessorData[] = [
-    // Contas de gestão (acesso exclusivo ao perfil Gestor)
-    { email: 'gestao@escola.com', nome: 'GESTÃO ESCOLAR' },
-    { email: 'vilera@prof.educacao.sp.gov.br', nome: 'RAUL VILERA - GESTÃO' },
-    { email: 'cadastroslkm@gmail.com', nome: 'CADASTROS LKM - GESTÃO' },
-    { email: 'anaosouza@prof.educacao.sp.gov.br', nome: 'ANA O. SOUZA - GESTÃO' },
-    { email: 'anaosouza@professor.educacao.sp.gov.br', nome: 'ANA O. SOUZA - GESTÃO' },
-    { email: 'alinecardoso@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
-    { email: 'alinecardoso@professor.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO' },
+    // Contas de gestão
+    { email: 'gestao@escola.com', nome: 'GESTÃO ESCOLAR', role: 'gestor' },
+    { email: 'vilera@prof.educacao.sp.gov.br', nome: 'RAUL VILERA - GESTÃO', role: 'gestor' },
+    { email: 'cadastroslkm@gmail.com', nome: 'CADASTROS LKM - GESTÃO', role: 'gestor' },
+    { email: 'alinecardoso1@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO', role: 'gestor' },
+    { email: 'alinecardoso1@professor.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO', role: 'gestor' },
+    { email: 'aline.gestao@prof.educacao.sp.gov.br', nome: 'ALINE CARDOSO - GESTÃO', role: 'gestor' },
     { email: 'deizylaura@prof.educacao.sp.gov.br', nome: 'DEIZY LAURA - GESTÃO' },
     { email: 'anderson.ikawa@servidor.educacao.sp.gov.br', nome: 'ANDERSON IKAWA - GESTÃO' },
 
@@ -187,33 +187,7 @@ const normalizeInstitutionalEmail = (email: string): string => {
     if (domain === 'prof.educacao.sp.gov.br' || domain === 'professor.educacao.sp.gov.br') {
         return `${user}@prof.educacao.sp.gov.br`;
     }
-    // @servidor.educacao.sp.gov.br não é normalizado para @prof — mantém o domínio original
     return email.toLowerCase().trim();
-};
-
-
-/**
- * Lista de e-mails com role exclusivo de GESTOR (fallback local).
- * Usado quando o banco Supabase não responde (timeout).
- * IMPORTANTE: manter sincronizado com authorized_professors no Supabase.
- */
-export const GESTORES_DB: string[] = [
-    'gestao@escola.com',
-    'cadastroslkm@gmail.com',
-    'vilera@prof.educacao.sp.gov.br',
-    'anaosouza@prof.educacao.sp.gov.br',
-    'alinecardoso@prof.educacao.sp.gov.br',
-    'deizylaura@prof.educacao.sp.gov.br',
-    'anderson.ikawa@servidor.educacao.sp.gov.br',
-];
-
-/**
- * Verifica se o e-mail pertence à equipe de gestão (fallback local).
- * Aceita tanto @prof quanto @professor para os domínios padrão SEDUC-SP.
- */
-export const isGestor = (email: string): boolean => {
-    const normalizedTarget = normalizeInstitutionalEmail(email);
-    return GESTORES_DB.some(g => normalizeInstitutionalEmail(g) === normalizedTarget);
 };
 
 /**
@@ -224,6 +198,17 @@ export const isGestor = (email: string): boolean => {
 export const isProfessorRegistered = (email: string): boolean => {
     const normalizedTarget = normalizeInstitutionalEmail(email);
     return PROFESSORS_DB.some(p => normalizeInstitutionalEmail(p.email) === normalizedTarget);
+};
+
+/**
+ * Retorna o role do e-mail a partir da lista local.
+ * Gestores têm role: 'gestor'. Professores sem role definido retornam 'professor'.
+ */
+export const getRoleFromLocalDB = (email: string): 'gestor' | 'professor' | null => {
+    const normalizedTarget = normalizeInstitutionalEmail(email);
+    const found = PROFESSORS_DB.find(p => normalizeInstitutionalEmail(p.email) === normalizedTarget);
+    if (!found) return null;
+    return found.role || 'professor';
 };
 
 /**
