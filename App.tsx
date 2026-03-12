@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -86,6 +87,14 @@ const App = () => {
             if (event === 'PASSWORD_RECOVERY') {
               isDuringRecovery = true;
               setView('resetPassword');
+              return;
+            }
+
+            // SIGNED_IN é disparado logo após o login — mas o Login.tsx já setou
+            // o user com o role correto. Ignorar aqui evita o race condition que
+            // sobrescrevia o role antes do banco responder.
+            if (event === 'SIGNED_IN') {
+              console.log('ℹ️ [APP] SIGNED_IN ignorado — role já definido pelo Login.tsx');
               return;
             }
 
