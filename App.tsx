@@ -9,7 +9,7 @@ import { Incident, User, Student } from './types';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
-import { isProfessorRegistered, isGestor } from './professorsData';
+import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
 
 // E-mail com acesso dual (gestor + professor)
 const DUAL_ACCESS_EMAIL = 'vilera@prof.educacao.sp.gov.br';
@@ -57,7 +57,7 @@ const App = () => {
             const query = supabase
               .from('authorized_professors')
               .select('role')
-              .or(`email.eq.${email},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br,email.eq.${emailBase}@servidor.educacao.sp.gov.br`)
+              .or(`email.eq.${email},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
               .maybeSingle();
 
             const timeoutPromise = new Promise((_, reject) =>
@@ -66,17 +66,19 @@ const App = () => {
 
             try {
               const result: any = await Promise.race([query, timeoutPromise]);
-              let role = result.data?.role || null;
+              const dbRole = result.data?.role || null;
 
-              if (!role) {
-                if (isGestor(email)) role = 'gestor';
-                else if (isProfessorRegistered(email)) role = 'professor';
-              }
-              return role;
+              // CORREÇÃO: Se o banco retornou um role, confia nele (gestor ou professor).
+              // O fallback local só é usado quando o banco não tem registro algum do e-mail.
+              if (dbRole) return dbRole;
+
+              // Fallback para lista local — usa o role definido na PROFESSORS_DB,
+              // preservando 'gestor' para e-mails de gestão (ex: cadastroslkm@gmail.com).
+              return getRoleFromLocalDB(email);
             } catch (e) {
               console.warn('⚠️ [APP] Fallback ativado para role:', email);
-              if (isGestor(email)) return 'gestor';
-              return isProfessorRegistered(email) ? 'professor' : null;
+              // Em caso de timeout/erro de rede, usa a lista local com o role correto.
+              return getRoleFromLocalDB(email);
             }
           };
 
@@ -90,26 +92,27 @@ const App = () => {
               return;
             }
 
-            // SIGNED_IN é disparado logo após o login — mas o Login.tsx já setou
-            // o user com o role correto. Ignorar aqui evita o race condition que
-            // sobrescrevia o role antes do banco responder.
-            if (event === 'SIGNED_IN') {
-              console.log('ℹ️ [APP] SIGNED_IN ignorado — role já definido pelo Login.tsx');
-              return;
-            }
-
             if (session?.user) {
               if (isDuringRecovery) {
                 setView('resetPassword');
                 return;
               }
 
-              const role = await fetchRoleSafe(session.user.email!);
+              // CORREÇÃO: TOKEN_REFRESHED e re-renders podem re-disparar este handler.
+              // Usamos setUser com callback para checar o estado atual antes de sobrescrever,
+              // evitando que um gestor seja rebaixado para professor em eventos subsequentes.
+              const sessionEmail = session.user.email!.toLowerCase();
+              const role = await fetchRoleSafe(sessionEmail);
+
               if (role) {
-                setUser({ email: session.user.email!.toLowerCase(), role: role as any });
+                setUser(prev => {
+                  // Se o usuário já está definido com o mesmo e-mail e role correto, não altera.
+                  if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                  return { email: sessionEmail, role: role as any };
+                });
                 setView('dashboard');
               } else {
-                console.error('❌ [APP] Usuário não autorizado:', session.user.email);
+                console.error('❌ [APP] Usuário não autorizado:', sessionEmail);
                 await supabase.auth.signOut();
                 setUser(null);
                 setView('login');
@@ -127,13 +130,19 @@ const App = () => {
           if (!isDuringRecovery) {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-              const role = await fetchRoleSafe(session.user.email!);
+              const sessionEmail = session.user.email!.toLowerCase();
+              const role = await fetchRoleSafe(sessionEmail);
 
               if (role) {
-                setUser({ email: session.user.email!.toLowerCase(), role: role as any });
+                // CORREÇÃO: usa setUser funcional para não sobrescrever um role
+                // já definido corretamente pelo fluxo de login (onLogin callback).
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                  return { email: sessionEmail, role: role as any };
+                });
                 setView('dashboard');
               } else {
-                setUser({ email: session.user.email!.toLowerCase(), role: 'professor' });
+                setUser({ email: sessionEmail, role: 'professor' });
                 setView('unauthorized');
               }
             }
