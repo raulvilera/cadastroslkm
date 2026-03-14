@@ -62,29 +62,25 @@ const App = () => {
             const fetchRoleSafe = async (email: string) => {
               const normalizedEmail = email.toLowerCase().trim();
 
-              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva SEMPRE retornam 'gestor'.
-              // Nunca consultam o banco — evita que um registro incorreto no Supabase
-              // sobrescreva o role correto, inclusive durante eventos SIGNED_IN disparados
-              // pelo onAuthStateChange logo após o login.
+              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
+              // Isso evita que um registro 'professor' no Supabase sobrescreva o role correto.
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
-                console.log('🛡️ [APP] Gestão Exclusiva — role fixo gestor para:', normalizedEmail);
+                console.log('🛡️ [APP] Gestão Exclusiva — ignorando banco para:', normalizedEmail);
                 return 'gestor';
               }
 
-              // CORREÇÃO: e-mails não-institucionais (ex: gmail) buscam apenas o e-mail exato,
-              // sem adicionar variantes @prof/@professor que podem retornar linhas erradas.
-              const isInstitutional =
-                normalizedEmail.endsWith('@prof.educacao.sp.gov.br') ||
-                normalizedEmail.endsWith('@professor.educacao.sp.gov.br');
+              // CORREÇÃO: e-mails não-institucionais (gmail etc.) buscam apenas o e-mail exato,
+              // evitando que variantes @prof/@professor retornem uma linha errada do banco.
               const emailBase = normalizedEmail.split('@')[0];
-              const orFilter = isInstitutional
+              const isInstitutionalApp = normalizedEmail.endsWith('@prof.educacao.sp.gov.br') ||
+                normalizedEmail.endsWith('@professor.educacao.sp.gov.br');
+              const orFilterApp = isInstitutionalApp
                 ? `email.eq.${normalizedEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
                 : `email.eq.${normalizedEmail}`;
-
               const query = supabase
                 .from('authorized_professors')
                 .select('role')
-                .or(orFilter)
+                .or(orFilterApp)
                 .maybeSingle();
 
               const timeoutPromise = new Promise((_, reject) =>
@@ -120,11 +116,10 @@ const App = () => {
 
               const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ BLINDAGEM TOTAL: se o e-mail é de gestão exclusiva, define 'gestor'
-              // diretamente sem consultar o banco, mesmo durante SIGNED_IN / TOKEN_REFRESHED.
-              // Isso evita a race condition onde o onAuthStateChange dispara após o onLogin
-              // e sobrescreve o role correto com um valor errado vindo do banco.
+              // ✅ BLINDAGEM TOTAL: gestão exclusiva define 'gestor' diretamente,
+              // sem consultar o banco — evita race condition com SIGNED_IN/TOKEN_REFRESHED.
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
+                console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
                   return { email: sessionEmail, role: 'gestor' };
@@ -162,8 +157,9 @@ const App = () => {
             if (session?.user) {
               const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco aqui
+              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
+                console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
                   return { email: sessionEmail, role: 'gestor' };
@@ -723,6 +719,10 @@ const App = () => {
   // Determina qual visualização renderizar com base no e-mail e role
   const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
   const isExclusiveManagement = EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedUserEmail);
+
+  // ✅ Para gestão exclusiva, a view é SEMPRE gestor — independente do user.role.
+  // Isso garante que mesmo se o role for sobrescrito por um evento assíncrono do Supabase,
+  // o Dashboard da gestão continue sendo renderizado.
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
