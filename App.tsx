@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -63,18 +62,29 @@ const App = () => {
             const fetchRoleSafe = async (email: string) => {
               const normalizedEmail = email.toLowerCase().trim();
 
-              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
-              // Isso evita que um registro 'professor' no Supabase sobrescreva o role correto.
+              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva SEMPRE retornam 'gestor'.
+              // Nunca consultam o banco — evita que um registro incorreto no Supabase
+              // sobrescreva o role correto, inclusive durante eventos SIGNED_IN disparados
+              // pelo onAuthStateChange logo após o login.
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
-                console.log('🛡️ [APP] Gestão Exclusiva — ignorando banco para:', normalizedEmail);
+                console.log('🛡️ [APP] Gestão Exclusiva — role fixo gestor para:', normalizedEmail);
                 return 'gestor';
               }
 
+              // CORREÇÃO: e-mails não-institucionais (ex: gmail) buscam apenas o e-mail exato,
+              // sem adicionar variantes @prof/@professor que podem retornar linhas erradas.
+              const isInstitutional =
+                normalizedEmail.endsWith('@prof.educacao.sp.gov.br') ||
+                normalizedEmail.endsWith('@professor.educacao.sp.gov.br');
               const emailBase = normalizedEmail.split('@')[0];
+              const orFilter = isInstitutional
+                ? `email.eq.${normalizedEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
+                : `email.eq.${normalizedEmail}`;
+
               const query = supabase
                 .from('authorized_professors')
                 .select('role')
-                .or(`email.eq.${normalizedEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+                .or(orFilter)
                 .maybeSingle();
 
               const timeoutPromise = new Promise((_, reject) =>
@@ -108,15 +118,25 @@ const App = () => {
                 return;
               }
 
-              // CORREÇÃO: TOKEN_REFRESHED e re-renders podem re-disparar este handler.
-              // Usamos setUser com callback para checar o estado atual antes de sobrescrever,
-              // evitando que um gestor seja rebaixado para professor em eventos subsequentes.
               const sessionEmail = session.user.email!.toLowerCase();
+
+              // ✅ BLINDAGEM TOTAL: se o e-mail é de gestão exclusiva, define 'gestor'
+              // diretamente sem consultar o banco, mesmo durante SIGNED_IN / TOKEN_REFRESHED.
+              // Isso evita a race condition onde o onAuthStateChange dispara após o onLogin
+              // e sobrescreve o role correto com um valor errado vindo do banco.
+              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                  return { email: sessionEmail, role: 'gestor' };
+                });
+                setView('dashboard');
+                return;
+              }
+
               const role = await fetchRoleSafe(sessionEmail);
 
               if (role) {
                 setUser(prev => {
-                  // Se o usuário já está definido com o mesmo e-mail e role correto, não altera.
                   if (prev?.email === sessionEmail && prev?.role === role) return prev;
                   return { email: sessionEmail, role: role as any };
                 });
@@ -141,19 +161,26 @@ const App = () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
               const sessionEmail = session.user.email!.toLowerCase();
-              const role = await fetchRoleSafe(sessionEmail);
 
-              if (role) {
-                // CORREÇÃO: usa setUser funcional para não sobrescrever um role
-                // já definido corretamente pelo fluxo de login (onLogin callback).
+              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco aqui
+              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
                 setUser(prev => {
-                  if (prev?.email === sessionEmail && prev?.role === role) return prev;
-                  return { email: sessionEmail, role: role as any };
+                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                  return { email: sessionEmail, role: 'gestor' };
                 });
                 setView('dashboard');
               } else {
-                setUser({ email: sessionEmail, role: 'professor' });
-                setView('unauthorized');
+                const role = await fetchRoleSafe(sessionEmail);
+                if (role) {
+                  setUser(prev => {
+                    if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                    return { email: sessionEmail, role: role as any };
+                  });
+                  setView('dashboard');
+                } else {
+                  setUser({ email: sessionEmail, role: 'professor' });
+                  setView('unauthorized');
+                }
               }
             }
           }
