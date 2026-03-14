@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -9,8 +8,8 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
- root.render(<App />);
-    <App />
- root.render(<App />);
-);
+
+// React.StrictMode removido intencionalmente.
+// Em modo strict, o useEffect roda duas vezes, causando race condition
+// no onAuthStateChange do Supabase que sobrescreve o role de gestores.
+root.render(<App />);
