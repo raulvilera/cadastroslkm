@@ -135,7 +135,6 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'pauloito@prof.educacao.sp.gov.br', nome: 'PAULO ROBERTO DA SILVA ITO' },
     { email: 'pedrozanotti@professor.educacao.sp.gov.br', nome: 'PEDRO ZANOTTI FILHO' },
     { email: 'pedrozanotti@prof.educacao.sp.gov.br', nome: 'PEDRO ZANOTTI FILHO' },
-    { email: 'vilera@prof.educacao.sp.gov.br', nome: 'RAUL PEREIRA VILERA JUNIOR' },
     { email: 'reginasilvacastro@professor.educacao.sp.gov.br', nome: 'REGINA DA SILVA CASTRO' },
     { email: 'reginasilvacastro@prof.educacao.sp.gov.br', nome: 'REGINA DA SILVA CASTRO' },
     { email: 'renatahypolito@professor.educacao.sp.gov.br', nome: 'RENATA MAGALHÃES HYPOLITO' },

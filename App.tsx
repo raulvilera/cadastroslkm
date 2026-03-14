@@ -65,6 +65,7 @@ const App = () => {
             );
 
             try {
+            try {
               // TRAVA DE SEGURANÇA: E-mails com acesso EXCLUSIVO à gestão
               const EXCLUSIVE_MANAGEMENT = [
                 'cadastroslkm@gmail.com',
@@ -691,6 +692,7 @@ const App = () => {
   };
 
   // Determina qual visualização renderizar
+  // Determina qual visualização renderizar
   const EXCLUSIVE_MANAGEMENT = [
     'cadastroslkm@gmail.com',
     'erineidearagao@prof.educacao.sp.gov.br',
@@ -733,7 +735,7 @@ const App = () => {
 
       {/* Marcador de Versão para Depuração */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100]">
-        Build Version: 1.15.2
+        Build Version: 1.15.3
       </div>
     </div>
   );

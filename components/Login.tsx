@@ -143,7 +143,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           userRole = 'gestor';
           console.log('🛡️ [LOGIN] Acesso Gestão Exclusivo detectado para:', displayEmail);
         }
-
         // Fallback para lista local se não encontrou no banco — preserva role correto (gestor ou professor)
         if (!userRole) {
           userRole = getRoleFromLocalDB(displayEmail);
