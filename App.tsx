@@ -31,6 +31,11 @@ const App = () => {
 
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
+  // Ref que trava o user após o onLogin ser chamado.
+  // Impede que qualquer evento assíncrono posterior (onAuthStateChange, TOKEN_REFRESHED)
+  // sobrescreva o role já definido corretamente pelo fluxo de login.
+  const lockedUserRef = React.useRef<User | null>(null);
+
   useEffect(() => {
     let authListener: any = null;
 
@@ -116,8 +121,15 @@ const App = () => {
 
               const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ BLINDAGEM TOTAL: gestão exclusiva define 'gestor' diretamente,
-              // sem consultar o banco — evita race condition com SIGNED_IN/TOKEN_REFRESHED.
+              // ✅ TRAVA DEFINITIVA: se o user já foi definido pelo onLogin,
+              // bloquear qualquer sobrescrita — seja de TOKEN_REFRESHED, SIGNED_IN, etc.
+              if (lockedUserRef.current?.email === sessionEmail) {
+                console.log('🔒 [APP] onAuthStateChange bloqueado — user travado:', sessionEmail);
+                setView('dashboard');
+                return;
+              }
+
+              // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
                 console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
                 setUser(prev => {
@@ -651,6 +663,7 @@ const App = () => {
   };
 
   const handleLogout = async () => {
+    lockedUserRef.current = null; // Libera a trava ao sair
     if (isSupabaseConfigured && supabase) await supabase.auth.signOut();
     setUser(null);
     setView('login');
@@ -666,9 +679,7 @@ const App = () => {
   }
 
   if (view === 'login') return <Login onLogin={u => {
-    // Garante que o role definido pelo Login (que já aplicou a trava de gestão exclusiva)
-    // não seja sobrescrito por um evento SIGNED_IN do onAuthStateChange que pode
-    // buscar o role incorreto no banco antes da trava ser aplicada.
+    lockedUserRef.current = u; // Trava o user — onAuthStateChange não pode sobrescrever
     setUser(u);
     setView('dashboard');
   }} />;
