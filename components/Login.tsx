@@ -127,18 +127,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }
         };
 
-        const dbRole = await fetchRoleWithTimeout();
-        let userRole: 'gestor' | 'professor' | null = dbRole as any;
+        // CORREÇÃO: Verificar EXCLUSIVE_MANAGEMENT_EMAILS ANTES da consulta ao banco.
+        // O banco pode ter o e-mail cadastrado como 'professor', o que sobrescrevia o role
+        // correto de 'gestor' para e-mails como cadastroslkm@gmail.com.
+        let userRole: 'gestor' | 'professor' | null = null;
 
         if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(displayEmail)) {
           userRole = 'gestor';
           console.log('🛡️ [LOGIN] Acesso Gestão Exclusivo detectado para:', displayEmail);
-        }
+        } else {
+          // Só consulta o banco se NÃO for e-mail de gestão exclusiva
+          const dbRole = await fetchRoleWithTimeout();
+          userRole = dbRole as any;
 
-        // Fallback para lista local se não encontrou no banco — preserva role correto (gestor ou professor)
-        if (!userRole) {
-          userRole = getRoleFromLocalDB(displayEmail);
-          if (userRole) console.log('✅ [LOGIN] Autorizado via Lista Local! Role:', userRole);
+          // Fallback para lista local se não encontrou no banco — preserva role correto (gestor ou professor)
+          if (!userRole) {
+            userRole = getRoleFromLocalDB(displayEmail);
+            if (userRole) console.log('✅ [LOGIN] Autorizado via Lista Local! Role:', userRole);
+          }
         }
 
         if (userRole) {
