@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
@@ -107,11 +106,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         // Função para buscar cargo no banco com timeout
         const fetchRoleWithTimeout = async () => {
+          // CORREÇÃO: E-mails que não são institucionais (ex: gmail) devem ser buscados
+          // apenas pelo e-mail exato, sem adicionar variantes @prof/@professor,
+          // evitando que uma linha errada no banco retorne o role incorreto.
+          const isInstitutional = displayEmail.endsWith('@prof.educacao.sp.gov.br') ||
+            displayEmail.endsWith('@professor.educacao.sp.gov.br');
           const emailBase = displayEmail.split('@')[0];
+          const orFilter = isInstitutional
+            ? `email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
+            : `email.eq.${displayEmail}`;
+
           const query = supabase
             .from('authorized_professors')
             .select('role')
-            .or(`email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+            .or(orFilter)
             .maybeSingle();
 
           const timeoutPromise = new Promise((_, reject) =>
@@ -204,12 +212,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (data.user) {
         // Busca o role e autorização no banco de dados
-        // CORREÇÃO: inclui o e-mail exato digitado além dos dois domínios fixos
+        // CORREÇÃO: e-mails não-institucionais (gmail etc.) buscam apenas o e-mail exato,
+        // evitando colisão com variantes @prof/@professor.
         const emailBase = lowerEmail.split('@')[0];
+        const isInstitutionalReg = lowerEmail.endsWith('@prof.educacao.sp.gov.br') ||
+          lowerEmail.endsWith('@professor.educacao.sp.gov.br');
+        const orFilterReg = isInstitutionalReg
+          ? `email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
+          : `email.eq.${lowerEmail}`;
         const { data: authData } = await supabase
           .from('authorized_professors')
           .select('role')
-          .or(`email.eq.${lowerEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+          .or(orFilterReg)
           .maybeSingle();
 
         let userRole: 'gestor' | 'professor' | null = null;
