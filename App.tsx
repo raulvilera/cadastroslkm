@@ -42,9 +42,17 @@ const App = () => {
 
       if (isSupabaseConfigured && supabase) {
         try {
-          // O link de recuperação contém access_token ou type=recovery
-          let isDuringRecovery = window.location.hash.includes('type=recovery') ||
-            window.location.hash.includes('access_token=');
+          // O link de recuperação pode chegar como hash (#) ou query string (?).
+          // Supabase v2 envia: ?token_hash=...&type=recovery
+          // Supabase v1 enviava: #access_token=...&type=recovery
+          const _hash = window.location.hash;
+          const _search = window.location.search;
+
+          let isDuringRecovery =
+            _hash.includes('type=recovery') ||
+            _hash.includes('access_token=') ||
+            _search.includes('type=recovery') ||
+            _search.includes('token_hash=');
 
           if (isDuringRecovery) {
             console.log('🔑 [APP] MODO RECUPERAÇÃO ATIVADO - Bloqueando redirecionamentos');
@@ -55,10 +63,10 @@ const App = () => {
             const fetchRoleSafe = async (email: string) => {
               const normalizedEmail = email.toLowerCase().trim();
 
-              // TRAVA DE SEGURANÇA: Gestão Exclusiva tem PRIORIDADE MÁXIMA.
-              // Esta verificação ocorre ANTES da consulta ao banco para evitar que
-              // um registro 'professor' no Supabase sobrescreva o role correto de 'gestor'.
+              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
+              // Isso evita que um registro 'professor' no Supabase sobrescreva o role correto.
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
+                console.log('🛡️ [APP] Gestão Exclusiva — ignorando banco para:', normalizedEmail);
                 return 'gestor';
               }
 
@@ -76,12 +84,7 @@ const App = () => {
               try {
                 const result: any = await Promise.race([query, timeoutPromise]);
                 const dbRole = result.data?.role || null;
-
-                // Se o banco retornou um role, confia nele (gestor ou professor).
-                // O fallback local só é usado quando o banco não tem registro algum do e-mail.
                 if (dbRole) return dbRole;
-
-                // Fallback para lista local — usa o role definido na PROFESSORS_DB.
                 return getRoleFromLocalDB(normalizedEmail);
               } catch (e) {
                 console.warn('⚠️ [APP] Fallback local ativado para:', normalizedEmail);
@@ -639,7 +642,13 @@ const App = () => {
     );
   }
 
-  if (view === 'login') return <Login onLogin={u => { setUser(u); setView('dashboard'); }} />;
+  if (view === 'login') return <Login onLogin={u => {
+    // Garante que o role definido pelo Login (que já aplicou a trava de gestão exclusiva)
+    // não seja sobrescrito por um evento SIGNED_IN do onAuthStateChange que pode
+    // buscar o role incorreto no banco antes da trava ser aplicada.
+    setUser(u);
+    setView('dashboard');
+  }} />;
 
   if (view === 'resetPassword') {
     return (
