@@ -54,52 +54,40 @@ const App = () => {
             // Função auxiliar para buscar role com timeout e fallback
             const fetchRoleSafe = async (email: string) => {
               const normalizedEmail = email.toLowerCase().trim();
-              
-              // 1. TRAVA DE SEGURANÇA: Gestão Exclusiva (Prioridade Máxima)
+
+              // TRAVA DE SEGURANÇA: Gestão Exclusiva tem PRIORIDADE MÁXIMA.
+              // Esta verificação ocorre ANTES da consulta ao banco para evitar que
+              // um registro 'professor' no Supabase sobrescreva o role correto de 'gestor'.
               if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
                 return 'gestor';
               }
 
-              const emailBase = email.toLowerCase().split('@')[0];
-            const query = supabase
-              .from('authorized_professors')
-              .select('role')
-              .or(`email.eq.${email},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
-              .maybeSingle();
+              const emailBase = normalizedEmail.split('@')[0];
+              const query = supabase
+                .from('authorized_professors')
+                .select('role')
+                .or(`email.eq.${normalizedEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`)
+                .maybeSingle();
 
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('TIMEOUT_DB')), 4000)
-            );
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('TIMEOUT_DB')), 4000)
+              );
 
-            try {
-              // TRAVA DE SEGURANÇA: E-mails com acesso EXCLUSIVO à gestão
-              const EXCLUSIVE_MANAGEMENT = [
-                'cadastroslkm@gmail.com',
-                'erineidearagao@prof.educacao.sp.gov.br',
-                'patriciag@prof.educacao.sp.gov.br',
-                'regianecurti@prof.educacao.sp.gov.br',
-                'michellemoraes@prof.educacao.sp.gov.br'
-              ];
+              try {
+                const result: any = await Promise.race([query, timeoutPromise]);
+                const dbRole = result.data?.role || null;
 
-              if (EXCLUSIVE_MANAGEMENT.includes(email.toLowerCase().trim())) {
-                return 'gestor';
+                // Se o banco retornou um role, confia nele (gestor ou professor).
+                // O fallback local só é usado quando o banco não tem registro algum do e-mail.
+                if (dbRole) return dbRole;
+
+                // Fallback para lista local — usa o role definido na PROFESSORS_DB.
+                return getRoleFromLocalDB(normalizedEmail);
+              } catch (e) {
+                console.warn('⚠️ [APP] Fallback local ativado para:', normalizedEmail);
+                return getRoleFromLocalDB(normalizedEmail);
               }
-
-              const result: any = await Promise.race([query, timeoutPromise]);
-              const dbRole = result.data?.role || null;
-
-              // CORREÇÃO: Se o banco retornou um role, confia nele (gestor ou professor).
-              // O fallback local só é usado quando o banco não tem registro algum do e-mail.
-              if (dbRole) return dbRole;
-
-              // Fallback para lista local — usa o role definido na PROFESSORS_DB,
-              // preservando 'gestor' para e-mails de gestão (ex: cadastroslkm@gmail.com).
-              return getRoleFromLocalDB(email);
-            } catch (e) {
-              console.warn('⚠️ [APP] Fallback local ativado para:', email);
-              return getRoleFromLocalDB(email);
-            }
-          };
+            };
 
           // 3. Monitor de autenticação
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
