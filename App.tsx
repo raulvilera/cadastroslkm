@@ -9,7 +9,7 @@ import { Incident, User, Student } from './types';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
-import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
+import { isProfessorRegistered, getRoleFromLocalDB, EXCLUSIVE_MANAGEMENT_EMAILS } from './professorsData';
 
 // E-mail com acesso dual (gestor + professor)
 const DUAL_ACCESS_EMAIL = 'vilera@prof.educacao.sp.gov.br';
@@ -51,9 +51,16 @@ const App = () => {
             setView('resetPassword');
           }
 
-          // Função auxiliar para buscar role com timeout e fallback
-          const fetchRoleSafe = async (email: string) => {
-            const emailBase = email.toLowerCase().split('@')[0];
+            // Função auxiliar para buscar role com timeout e fallback
+            const fetchRoleSafe = async (email: string) => {
+              const normalizedEmail = email.toLowerCase().trim();
+              
+              // 1. TRAVA DE SEGURANÇA: Gestão Exclusiva (Prioridade Máxima)
+              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
+                return 'gestor';
+              }
+
+              const emailBase = email.toLowerCase().split('@')[0];
             const query = supabase
               .from('authorized_professors')
               .select('role')
@@ -89,8 +96,7 @@ const App = () => {
               // preservando 'gestor' para e-mails de gestão (ex: cadastroslkm@gmail.com).
               return getRoleFromLocalDB(email);
             } catch (e) {
-              console.warn('⚠️ [APP] Fallback ativado para role:', email);
-              // Em caso de timeout/erro de rede, usa a lista local com o role correto.
+              console.warn('⚠️ [APP] Fallback local ativado para:', email);
               return getRoleFromLocalDB(email);
             }
           };
@@ -690,25 +696,14 @@ const App = () => {
     onSyncStudents: handleSyncStudents
   };
 
-  // Determina qual visualização renderizar
-  // Determina qual visualização renderizar
-  const EXCLUSIVE_MANAGEMENT = [
-    'cadastroslkm@gmail.com',
-    'erineidearagao@prof.educacao.sp.gov.br',
-    'patriciag@prof.educacao.sp.gov.br',
-    'regianecurti@prof.educacao.sp.gov.br',
-    'michellemoraes@prof.educacao.sp.gov.br'
-  ];
-
-  const isExclusiveManagement = user?.email && EXCLUSIVE_MANAGEMENT.includes(user.email.toLowerCase().trim());
-  const shouldShowGestorView = isExclusiveManagement ? true : (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
-
-  // Forçar visualização de gestor para e-mails exclusivos, removendo qualquer possibilidade de alternância
-  const showProfessorView = !shouldShowGestorView && !isExclusiveManagement;
+  // Determina qual visualização renderizar com base no e-mail e role
+  const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
+  const isExclusiveManagement = EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedUserEmail);
+  const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
     <div className="relative min-h-screen bg-[#001a35]">
-      {/* Botão de alternância para usuários com acesso dual (Apenas se não for gestão exclusiva) */}
+      {/* Botão de alternância para acesso dual (Não disponível para Gestão Exclusiva) */}
       {hasDualAccess && !isExclusiveManagement && (
         <button
           onClick={handleToggleView}
@@ -732,12 +727,12 @@ const App = () => {
         </div>
       ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...commonProps} />))}
 
-      {/* Marcador de Versão e Depuração */}
+      {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
-        <span>Build Version: 1.15.4</span>
-        <span>User: {user?.email || 'Não Logado'}</span>
-        <span>Role: {user?.role || 'Nenhum'}</span>
-        <span>Exclusive: {isExclusiveManagement ? 'Sim' : 'Não'}</span>
+        <span>Build Version: 1.15.5</span>
+        <span>User: {user?.email || 'OFFLINE'}</span>
+        <span>Role: {user?.role || 'NONE'}</span>
+        <span>Management: {isExclusiveManagement ? 'EXCLUSIVE' : 'NORMAL'}</span>
       </div>
     </div>
   );

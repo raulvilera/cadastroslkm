@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, getRoleFromLocalDB } from '../professorsData';
+import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, getRoleFromLocalDB, EXCLUSIVE_MANAGEMENT_EMAILS } from '../professorsData';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -130,19 +130,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const dbRole = await fetchRoleWithTimeout();
         let userRole: 'gestor' | 'professor' | null = dbRole as any;
 
-        // TRAVA DE SEGURANÇA: E-mails com acesso EXCLUSIVO à gestão
-        const EXCLUSIVE_MANAGEMENT = [
-          'cadastroslkm@gmail.com',
-          'erineidearagao@prof.educacao.sp.gov.br',
-          'patriciag@prof.educacao.sp.gov.br',
-          'regianecurti@prof.educacao.sp.gov.br',
-          'michellemoraes@prof.educacao.sp.gov.br'
-        ];
-
-        if (EXCLUSIVE_MANAGEMENT.includes(displayEmail)) {
+        if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(displayEmail)) {
           userRole = 'gestor';
           console.log('🛡️ [LOGIN] Acesso Gestão Exclusivo detectado para:', displayEmail);
         }
+
         // Fallback para lista local se não encontrou no banco — preserva role correto (gestor ou professor)
         if (!userRole) {
           userRole = getRoleFromLocalDB(displayEmail);

@@ -7,6 +7,14 @@ export interface ProfessorData {
     role?: 'gestor' | 'professor';
 }
 
+export const EXCLUSIVE_MANAGEMENT_EMAILS = [
+    'cadastroslkm@gmail.com',
+    'erineidearagao@prof.educacao.sp.gov.br',
+    'patriciag@prof.educacao.sp.gov.br',
+    'regianecurti@prof.educacao.sp.gov.br',
+    'michellemoraes@prof.educacao.sp.gov.br'
+];
+
 export const PROFESSORS_DB: ProfessorData[] = [
     // Contas de gestão
     { email: 'gestao@escola.com', nome: 'GESTÃO ESCOLAR', role: 'gestor' },
