@@ -135,22 +135,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }
         };
 
-        // ✅ PRIORIDADE MÁXIMA: gestão exclusiva NUNCA consulta o banco.
-        // Evita que um registro 'professor' no Supabase sobrescreva o role correto de 'gestor'.
-        let userRole: 'gestor' | 'professor' | null = null;
+        // ✅ FONTE ÚNICA DE VERDADE: getRoleFromLocalDB é sempre consultado primeiro.
+        // Não depende de EXCLUSIVE_MANAGEMENT_EMAILS (pode estar desatualizado no build)
+        // nem do banco (pode falhar ou ter dados errados).
+        // PROFESSORS_DB já tem cadastroslkm@gmail.com com role: 'gestor'.
+        let userRole: 'gestor' | 'professor' | null = getRoleFromLocalDB(displayEmail);
+        console.log('🔍 [LOGIN] Role da lista local:', userRole, '| email:', displayEmail);
 
-        if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(displayEmail)) {
-          userRole = 'gestor';
-          console.log('🛡️ [LOGIN] Acesso Gestão Exclusivo detectado para:', displayEmail);
-        } else {
+        // Só consulta o banco se não encontrou localmente
+        if (!userRole) {
           const dbRole = await fetchRoleWithTimeout();
           userRole = dbRole as any;
-
-          // Fallback para lista local se não encontrou no banco
-          if (!userRole) {
-            userRole = getRoleFromLocalDB(displayEmail);
-            if (userRole) console.log('✅ [LOGIN] Autorizado via Lista Local! Role:', userRole);
-          }
+          if (userRole) console.log('✅ [LOGIN] Role do banco:', userRole);
         }
 
         if (userRole) {
