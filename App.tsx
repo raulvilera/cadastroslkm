@@ -86,24 +86,18 @@ const App = () => {
               const normalizedEmail = email.toLowerCase().trim();
 
               // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
-              // Isso evita que um registro 'professor' no Supabase sobrescreva o role correto.
               if (GESTAO_EMAILS_HARDCODED.includes(normalizedEmail)) {
-                console.log('🛡️ [APP] Gestão Exclusiva — ignorando banco para:', normalizedEmail);
+                console.log('🛡️ [APP] Gestão Exclusiva — role fixo gestor:', normalizedEmail);
                 return 'gestor';
               }
 
-              // CORREÇÃO: e-mails não-institucionais (gmail etc.) buscam apenas o e-mail exato,
-              // evitando que variantes @prof/@professor retornem uma linha errada do banco.
-              const emailBase = normalizedEmail.split('@')[0];
-              const isInstitutionalApp = normalizedEmail.endsWith('@prof.educacao.sp.gov.br') ||
-                normalizedEmail.endsWith('@professor.educacao.sp.gov.br');
-              const orFilterApp = isInstitutionalApp
-                ? `email.eq.${normalizedEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
-                : `email.eq.${normalizedEmail}`;
+              // CORREÇÃO DEFINITIVA: busca SEMPRE pelo email exato.
+              // Nunca adicionar variantes de domínio — isso causava vilera@professor
+              // retornar o role de vilera@prof (gestor) por colisão na query.
               const query = supabase
                 .from('authorized_professors')
                 .select('role')
-                .or(orFilterApp)
+                .eq('email', normalizedEmail)
                 .maybeSingle();
 
               const timeoutPromise = new Promise((_, reject) =>
