@@ -121,20 +121,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         // Função para buscar cargo no banco com timeout
         const fetchRoleWithTimeout = async () => {
-          // CORREÇÃO: E-mails que não são institucionais (ex: gmail) devem ser buscados
-          // apenas pelo e-mail exato, sem adicionar variantes @prof/@professor,
-          // evitando que uma linha errada no banco retorne o role incorreto.
-          const isInstitutional = displayEmail.endsWith('@prof.educacao.sp.gov.br') ||
-            displayEmail.endsWith('@professor.educacao.sp.gov.br');
-          const emailBase = displayEmail.split('@')[0];
-          const orFilter = isInstitutional
-            ? `email.eq.${displayEmail},email.eq.${emailBase}@prof.educacao.sp.gov.br,email.eq.${emailBase}@professor.educacao.sp.gov.br`
-            : `email.eq.${displayEmail}`;
-
+          // CORREÇÃO DEFINITIVA: busca sempre pelo email exato.
+          // Variantes de domínio causavam colisão (ex: vilera@professor retornava
+          // o role de vilera@prof por estarem ambos no banco com roles diferentes).
           const query = supabase
             .from('authorized_professors')
             .select('role')
-            .or(orFilter)
+            .eq('email', displayEmail)
             .maybeSingle();
 
           const timeoutPromise = new Promise((_, reject) =>
