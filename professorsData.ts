@@ -209,7 +209,15 @@ export const isProfessorRegistered = (email: string): boolean => {
  * Gestores têm role: 'gestor'. Professores sem role definido retornam 'professor'.
  */
 export const getRoleFromLocalDB = (email: string): 'gestor' | 'professor' | null => {
-    const normalizedTarget = normalizeInstitutionalEmail(email);
+    const lowerEmail = email.toLowerCase().trim();
+
+    // 1. Busca pelo email EXATO primeiro — sem normalização.
+    // Isso garante que vilera@professor e vilera@prof sejam tratados independentemente.
+    const exactMatch = PROFESSORS_DB.find(p => p.email.toLowerCase().trim() === lowerEmail);
+    if (exactMatch) return exactMatch.role || 'professor';
+
+    // 2. Só normaliza se não encontrou o email exato
+    const normalizedTarget = normalizeInstitutionalEmail(lowerEmail);
     const found = PROFESSORS_DB.find(p => normalizeInstitutionalEmail(p.email) === normalizedTarget);
     if (!found) return null;
     return found.role || 'professor';
