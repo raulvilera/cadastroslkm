@@ -152,17 +152,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           console.log('✅ [LOGIN] Gestor identificado via lista hardcoded:', displayEmail);
         }
 
-        // VERIFICAÇÃO 2: lista local (professorsData.ts)
-        if (!userRole) {
-          userRole = getRoleFromLocalDB(displayEmail);
-          console.log('🔍 [LOGIN] Role da lista local:', userRole, '| email:', displayEmail);
+        // VERIFICAÇÃO 2: banco de dados — fonte de verdade mais confiável
+        // O banco tem os roles corretos inclusive para casos como vilera@professor (professor)
+        // vs vilera@prof (gestor) que a lista local pode confundir por normalização.
+        const dbRole = await fetchRoleWithTimeout();
+        if (dbRole) {
+          userRole = dbRole as any;
+          console.log('✅ [LOGIN] Role do banco:', userRole);
         }
 
-        // VERIFICAÇÃO 3: banco de dados como último recurso
+        // VERIFICAÇÃO 3: lista local como fallback se banco falhar
         if (!userRole) {
-          const dbRole = await fetchRoleWithTimeout();
-          userRole = dbRole as any;
-          if (userRole) console.log('✅ [LOGIN] Role do banco:', userRole);
+          userRole = getRoleFromLocalDB(displayEmail);
+          console.log('🔍 [LOGIN] Role da lista local (fallback):', userRole, '| email:', displayEmail);
         }
 
         if (userRole) {
