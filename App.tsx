@@ -8,7 +8,21 @@ import { Incident, User, Student } from './types';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
-import { isProfessorRegistered, getRoleFromLocalDB, EXCLUSIVE_MANAGEMENT_EMAILS } from './professorsData';
+import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
+
+// ✅ Lista hardcoded de gestores — funciona mesmo se professorsData.ts
+// tiver problema de import ou build. Fonte de verdade absoluta.
+const GESTAO_EMAILS_HARDCODED = [
+  'cadastroslkm@gmail.com',
+  'erineidearagao@prof.educacao.sp.gov.br',
+  'patriciag@prof.educacao.sp.gov.br',
+  'regianecurti@prof.educacao.sp.gov.br',
+  'michellemoraes@prof.educacao.sp.gov.br',
+  'vilera@prof.educacao.sp.gov.br',
+  'deizylaura@prof.educacao.sp.gov.br',
+  'aline.gestao@prof.educacao.sp.gov.br',
+  'gestao@escola.com',
+];
 
 // E-mail com acesso dual (gestor + professor)
 const DUAL_ACCESS_EMAIL = 'vilera@prof.educacao.sp.gov.br';
@@ -69,7 +83,7 @@ const App = () => {
 
               // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
               // Isso evita que um registro 'professor' no Supabase sobrescreva o role correto.
-              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedEmail)) {
+              if (GESTAO_EMAILS_HARDCODED.includes(normalizedEmail)) {
                 console.log('🛡️ [APP] Gestão Exclusiva — ignorando banco para:', normalizedEmail);
                 return 'gestor';
               }
@@ -130,7 +144,7 @@ const App = () => {
               }
 
               // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
-              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
                 console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
@@ -170,7 +184,7 @@ const App = () => {
               const sessionEmail = session.user.email!.toLowerCase();
 
               // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco
-              if (EXCLUSIVE_MANAGEMENT_EMAILS.includes(sessionEmail)) {
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
                 console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
@@ -729,7 +743,7 @@ const App = () => {
 
   // Determina qual visualização renderizar com base no e-mail e role
   const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
-  const isExclusiveManagement = EXCLUSIVE_MANAGEMENT_EMAILS.includes(normalizedUserEmail);
+  const isExclusiveManagement = GESTAO_EMAILS_HARDCODED.includes(normalizedUserEmail);
 
   // ✅ Para gestão exclusiva, a view é SEMPRE gestor — independente do user.role.
   // Isso garante que mesmo se o role for sobrescrito por um evento assíncrono do Supabase,
