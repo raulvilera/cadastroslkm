@@ -3,6 +3,21 @@ import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { PROFESSORS_DB, isProfessorRegistered, getProfessorNameFromEmail, getRoleFromLocalDB, EXCLUSIVE_MANAGEMENT_EMAILS } from '../professorsData';
 
+// ✅ LISTA HARDCODED — independente de qualquer import externo.
+// Garante que mesmo se professorsData.ts tiver problema no build,
+// esses e-mails SEMPRE entram como gestor.
+const GESTAO_EMAILS_HARDCODED = [
+  'cadastroslkm@gmail.com',
+  'erineidearagao@prof.educacao.sp.gov.br',
+  'patriciag@prof.educacao.sp.gov.br',
+  'regianecurti@prof.educacao.sp.gov.br',
+  'michellemoraes@prof.educacao.sp.gov.br',
+  'vilera@prof.educacao.sp.gov.br',
+  'deizylaura@prof.educacao.sp.gov.br',
+  'aline.gestao@prof.educacao.sp.gov.br',
+  'gestao@escola.com',
+];
+
 interface LoginProps {
   onLogin: (user: User) => void;
 }
@@ -135,14 +150,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }
         };
 
-        // ✅ FONTE ÚNICA DE VERDADE: getRoleFromLocalDB é sempre consultado primeiro.
-        // Não depende de EXCLUSIVE_MANAGEMENT_EMAILS (pode estar desatualizado no build)
-        // nem do banco (pode falhar ou ter dados errados).
-        // PROFESSORS_DB já tem cadastroslkm@gmail.com com role: 'gestor'.
-        let userRole: 'gestor' | 'professor' | null = getRoleFromLocalDB(displayEmail);
-        console.log('🔍 [LOGIN] Role da lista local:', userRole, '| email:', displayEmail);
+        // ✅ VERIFICAÇÃO 1: lista hardcoded no próprio arquivo — nunca falha
+        // independente de imports, build da Vercel ou estado do banco.
+        let userRole: 'gestor' | 'professor' | null = null;
 
-        // Só consulta o banco se não encontrou localmente
+        if (GESTAO_EMAILS_HARDCODED.includes(displayEmail)) {
+          userRole = 'gestor';
+          console.log('✅ [LOGIN] Gestor identificado via lista hardcoded:', displayEmail);
+        }
+
+        // VERIFICAÇÃO 2: lista local (professorsData.ts)
+        if (!userRole) {
+          userRole = getRoleFromLocalDB(displayEmail);
+          console.log('🔍 [LOGIN] Role da lista local:', userRole, '| email:', displayEmail);
+        }
+
+        // VERIFICAÇÃO 3: banco de dados como último recurso
         if (!userRole) {
           const dbRole = await fetchRoleWithTimeout();
           userRole = dbRole as any;
