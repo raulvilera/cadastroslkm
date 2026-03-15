@@ -50,6 +50,10 @@ const App = () => {
   // sobrescreva o role já definido corretamente pelo fluxo de login.
   const lockedUserRef = React.useRef<User | null>(null);
 
+  // Flag que indica que o Login.tsx está processando — onAuthStateChange deve ignorar
+  // eventos SIGNED_IN durante esse período para não interferir com o fluxo de login.
+  const loginInProgressRef = React.useRef<boolean>(false);
+
   useEffect(() => {
     let authListener: any = null;
 
@@ -127,6 +131,13 @@ const App = () => {
               return;
             }
 
+            // ✅ Se o Login.tsx está processando, ignorar eventos SIGNED_IN/TOKEN_REFRESHED
+            // para não interferir com o fluxo de login que já determina o role corretamente.
+            if (loginInProgressRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+              console.log('⏸️ [APP] onAuthStateChange ignorado — login em progresso');
+              return;
+            }
+
             if (session?.user) {
               if (isDuringRecovery) {
                 setView('resetPassword');
@@ -135,14 +146,17 @@ const App = () => {
 
               const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ TRAVA DEFINITIVA: se o user já foi definido pelo onLogin,
-              // bloquear qualquer sobrescrita — seja de TOKEN_REFRESHED, SIGNED_IN, etc.
+              // ✅ TRAVA DEFINITIVA: se já existe um user definido (pelo onLogin ou
+              // por uma sessão anterior), não sobrescrever em nenhuma hipótese.
+              // O role correto já foi determinado — TOKEN_REFRESHED e SIGNED_IN
+              // não devem mudar isso.
               if (lockedUserRef.current?.email === sessionEmail) {
                 console.log('🔒 [APP] onAuthStateChange bloqueado — user travado:', sessionEmail);
                 setView('dashboard');
                 return;
               }
 
+              // Só chega aqui se não há user definido (ex: reload da página com sessão ativa)
               // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
               if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
                 console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
@@ -693,9 +707,12 @@ const App = () => {
   }
 
   if (view === 'login') return <Login onLogin={u => {
-    lockedUserRef.current = u; // Trava o user — onAuthStateChange não pode sobrescrever
+    loginInProgressRef.current = true; // Bloqueia onAuthStateChange durante transição
+    lockedUserRef.current = u;
     setUser(u);
     setView('dashboard');
+    // Libera após 3s — tempo suficiente para eventos do Supabase passarem
+    setTimeout(() => { loginInProgressRef.current = false; }, 3000);
   }} />;
 
   if (view === 'resetPassword') {
