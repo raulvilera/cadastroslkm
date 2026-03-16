@@ -37,6 +37,8 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'avarella@prof.educacao.sp.gov.br', nome: 'ALEXANDRA PAULA VARELLA DE SOUZA' },
     { email: 'alisonv@professor.educacao.sp.gov.br', nome: 'ALISON VASCONCELOS BESERRA' },
     { email: 'alisonv@prof.educacao.sp.gov.br', nome: 'ALISON VASCONCELOS BESERRA' },
+    { email: 'anaosouza@professor.educacao.sp.gov.br', nome: 'ANA O. SOUZA', role: 'gestor' },
+    { email: 'anaosouza@prof.educacao.sp.gov.br', nome: 'ANA O. SOUZA', role: 'gestor' },
     { email: 'anapereira08@professor.educacao.sp.gov.br', nome: 'ANA PAULA ALVES PEREIRA' },
     { email: 'anapereira08@prof.educacao.sp.gov.br', nome: 'ANA PAULA ALVES PEREIRA' },
     { email: 'sanfreitas@professor.educacao.sp.gov.br', nome: 'ANDREIA DOS SANTOS FREITAS' },
