@@ -517,7 +517,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 </div>
               </div>
 
-              <div className="overflow-x-auto custom-scrollbar bg-gray-50/30">
+              {/* Barra de rolagem horizontal destacada */}
+              <div
+                className="h-3 bg-[#001a35] border-y border-white/10 overflow-x-auto custom-scrollbar"
+                style={{ overflowY: 'hidden' }}
+                onScroll={e => {
+                  const tableWrapper = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (tableWrapper) tableWrapper.scrollLeft = e.currentTarget.scrollLeft;
+                }}
+                id="incidents-scrollbar-top"
+              >
+                <div style={{ minWidth: '1200px', height: '1px' }} />
+              </div>
+
+              <div
+                className="overflow-x-auto bg-gray-50/30"
+                style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onScroll={e => {
+                  const scrollbar = e.currentTarget.previousElementSibling as HTMLElement;
+                  if (scrollbar) scrollbar.scrollLeft = e.currentTarget.scrollLeft;
+                }}
+                id="incidents-table-wrapper"
+              >
+                <style>{`#incidents-table-wrapper::-webkit-scrollbar { display: none; }`}</style>
                 <table className="w-full text-left text-[10px] min-w-[1200px]">
                   <thead className="bg-[#f8fafc] border-b text-black sticky top-0 z-10">
                     <tr>
