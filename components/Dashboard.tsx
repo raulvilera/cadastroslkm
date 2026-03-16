@@ -1,8 +1,71 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { Incident, User, Student } from '../types';
-import { generateIncidentPDF, uploadPDFToStorage } from '../services/pdfService';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+
+// ── Dropdown customizado com lista colorida (azul/branco alternados) ─────────
+interface AlunoDropdownProps {
+  value: string;
+  onChange: (nome: string) => void;
+  alunos: { ra: string; nome: string }[];
+  disabled?: boolean;
+}
+const AlunoDropdown: React.FC<AlunoDropdownProps> = ({ value, onChange, alunos, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(o => !o)}
+        className="w-full h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm disabled:opacity-50 cursor-pointer flex items-center justify-between gap-2"
+      >
+        <span className={value ? 'text-black uppercase' : 'text-gray-400'}>{value || 'Selecione o Aluno...'}</span>
+        <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-[200] w-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
+          <div
+            onClick={() => { onChange(''); setOpen(false); }}
+            className="px-5 py-2.5 text-xs font-bold text-gray-400 italic cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100"
+          >
+            Selecione o Aluno...
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {alunos.map((s, idx) => (
+              <div
+                key={s.ra}
+                onClick={() => { onChange(s.nome); setOpen(false); }}
+                className={`px-5 py-2.5 text-xs font-black uppercase cursor-pointer transition-colors
+                  ${value === s.nome
+                    ? 'bg-blue-600 text-white'
+                    : idx % 2 === 0
+                      ? 'bg-white text-gray-900 hover:bg-blue-100'
+                      : 'bg-blue-50 text-gray-900 hover:bg-blue-100'
+                  }`}
+              >
+                {s.nome}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+import type { Incident, User, Student, ManagementReferral } from '../types';
+import { generateIncidentPDF } from '../services/pdfService';
 import StatusBadge from './StatusBadge';
 import { supabase } from '../services/supabaseClient';
+import { ALLOWED_CLASSES } from '../data/studentsData';
+import { normalizeClassName } from '../utils/formatters';
 
 interface DashboardProps {
   user: User;
@@ -22,20 +85,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
   const [classification, setClassification] = useState('');
-  const [discipline, setDiscipline] = useState('');
-  const [selectedIrregularities, setSelectedIrregularities] = useState<string[]>([]);
   const [description, setDescription] = useState('');
+  // ── Toast e Confirm internos ──────────────────────────────────────────────
+  const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
+  const dgShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
+    const id = Date.now(); setDgToast({ msg, type, id });
+    setTimeout(() => setDgToast(t => t?.id === id ? null : t), dur);
+  };
+  const [dgConfirm, setDgConfirm] = useState<{ msg: string; onOk: () => void }|null>(null);
+  const dgAskConfirm = (msg: string, onOk: () => void) => setDgConfirm({ msg, onOk });
+
   const [registerDate, setRegisterDate] = useState(new Date().toISOString().split('T')[0]);
   const [returnDate, setReturnDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const regDateRef = useRef<HTMLInputElement>(null);
-  const retDateRef = useRef<HTMLInputElement>(null);
+  const regDateRef = useRef<HTMLInputElement>(null!);
+  const retDateRef = useRef<HTMLInputElement>(null!);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<Incident | null>(null);
   const [newStatus, setNewStatus] = useState<Incident['status']>('Pendente');
   const [feedback, setFeedback] = useState('');
+
+  // ── Estados dos Encaminhamentos da Gestão ───────────────────────────────
+  // Cada item da lista pode ser marcado e ter uma descrição associada
+  const LISTA_ENCAMINHAMENTOS_GESTAO: { label: string; popUp: boolean }[] = [
+    { label: 'Orientação individual com o estudante',                      popUp: true },
+    { label: 'Mediação de conflito realizada pela equipe gestora/POC',     popUp: true },
+    { label: 'Necessidade de acompanhamento e diálogo em casa sobre o ocorrido', popUp: true },
+    { label: 'Convocação dos responsáveis para uma reunião presencial',    popUp: true },
+    { label: 'Recorrência / medidas educativas',                           popUp: true },
+    { label: 'Orientação ao professor',                                    popUp: true },
+    { label: 'Encaminhamento à Rede Protetiva',                            popUp: true },
+    { label: 'Busca ativa',                                                popUp: true },
+    { label: 'Outros',                                                     popUp: true },
+  ];
+  const [selectedMgmtReferrals, setSelectedMgmtReferrals] = useState<string[]>([]);
+  const [mgmtReferralDescriptions, setMgmtReferralDescriptions] = useState<Record<string, string>>({});
+  const [showMgmtReferralModal, setShowMgmtReferralModal] = useState<string | null>(null); // nome do encaminhamento aberto
+  const [mgmtReferralModalText, setMgmtReferralModalText] = useState('');
+  // ─────────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'registros' | 'estatisticas'>('registros');
 
   // Estados para Gerenciamento de Professores
@@ -88,6 +177,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
           pdfUrl: i.pdf_url,
           authorEmail: i.author_email,
           managementFeedback: i.management_feedback,
+          managementFeedbackAt: i.management_feedback_at,
+          managementFeedbackReadAt: i.management_feedback_read_at,
           lastViewedAt: i.last_viewed_at
         })));
       }
@@ -113,7 +204,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
         } else {
           ref.current.focus();
         }
-      } catch (err) {
+      } catch (_err) {
         ref.current.focus();
       }
     }
@@ -122,7 +213,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!studentName || !description || !classRoom || !classification || !professorName) {
-      alert("Preencha todos os campos obrigatórios.");
+      dgShowToast("Preencha todos os campos obrigatórios.", "warning"); return;
       return;
     }
 
@@ -130,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     const now = new Date();
     const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const formattedDate = registerDate.split('-').reverse().join('/');
-    const uniqueId = `gest-${Date.now()}`;
+    const uniqueId = crypto.randomUUID();
 
     const newInc: Incident = {
       id: uniqueId,
@@ -142,14 +233,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
       time: timeStr,
       registerDate: formattedDate,
       returnDate: classification === 'MEDIDA EDUCATIVA' && returnDate ? returnDate.split('-').reverse().join('/') : undefined,
-      discipline: (discipline || 'N/A').toUpperCase(),
-      irregularities: selectedIrregularities.join(', '),
+      discipline: 'N/A',
+      irregularities: '',
       description: description.toUpperCase(),
       severity: 'Média',
       status: 'Pendente',
       category: classification,
       source: 'gestao',
-      authorEmail: user.email
+      authorEmail: user.email,
+      escola: 'fioravante',
     };
 
     onSave(newInc);
@@ -163,15 +255,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     setIsUpdatingStatus(inc);
     setNewStatus(inc.status);
     setFeedback(inc.managementFeedback || '');
+    // Pré-preencher encaminhamentos se já existirem
+    if (inc.managementReferrals && inc.managementReferrals.length > 0) {
+      setSelectedMgmtReferrals(inc.managementReferrals.map(r => r.type));
+      const descs: Record<string, string> = {};
+      inc.managementReferrals.forEach(r => { descs[r.type] = r.description; });
+      setMgmtReferralDescriptions(descs);
+    } else {
+      setSelectedMgmtReferrals([]);
+      setMgmtReferralDescriptions({});
+    }
   };
 
   const handleUpdateStatus = () => {
     if (!isUpdatingStatus || !onUpdateIncident) return;
 
+    // Monta lista de encaminhamentos com descrições
+    const managementReferrals: ManagementReferral[] = selectedMgmtReferrals.map(type => ({
+      type,
+      description: (mgmtReferralDescriptions[type] || '').toUpperCase(),
+    }));
+
     const updated: Incident = {
       ...isUpdatingStatus,
       status: newStatus,
       managementFeedback: feedback.toUpperCase(),
+      managementFeedbackAt: new Date().toISOString(),
+      managementReferrals: managementReferrals.length > 0 ? managementReferrals : undefined,
       lastViewedAt: new Date().toISOString()
     };
 
@@ -179,9 +289,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     setIsUpdatingStatus(null);
   };
 
+  // Abre pop-up de descrição para um encaminhamento da gestão
+  const handleMgmtReferralClick = (tipo: string) => {
+    if (selectedMgmtReferrals.includes(tipo)) {
+      // Já selecionado → abre para editar
+      setMgmtReferralModalText(mgmtReferralDescriptions[tipo] || '');
+      setShowMgmtReferralModal(tipo);
+    } else {
+      // Novo → abre pop-up para descrever
+      setMgmtReferralModalText('');
+      setShowMgmtReferralModal(tipo);
+    }
+  };
+
+  // Clique direto em item sem pop-up (toggle simples)
+  const handleMgmtReferralToggle = (tipo: string) => {
+    if (selectedMgmtReferrals.includes(tipo)) {
+      handleRemoveMgmtReferral(tipo);
+    } else {
+      setSelectedMgmtReferrals(prev => [...prev, tipo]);
+    }
+  };
+
+  const handleConfirmMgmtReferral = () => {
+    if (!showMgmtReferralModal) return;
+    const tipo = showMgmtReferralModal;
+    if (!selectedMgmtReferrals.includes(tipo)) {
+      setSelectedMgmtReferrals(prev => [...prev, tipo]);
+    }
+    setMgmtReferralDescriptions(prev => ({ ...prev, [tipo]: mgmtReferralModalText.trim().toUpperCase() }));
+    setShowMgmtReferralModal(null);
+  };
+
+  const handleRemoveMgmtReferral = (tipo: string) => {
+    setSelectedMgmtReferrals(prev => prev.filter(t => t !== tipo));
+    setMgmtReferralDescriptions(prev => { const n = { ...prev }; delete n[tipo]; return n; });
+  };
+
   const fetchProfessors = async () => {
     setIsManagingProfs(true);
-    const { data, error } = await supabase.from('authorized_professors').select('email, nome').order('nome');
+    const { data } = await supabase.from('authorized_professors').select('email, nome').eq('escola', 'fioravante').order('nome');
     if (data) setProfessorsList(data);
     setIsManagingProfs(false);
   };
@@ -192,11 +339,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
     setIsManagingProfs(true);
     const { error } = await supabase.from('authorized_professors').insert([
-      { email: newProfEmail.toLowerCase().trim(), nome: newProfNome.toUpperCase().trim() }
+      { email: newProfEmail.toLowerCase().trim(), nome: newProfNome.toUpperCase().trim(), escola: 'fioravante', role: 'professor' }
     ]);
 
     if (error) {
-      alert("Erro ao adicionar professor: " + error.message);
+      dgShowToast("Erro ao adicionar professor: " + error.message, "error"); return;
     } else {
       setNewProfEmail('');
       setNewProfNome('');
@@ -206,17 +353,60 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   };
 
   const handleRemoveProfessor = async (email: string) => {
-    if (!confirm(`Deseja remover o acesso de ${email}?`)) return;
+    dgAskConfirm(`Deseja remover o acesso de ${email}?`, async () => {
+      setIsManagingProfs(true);
+      const { error } = await supabase.from('authorized_professors').delete().eq('email', email).eq('escola', 'fioravante');
+      if (error) {
+        dgShowToast("Erro ao remover professor.", "error");
+      } else {
+        await fetchProfessors();
+        dgShowToast("Professor removido com sucesso.", "success");
+      }
+      setIsManagingProfs(false);
+    });
+  };
 
-    setIsManagingProfs(true);
-    const { error } = await supabase.from('authorized_professors').delete().eq('email', email);
+  const handleCleanupDatabase = async () => {
+    dgAskConfirm("Esta ação removerá permanentemente alunos de turmas obsoletas. Deseja prosseguir?", async () => {
+      setIsSaving(true);
+    try {
+      const { data: allStudents, error: fetchError } = await supabase
+        .from('students')
+        .select('id, turma, nome');
 
-    if (error) {
-      alert("Erro ao remover: " + error.message);
-    } else {
-      await fetchProfessors();
+      if (fetchError) throw fetchError;
+
+      const studentsToRemove = allStudents.filter(s => {
+        const normalized = normalizeClassName(s.turma);
+        return !ALLOWED_CLASSES.includes(normalized);
+      });
+
+      if (studentsToRemove.length === 0) {
+        dgShowToast("Nenhum dado obsoleto encontrado. O banco de dados já está limpo!", "info");
+        setIsSaving(false);
+        return;
+      }
+
+      const idsToRemove = studentsToRemove.map(s => s.id);
+      
+      const { error: deleteError } = await supabase
+        .from('students')
+        .delete()
+        .in('id', idsToRemove);
+
+      if (deleteError) throw deleteError;
+
+      dgShowToast(`Sucesso! ${idsToRemove.length} registros removidos.`, "success");
+      
+      if (onSyncStudents) await onSyncStudents();
+
+    } catch (error: any) {
+      console.error("Erro na limpeza:", error);
+      dgShowToast("Erro ao realizar limpeza. Verifique as permissões.", "error");
+    } finally {
+      setIsSaving(false);
     }
-    setIsManagingProfs(false);
+    }); // fim dgAskConfirm
   };
 
   const history = useMemo(() => {
@@ -310,10 +500,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   };
 
   return (
-    <div className="min-h-screen bg-[#001a35] font-sans pb-12 overflow-x-hidden">
-      <header className="bg-[#002b5c] text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 sticky top-0 z-[50] shadow-xl gap-2 sm:gap-0">
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12 overflow-x-hidden">
+      <header className="bg-gradient-to-r from-black to-blue-900 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 sticky top-0 z-[50] shadow-xl gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
-          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-teal-400 text-center sm:text-left">Gestão Lydia Kitz Moreira 2026</h1>
+          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO FIORAVANTE IERVOLINO 2026</h1>
           <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase">Painel de Controle Administrativo</p>
         </div>
         <div className="flex gap-4 sm:gap-6 items-center">
@@ -341,6 +531,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
               Sincronizar Alunos
             </button>
           )}
+          <button
+            onClick={handleCleanupDatabase}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
+            title="Limpar alunos de turmas obsoletas do banco de dados"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Limpeza DB
+          </button>
         </div>
       </header>
 
@@ -364,11 +564,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
         {activeTab === 'registros' && (
           <>
             <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-white/10">
-              <div className="bg-[#004a99] py-3 text-center border-b border-white/10">
+              <div className="bg-gradient-to-r from-black to-[#002b5c] py-3 text-center border-b border-blue-900/30">
                 <h2 className="text-white font-black text-[10px] sm:text-xs uppercase tracking-widest">EFETUAR NOVO REGISTRO ADMINISTRATIVO</h2>
               </div>
 
-              <div className="p-6 sm:p-10 bg-gradient-to-br from-[#115e59] via-[#14b8a6] to-[#ea580c]">
+              <div className="p-6 sm:p-10 bg-gradient-to-br from-black via-[#000d1a] to-[#001a35]">
                 <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
                   <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
                     <div className="flex flex-col gap-2 w-full lg:w-48">
@@ -384,15 +584,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                     </div>
                     <div className="flex flex-col gap-2 w-full lg:flex-1">
                       <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">NOME DO ALUNO</label>
-                      <select
+                      <AlunoDropdown
                         value={studentName}
-                        onChange={e => setStudentName(e.target.value)}
+                        onChange={setStudentName}
+                        alunos={students.filter(s => s.turma === classRoom)}
                         disabled={!classRoom}
-                        className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm disabled:opacity-50 cursor-pointer w-full"
-                      >
-                        <option value="">Selecione o Aluno...</option>
-                        {students.filter(s => s.turma === classRoom).map(s => <option key={s.ra} value={s.nome}>{s.nome}</option>)}
-                      </select>
+                      />
                     </div>
                     <div className="flex flex-col gap-2 w-full lg:w-64">
                       <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">REGISTRO DO ALUNO (RA)</label>
@@ -469,7 +666,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="w-full sm:w-auto px-10 sm:px-20 py-5 sm:py-6 bg-gradient-to-r from-[#004a99] to-[#14b8a6] hover:scale-[1.02] text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl transition-all border-b-8 border-blue-900 active:translate-y-1 active:border-b-0"
+                      className="w-full sm:w-auto px-10 sm:px-20 py-5 sm:py-6 bg-gradient-to-r from-[#001a35] to-[#0040a0] hover:scale-[1.02] text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl transition-all border-b-8 border-blue-900 active:translate-y-1 active:border-b-0"
                     >
                       {isSaving ? 'PROCESSANDO...' : 'FINALIZAR E SALVAR REGISTRO'}
                     </button>
@@ -479,7 +676,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             </div>
 
             <section className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100">
-              <div className="px-6 sm:px-10 py-6 bg-[#002b5c] text-white flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black to-blue-900 text-white flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col">
                     <h3 className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest">Painel de Registros (Últimos 30 dias)</h3>
@@ -517,29 +714,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 </div>
               </div>
 
-              {/* Barra de rolagem horizontal destacada */}
-              <div
-                className="h-3 bg-[#001a35] border-y border-white/10 overflow-x-auto custom-scrollbar"
-                style={{ overflowY: 'hidden' }}
-                onScroll={e => {
-                  const tableWrapper = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (tableWrapper) tableWrapper.scrollLeft = e.currentTarget.scrollLeft;
-                }}
-                id="incidents-scrollbar-top"
-              >
-                <div style={{ minWidth: '1200px', height: '1px' }} />
-              </div>
-
-              <div
-                className="overflow-x-auto bg-gray-50/30"
-                style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                onScroll={e => {
-                  const scrollbar = e.currentTarget.previousElementSibling as HTMLElement;
-                  if (scrollbar) scrollbar.scrollLeft = e.currentTarget.scrollLeft;
-                }}
-                id="incidents-table-wrapper"
-              >
-                <style>{`#incidents-table-wrapper::-webkit-scrollbar { display: none; }`}</style>
+              <div className="overflow-x-auto custom-scrollbar bg-gray-50/30">
                 <table className="w-full text-left text-[10px] min-w-[1200px]">
                   <thead className="bg-[#f8fafc] border-b text-black sticky top-0 z-10">
                     <tr>
@@ -548,10 +723,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       <th className="p-4 font-black uppercase">Aluno</th>
                       <th className="p-4 font-black uppercase">Turma</th>
                       <th className="p-4 text-center font-black uppercase">Documento Ação</th>
-                      <th className="p-4 text-center font-black uppercase">Remover</th>
                       <th className="p-4 font-black uppercase">Tipo</th>
                       <th className="p-4 font-black uppercase">Responsável</th>
                       <th className="p-4 font-black uppercase">Relato</th>
+                      <th className="p-4 text-center font-black uppercase">Remover</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
@@ -605,17 +780,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                             </button>
                           </div>
                         </td>
-                        <td className="p-4 text-center">
-                          <button
-                            onClick={() => onDelete(inc.id)}
-                            className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                            title="Excluir registro"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </td>
                         <td className="p-4 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                             {inc.category}
@@ -629,6 +793,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                               DEVOLUTIVA: {inc.managementFeedback}
                             </div>
                           )}
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => onDelete(inc.id)}
+                            className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                            title="Excluir registro"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </td>
                       </tr>
                     )) : (
@@ -647,14 +822,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Card Top Turmas */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
-                <div className="bg-[#002b5c] p-6 text-center border-b-4 border-teal-500">
+                <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-500">
                   <h3 className="text-white font-black text-xs uppercase tracking-widest">🏆 Turmas c/ mais Ocorrências</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
-                  {stats.topClasses.length > 0 ? stats.topClasses.map(([turma, count], idx) => (
+                  {stats.topClasses.length > 0 ? stats.topClasses.map(([turma, count]: [string, number], _idx: number) => (
                     <div key={turma} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border-l-8 border-teal-500">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-[#002b5c]">{idx + 1}º - {turma}</span>
+                        <span className="text-[11px] font-black text-[#002b5c]">{_idx + 1}º - {turma}</span>
                         <span className="text-[8px] font-bold text-gray-400 uppercase">Ambiente Escolar</span>
                       </div>
                       <span className="bg-teal-100 text-teal-600 px-4 py-2 rounded-xl font-black text-[12px]">{count}</span>
@@ -667,11 +842,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
               {/* Card Top Alunos */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
-                <div className="bg-[#002b5c] p-6 text-center border-b-4 border-orange-500">
+                <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-orange-500">
                   <h3 className="text-white font-black text-xs uppercase tracking-widest">👤 Alunos em Foco</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
-                  {stats.topStudents.length > 0 ? stats.topStudents.map(([nome, data], idx) => (
+                  {stats.topStudents.length > 0 ? stats.topStudents.map(([nome, data]: [string, {count: number, turma: string}], _idx: number) => (
                     <div key={nome} className="flex items-start justify-between p-4 bg-gray-50 rounded-2xl border-l-8 border-orange-500">
                       <div className="flex flex-col">
                         <span className="text-[11px] font-black text-[#002b5c] uppercase truncate max-w-[150px]">{nome}</span>
@@ -687,7 +862,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
               {/* Tipos de Ocorrência */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
-                <div className="bg-[#002b5c] p-6 text-center border-b-4 border-blue-500">
+                <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-blue-500">
                   <h3 className="text-white font-black text-xs uppercase tracking-widest">📝 Tipos mais Comuns</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
@@ -724,7 +899,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Card Top Professores */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
-                <div className="bg-[#002b5c] p-6 text-center border-b-4 border-teal-400">
+                <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-400">
                   <h3 className="text-white font-black text-xs uppercase tracking-widest">👨‍🏫 Professores: Maior Volume</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
@@ -750,7 +925,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
               {/* Card Top Gestores */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
-                <div className="bg-[#002b5c] p-6 text-center border-b-4 border-orange-400">
+                <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-orange-400">
                   <h3 className="text-white font-black text-xs uppercase tracking-widest">💼 Gestores: Maior Volume</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
@@ -777,7 +952,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
             {/* Guia de Medidas Pedagógicas */}
             <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10">
-              <div className="bg-gradient-to-r from-[#002b5c] to-[#004a99] p-8 text-center border-b-4 border-teal-500">
+              <div className="bg-gradient-to-r from-black to-blue-900 p-8 text-center border-b-4 border-teal-500">
                 <h2 className="text-white font-black text-sm uppercase tracking-widest">📚 Guia Estratégico de Medidas Pedagógicas</h2>
                 <p className="text-teal-400 text-[10px] font-bold mt-2 uppercase">Ações sugeridas conforme o Regimento Escolar e tipo de ocorrência</p>
               </div>
@@ -810,13 +985,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
       {/* Modal de Atualização de Status e Devolutiva */}
       {isUpdatingStatus && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in shadow-2xl">
-          <div className="bg-white w-full max-w-lg rounded-[32px] overflow-hidden flex flex-col border border-white/20">
-            <div className="bg-[#002b5c] p-6 text-center border-b-4 border-teal-500">
+          <div className="bg-white w-full max-w-xl rounded-[32px] overflow-hidden flex flex-col border border-white/20 max-h-[92vh]">
+            <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-500 shrink-0">
               <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Sinalizar Estágio da Ocorrência</h3>
               <p className="text-teal-400 text-[9px] font-bold mt-1 uppercase">{isUpdatingStatus.studentName}</p>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+
+              {/* Status */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Status da Ocorrência</label>
                 <select
@@ -824,19 +1001,70 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                   onChange={(e) => setNewStatus(e.target.value as any)}
                   className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] font-black outline-none focus:ring-2 focus:ring-teal-500 transition-all text-black"
                 >
-                  <option value="Pendente">🔴 PENDENTE</option>
-                  <option value="Em Análise">🟡 EM ANÁLISE</option>
-                  <option value="Resolvido">🟢 RESOLVIDO</option>
+                  <option value="Pendente">🟡 PENDENTE</option>
+                  <option value="Visualizada">🔵 VISUALIZADA</option>
+                  <option value="Em Andamento">🟠 EM ANDAMENTO</option>
+                  <option value="Resolvida">🟢 RESOLVIDA</option>
                 </select>
               </div>
 
+              {/* ── ENCAMINHAMENTOS DA GESTÃO ───────────────────────────── */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">
+                  Encaminhamentos da Gestão
+                </label>
+                <p className="text-[9px] text-gray-400 ml-2 -mt-2">Clique em cada encaminhamento para descrever a intervenção realizada</p>
+
+                <div className="flex flex-col gap-2">
+                  {LISTA_ENCAMINHAMENTOS_GESTAO.map(({ label: tipo, popUp }) => {
+                    const marcado = selectedMgmtReferrals.includes(tipo);
+                    return (
+                      <div key={tipo} className={`rounded-xl border-2 transition-all ${marcado ? 'border-purple-400 bg-purple-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => popUp ? handleMgmtReferralClick(tipo) : handleMgmtReferralToggle(tipo)}
+                            className={`flex-1 text-left text-[10px] font-bold uppercase transition-all ${marcado ? 'text-purple-800' : 'text-gray-600 hover:text-gray-900'}`}
+                          >
+                            <span className={`inline-block w-4 h-4 rounded border-2 mr-2 align-middle transition-all ${marcado ? 'bg-purple-600 border-purple-600' : 'border-gray-400'}`}>
+                              {marcado && <svg viewBox="0 0 12 12" fill="none" className="w-full h-full p-0.5"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </span>
+                            {tipo}
+                            {popUp && <span className="ml-2 text-[8px] text-gray-400 normal-case font-normal">(descrição)</span>}
+                          </button>
+                          {marcado && (
+                            <div className="flex gap-1 shrink-0">
+                              {popUp && (
+                                <>
+                                  <button type="button" onClick={() => handleMgmtReferralClick(tipo)} className="text-[9px] font-black text-purple-600 hover:text-purple-800 uppercase underline">editar</button>
+                                  <span className="text-gray-300">|</span>
+                                </>
+                              )}
+                              <button type="button" onClick={() => handleRemoveMgmtReferral(tipo)} className="text-[9px] font-black text-red-400 hover:text-red-600 uppercase underline">remover</button>
+                            </div>
+                          )}
+                        </div>
+                        {marcado && mgmtReferralDescriptions[tipo] && (
+                          <div className="px-4 pb-3 -mt-1">
+                            <p className="text-[9px] font-black text-purple-500 uppercase tracking-wide mb-0.5">Descrição:</p>
+                            <p className="text-[10px] text-purple-800 bg-white rounded-lg border border-purple-200 px-3 py-2 leading-relaxed">{mgmtReferralDescriptions[tipo]}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* ── FIM ENCAMINHAMENTOS ─────────────────────────────────── */}
+
+              {/* Justificativa / Devolutiva */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Justificativa / Devolutiva</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Observações Adicionais / Devolutiva</label>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  rows={4}
-                  placeholder="Descreva o estágio atual ou a resolução da ocorrência..."
+                  rows={3}
+                  placeholder="Observações adicionais sobre o encaminhamento..."
                   className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-teal-500 transition-all text-black uppercase"
                 ></textarea>
               </div>
@@ -852,7 +1080,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                   onClick={handleUpdateStatus}
                   className="flex-1 py-4 bg-teal-500 text-white font-black text-[10px] uppercase rounded-2xl hover:bg-teal-600 transition-all shadow-md active:scale-95"
                 >
-                  Salvar Devolutiva
+                  Salvar Encaminhamentos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── POP-UP DESCRIÇÃO DO ENCAMINHAMENTO DA GESTÃO ─────────────────── */}
+      {showMgmtReferralModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-purple-900 to-purple-700 p-6 text-white">
+              <h3 className="font-black text-xs uppercase tracking-widest">Encaminhamento Gestão</h3>
+              <p className="text-purple-200 text-[9px] font-bold mt-1 uppercase leading-relaxed">{showMgmtReferralModal}</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Descrição da Intervenção Realizada</label>
+                <textarea
+                  rows={5}
+                  value={mgmtReferralModalText}
+                  onChange={e => setMgmtReferralModalText(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-purple-400"
+                  placeholder="Descreva detalhadamente a intervenção realizada pela equipe gestora..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmMgmtReferral}
+                  className="flex-1 py-3 bg-purple-600 text-white font-black text-[10px] uppercase rounded-xl hover:bg-purple-700 transition-all"
+                >
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => setShowMgmtReferralModal(null)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-600 font-black text-[10px] uppercase rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  Cancelar
                 </button>
               </div>
             </div>
@@ -1086,6 +1353,41 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
               >
                 Fechar Painel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast Dashboard ─────────────────────────────────────────────── */}
+      {dgToast && (
+        <div className={`fixed top-5 right-5 z-[9999] flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl max-w-sm transition-all animate-fade-in
+          ${dgToast.type === 'success' ? 'bg-emerald-600 text-white' :
+            dgToast.type === 'error'   ? 'bg-red-600 text-white' :
+            dgToast.type === 'warning' ? 'bg-orange-500 text-white' :
+                                         'bg-[#1e3a8a] text-white'}`}>
+          <span className="text-lg leading-none">
+            {dgToast.type === 'success' ? '✅' : dgToast.type === 'error' ? '❌' : dgToast.type === 'warning' ? '⚠️' : 'ℹ️'}
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wide leading-snug">{dgToast.msg}</span>
+          <button onClick={() => setDgToast(null)} className="ml-auto text-white/60 hover:text-white text-xs font-black">✕</button>
+        </div>
+      )}
+
+      {/* ── Confirm Dashboard ────────────────────────────────────────────── */}
+      {dgConfirm && (
+        <div className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <p className="text-center text-sm font-bold text-gray-800 uppercase tracking-wide">{dgConfirm.msg}</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { dgConfirm.onOk(); setDgConfirm(null); }} className="flex-1 py-3 bg-red-600 text-white font-black text-[10px] uppercase rounded-xl hover:bg-red-700 transition-all">Confirmar</button>
+              <button onClick={() => setDgConfirm(null)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-black text-[10px] uppercase rounded-xl hover:bg-gray-200 transition-all">Cancelar</button>
             </div>
           </div>
         </div>
