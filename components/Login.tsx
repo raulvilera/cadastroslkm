@@ -16,6 +16,7 @@ const GESTAO_EMAILS_HARDCODED = [
   'deizylaura@prof.educacao.sp.gov.br',
   'aline.gestao@prof.educacao.sp.gov.br',
   'gestao@escola.com',
+  'anaosouza@prof.educacao.sp.gov.br',
 ];
 
 interface LoginProps {
