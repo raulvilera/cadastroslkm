@@ -309,22 +309,23 @@ const App = () => {
 
             if (isSupabaseConfigured && supabase && session) {
               try {
-                // Apaga APENAS registros de sincronizações automáticas anteriores (prefixo 'synced-')
-                // Preserva registros inseridos manualmente (ex: '7anoe-', 'manual-')
-                await supabase.from('students').delete().like('id', 'synced-%');
-
-                // Inserir em lotes para evitar problemas de payload grande
+                // Usar upsert com onConflict='ra' para atualizar se já existir,
+                // evitando o erro 409 (duplicate key) da constraint students_ra_key.
+                // Registros manuais (com ra diferente) são preservados automaticamente.
                 const CHUNK_SIZE = 500;
+                const ts = Date.now();
                 for (let i = 0; i < sheetsStudents.length; i += CHUNK_SIZE) {
                   const chunk = sheetsStudents.slice(i, i + CHUNK_SIZE);
-                  const studentsToInsert = chunk.map((s, index) => ({
-                    id: `synced-${Date.now()}-${i + index}`,
+                  const studentsToUpsert = chunk.map((s, index) => ({
+                    id: `synced-${ts}-${i + index}`,
                     nome: s.nome,
                     ra: s.ra,
-                    turma: normalizeClassName(s.turma) // Garante normalização correta antes de salvar
+                    turma: normalizeClassName(s.turma)
                   }));
 
-                  const { error } = await supabase.from('students').insert(studentsToInsert);
+                  const { error } = await supabase
+                    .from('students')
+                    .upsert(studentsToUpsert, { onConflict: 'ra', ignoreDuplicates: false });
                   if (error) {
                     console.error(`❌ Erro ao sincronizar lote ${i / CHUNK_SIZE}:`, error.message);
                   }
