@@ -57,7 +57,19 @@
               console.log('[PWA] Service Worker já está ativo');
             }
 
-            // Forçar atualização
+            // Forçar atualização e recarregar página quando novo SW assumir
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated') {
+                    console.log('[PWA] Novo Service Worker ativo — recarregando...');
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+
             reg.update();
           })
           .catch(err => {
