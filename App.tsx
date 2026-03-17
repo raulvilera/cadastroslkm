@@ -312,14 +312,20 @@ const App = () => {
                 // Usar upsert com onConflict='ra' para atualizar se já existir,
                 // evitando o erro 409 (duplicate key) da constraint students_ra_key.
                 // Registros manuais (com ra diferente) são preservados automaticamente.
-                const CHUNK_SIZE = 500;
+                // Deduplicar por RA — planilha pode ter RAs repetidos,
+                // o que causa "ON CONFLICT DO UPDATE command cannot affect row a second time"
                 const ts = Date.now();
-                for (let i = 0; i < sheetsStudents.length; i += CHUNK_SIZE) {
-                  const chunk = sheetsStudents.slice(i, i + CHUNK_SIZE);
+                const seenRa = new Map<string, (typeof sheetsStudents)[0]>();
+                sheetsStudents.forEach(s => { if (s.ra) seenRa.set(s.ra.trim(), s); });
+                const uniqueStudents = Array.from(seenRa.values());
+
+                const CHUNK_SIZE = 500;
+                for (let i = 0; i < uniqueStudents.length; i += CHUNK_SIZE) {
+                  const chunk = uniqueStudents.slice(i, i + CHUNK_SIZE);
                   const studentsToUpsert = chunk.map((s, index) => ({
                     id: `synced-${ts}-${i + index}`,
                     nome: s.nome,
-                    ra: s.ra,
+                    ra: s.ra.trim(),
                     turma: normalizeClassName(s.turma)
                   }));
 
