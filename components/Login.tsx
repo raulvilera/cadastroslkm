@@ -23,7 +23,7 @@ interface LoginProps {
   onLogin: (user: User) => void;
 }
 
-type AuthMode = 'login' | 'register' | 'forgot';
+type AuthMode = 'login' | 'register' | 'forgot' | 'admin_register';
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -34,6 +34,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ── Estados do cadastro pela gestão ──────────────────────────────────────
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminStep, setAdminStep] = useState<'auth' | 'form'>('auth');
+  const [newProfEmail, setNewProfEmail] = useState('');
+  const [newProfNome, setNewProfNome] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+
   useEffect(() => {
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -43,12 +51,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
   }, []);
 
+  // Gera senha temporária aleatória de 8 caracteres
+  const generateTempPassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
   // Mapeamento de aliases de e-mail para contas reais
   const EMAIL_ALIASES: Record<string, string> = {
     'alinecardoso1@prof.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br',
     'alinecardoso1@professor.educacao.sp.gov.br': 'aline.gestao@prof.educacao.sp.gov.br'
   };
-
 
   const resolveEmailAlias = (email: string): string => {
     const lowerEmail = email.toLowerCase().trim();
@@ -57,14 +70,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const validateInstitutionalEmail = (email: string) => {
     const lowerEmail = email.toLowerCase().trim();
-    // E-mails permitidos: institucionais ou os de gestão específicos que não são @prof (como o do gmail)
     const SPECIAL_MANAGEMENT = ['gestao@escola.com', 'cadastroslkm@gmail.com'];
-
-    if (SPECIAL_MANAGEMENT.includes(lowerEmail)) {
-      return true;
-    }
-
-    // Outros e-mails devem ser institucionais
+    if (SPECIAL_MANAGEMENT.includes(lowerEmail)) return true;
     return lowerEmail.endsWith('@prof.educacao.sp.gov.br') ||
       lowerEmail.endsWith('@professor.educacao.sp.gov.br');
   };
@@ -76,6 +83,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return '';
   }, [email, authMode]);
 
+  const resetAdminForm = () => {
+    setAdminEmail('');
+    setAdminPassword('');
+    setAdminStep('auth');
+    setNewProfEmail('');
+    setNewProfNome('');
+    setTempPassword('');
+    setError('');
+    setMessage('');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -85,12 +103,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const loginTimeout = setTimeout(() => {
       setIsLoading(false);
       setError('TEMPO LIMITE EXCEDIDO. VERIFIQUE SUA CONEXÃO OU TENTE NOVAMENTE.');
-    }, 15000); // 15 segundos de timeout
+    }, 15000);
 
     try {
       const lowerEmail = email.toLowerCase().trim();
-      const displayEmail = lowerEmail; // Email que o usuário digitou (para exibição)
-      const authEmail = resolveEmailAlias(lowerEmail); // Email real para autenticação
+      const displayEmail = lowerEmail;
+      const authEmail = resolveEmailAlias(lowerEmail);
 
       console.log('🔐 [LOGIN] Tentando login com:', displayEmail);
       if (displayEmail !== authEmail) {
@@ -105,7 +123,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       console.log('🔗 [LOGIN] Conectando ao Supabase Auth...');
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: authEmail, // Usa o email real para autenticação
+        email: authEmail,
         password
       });
 
@@ -120,11 +138,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (data.user) {
         console.log('✅ [LOGIN] Autenticado! Buscando autorização para:', displayEmail);
 
-        // Função para buscar cargo no banco com timeout
         const fetchRoleWithTimeout = async () => {
-          // CORREÇÃO DEFINITIVA: busca sempre pelo email exato.
-          // Variantes de domínio causavam colisão (ex: vilera@professor retornava
-          // o role de vilera@prof por estarem ambos no banco com roles diferentes).
           const query = supabase
             .from('authorized_professors')
             .select('role')
@@ -144,8 +158,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }
         };
 
-        // ✅ VERIFICAÇÃO 1: lista hardcoded no próprio arquivo — nunca falha
-        // independente de imports, build da Vercel ou estado do banco.
         let userRole: 'gestor' | 'professor' | null = null;
 
         if (GESTAO_EMAILS_HARDCODED.includes(displayEmail)) {
@@ -153,16 +165,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           console.log('✅ [LOGIN] Gestor identificado via lista hardcoded:', displayEmail);
         }
 
-        // VERIFICAÇÃO 2: banco de dados — fonte de verdade mais confiável
-        // O banco tem os roles corretos inclusive para casos como vilera@professor (professor)
-        // vs vilera@prof (gestor) que a lista local pode confundir por normalização.
         const dbRole = await fetchRoleWithTimeout();
         if (dbRole) {
           userRole = dbRole as any;
           console.log('✅ [LOGIN] Role do banco:', userRole);
         }
 
-        // VERIFICAÇÃO 3: lista local como fallback se banco falhar
         if (!userRole) {
           userRole = getRoleFromLocalDB(displayEmail);
           console.log('🔍 [LOGIN] Role da lista local (fallback):', userRole, '| email:', displayEmail);
@@ -181,11 +189,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     } catch (err: any) {
       clearTimeout(loginTimeout);
       console.error('❌ [LOGIN] Erro capturado:', err);
-
       const message = err.message === 'TIMEOUT_DB'
         ? 'A CONEXÃO COM O BANCO ESTÁ LENTA. TENTE NOVAMENTE EM ALGUNS INSTANTES.'
         : (err.message.toUpperCase() || 'ERRO DESCONHECIDO AO TENTAR ENTRAR.');
-
       setError(message);
     } finally {
       setIsLoading(false);
@@ -226,9 +232,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       if (data.user) {
-        // Busca o role e autorização no banco de dados
-        // CORREÇÃO: e-mails não-institucionais (gmail etc.) buscam apenas o e-mail exato,
-        // evitando colisão com variantes @prof/@professor.
         const emailBase = lowerEmail.split('@')[0];
         const isInstitutionalReg = lowerEmail.endsWith('@prof.educacao.sp.gov.br') ||
           lowerEmail.endsWith('@professor.educacao.sp.gov.br');
@@ -245,7 +248,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         if (authData) {
           userRole = authData.role as 'gestor' | 'professor';
         } else {
-          // Fallback local — usa role correto da PROFESSORS_DB (gestor ou professor)
           userRole = getRoleFromLocalDB(lowerEmail);
         }
 
@@ -255,9 +257,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error('ACESSO NEGADO: SEU E-MAIL NÃO ESTÁ AUTORIZADO. CONTATE A GESTÃO.');
         }
 
-        // CORREÇÃO: data.session é null quando confirmação de e-mail está ativa no Supabase.
-        // Nesse caso, o usuário foi criado mas ainda não está logado.
-        // Quando confirmação está desabilitada, data.session existe e o login é automático.
         if (!data.session) {
           console.warn('⚠️ [CADASTRO] Supabase com confirmação de e-mail ATIVADA. Sessão não criada.');
           setMessage('CADASTRO REALIZADO! VERIFIQUE SEU E-MAIL E CLIQUE NO LINK DE CONFIRMAÇÃO PARA ATIVAR SUA CONTA.');
@@ -284,15 +283,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       const lowerEmail = email.toLowerCase().trim();
-      const authEmail = resolveEmailAlias(lowerEmail); // Resolve para o email real
+      const authEmail = resolveEmailAlias(lowerEmail);
 
       if (!validateInstitutionalEmail(lowerEmail)) {
         throw new Error('E-MAIL INVÁLIDO OU NÃO INSTITUCIONAL.');
       }
 
-      // Verifica se o professor está cadastrado antes de enviar reset
       if (!isProfessorRegistered(lowerEmail)) {
-        // Verifica se está no banco de dados se não estiver na lista local
         const emailBase = lowerEmail.split('@')[0];
         const { data: authorized } = await supabase
           .from('authorized_professors')
@@ -316,17 +313,110 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       if (resetError) {
         console.error('❌ [RESET] Erro ao enviar e-mail:', resetError);
-
-        // Verifica se é erro de SMTP do Resend (Test Mode)
         if (resetError.message.includes('450') || resetError.message.includes('testing emails')) {
           throw new Error('O SERVIÇO DE E-MAIL ESTÁ EM MODO DE TESTE. O DOMÍNIO PRECISA SER VERIFICADO NO RESEND.');
         }
-
         throw new Error('ERRO AO PROCESSAR SOLICITAÇÃO. VERIFIQUE A CONFIGURAÇÃO SMTP NO SUPABASE OU TENTE NOVAMENTE.');
       }
 
       setMessage('SE O E-MAIL EXISTIR NO SISTEMA, VOCÊ RECEBERÁ AS INSTRUÇÕES EM BREVE.');
       console.log('✅ [RESET] Solicitação processada para:', lowerEmail);
+
+    } catch (err: any) {
+      setError(err.message.toUpperCase());
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── PASSO 1: Gestor autentica antes de cadastrar ──────────────────────────
+  const handleAdminAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const lowerEmail = adminEmail.toLowerCase().trim();
+
+      if (!GESTAO_EMAILS_HARDCODED.includes(lowerEmail)) {
+        throw new Error('APENAS GESTORES PODEM USAR ESTA FUNÇÃO.');
+      }
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: resolveEmailAlias(lowerEmail),
+        password: adminPassword,
+      });
+
+      if (authError || !data.user) {
+        throw new Error('CREDENCIAIS INVÁLIDAS. CONFIRME SEU E-MAIL E SENHA DE GESTOR.');
+      }
+
+      await supabase.auth.signOut();
+
+      const generated = generateTempPassword();
+      setTempPassword(generated);
+      setAdminStep('form');
+      setError('');
+
+    } catch (err: any) {
+      setError(err.message.toUpperCase());
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── PASSO 2: Cadastrar o professor com senha temporária ───────────────────
+  const handleAdminRegisterProfessor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    setIsLoading(true);
+
+    try {
+      const lowerEmail = newProfEmail.toLowerCase().trim();
+      const nome = newProfNome.toUpperCase().trim();
+
+      if (!lowerEmail || !nome) {
+        throw new Error('PREENCHA O E-MAIL E O NOME DO PROFESSOR.');
+      }
+
+      if (!validateInstitutionalEmail(lowerEmail)) {
+        throw new Error('UTILIZE UM E-MAIL INSTITUCIONAL (@PROF OU @PROFESSOR).');
+      }
+
+      if (!tempPassword || tempPassword.length < 6) {
+        throw new Error('ERRO NA GERAÇÃO DA SENHA. VOLTE E TENTE NOVAMENTE.');
+      }
+
+      // 1. Criar conta no Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: lowerEmail,
+        password: tempPassword,
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes('User already registered')) {
+          throw new Error('ESTE E-MAIL JÁ POSSUI CADASTRO NO SISTEMA.');
+        }
+        throw new Error(signUpError.message.toUpperCase());
+      }
+
+      // 2. Garantir que está na tabela authorized_professors
+      await supabase.from('authorized_professors').upsert([
+        { email: lowerEmail, nome, escola: 'lkm', role: 'professor' }
+      ], { onConflict: 'email' });
+
+      // 3. Enviar link de redefinição para o e-mail do professor
+      await supabase.auth.resetPasswordForEmail(lowerEmail, {
+        redirectTo: `https://cadastroslkm.vercel.app/`,
+      });
+
+      setMessage(
+        `✅ CONTA CRIADA!\n\nPROFESSOR: ${nome}\nE-MAIL: ${lowerEmail}\nSENHA TEMPORÁRIA: ${tempPassword}\n\nAnote e repasse ao professor.\nUm link de redefinição foi enviado ao e-mail dele.`
+      );
+
+      setNewProfEmail('');
+      setNewProfNome('');
+      setTempPassword(generateTempPassword());
 
     } catch (err: any) {
       setError(err.message.toUpperCase());
@@ -350,7 +440,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="text-center mb-8">
           <h1 className="text-[#002b5c] text-lg font-black uppercase tracking-tight">
-            {authMode === 'login' ? 'PORTAL LYDIA KITZ' : authMode === 'register' ? 'CRIAR NOVA CONTA' : 'RECUPERAR ACESSO'}
+            {authMode === 'login' ? 'PORTAL LYDIA KITZ' :
+             authMode === 'register' ? 'CRIAR NOVA CONTA' :
+             authMode === 'forgot' ? 'RECUPERAR ACESSO' :
+             'CADASTRO PELA GESTÃO'}
           </h1>
           <div className="h-1.5 w-10 bg-teal-500 mx-auto mt-2 rounded-full"></div>
           <p className="text-gray-400 text-[8px] font-black uppercase tracking-[0.4em] mt-3">
@@ -358,16 +451,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </p>
         </div>
 
+        {/* ── LOGIN ──────────────────────────────────────────────────────── */}
         {authMode === 'login' && (
           <form onSubmit={handleLogin} className="w-full space-y-4 flex flex-col items-center animate-fade-in">
             <div className="space-y-1 w-full text-left">
               <label className="text-[9px] font-black text-[#002b5c] uppercase ml-6 tracking-widest opacity-70">E-mail Institucional</label>
               <input
-                required
-                type="email"
-                placeholder="nome@prof.educacao.sp.gov.br"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                required type="email" placeholder="nome@prof.educacao.sp.gov.br"
+                value={email} onChange={e => setEmail(e.target.value)}
                 className="w-full h-12 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-teal-500 transition-all lowercase"
               />
             </div>
@@ -378,11 +469,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button type="button" onClick={() => setAuthMode('forgot')} className="text-[8px] font-black text-teal-600 uppercase hover:underline">Esqueci a senha</button>
               </div>
               <input
-                required
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                required type="password" placeholder="••••••••"
+                value={password} onChange={e => setPassword(e.target.value)}
                 className="w-full h-12 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-teal-500 transition-all"
               />
             </div>
@@ -390,24 +478,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {error && <div className="p-3 w-full bg-red-50 text-red-600 rounded-[24px] text-[8.5px] font-black text-center uppercase border border-red-100 animate-shake leading-tight">{error}</div>}
             {message && <div className="p-3 w-full bg-teal-50 text-teal-600 rounded-[24px] text-[8.5px] font-black text-center uppercase border border-teal-100 leading-tight">{message}</div>}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 bg-gradient-to-r from-blue-400 to-blue-900 hover:scale-[1.02] text-white rounded-full font-black text-[10px] uppercase tracking-[0.25em] shadow-xl transition-all active:scale-95 disabled:opacity-50 mt-4"
-            >
+            <button type="submit" disabled={isLoading}
+              className="w-full h-14 bg-gradient-to-r from-blue-400 to-blue-900 hover:scale-[1.02] text-white rounded-full font-black text-[10px] uppercase tracking-[0.25em] shadow-xl transition-all active:scale-95 disabled:opacity-50 mt-4">
               {isLoading ? 'VERIFICANDO...' : 'ENTRAR NO PORTAL'}
             </button>
 
-            <button
-              type="button"
-              onClick={() => { setAuthMode('register'); setError(''); setMessage(''); }}
-              className="mt-4 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-[#002b5c] transition-colors"
-            >
+            <button type="button" onClick={() => { setAuthMode('register'); setError(''); setMessage(''); }}
+              className="mt-4 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-[#002b5c] transition-colors">
               Primeiro acesso? <span className="text-teal-600">Cadastre-se aqui</span>
+            </button>
+
+            {/* Botão discreto — visível apenas para gestores que sabem que existe */}
+            <button type="button" onClick={() => { resetAdminForm(); setAuthMode('admin_register'); }}
+              className="mt-1 text-[8px] font-bold text-gray-300 uppercase tracking-widest hover:text-teal-500 transition-colors">
+              🔑 Cadastro pela gestão
             </button>
           </form>
         )}
 
+        {/* ── AUTOCADASTRO DO PROFESSOR ──────────────────────────────────── */}
         {authMode === 'register' && (
           <form onSubmit={handleRegister} className="w-full space-y-3 flex flex-col items-center animate-fade-in">
             <div className="space-y-1 w-full text-left">
@@ -436,6 +525,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
         )}
 
+        {/* ── RECUPERAR SENHA ───────────────────────────────────────────── */}
         {authMode === 'forgot' && (
           <form onSubmit={handleResetPassword} className="w-full space-y-6 flex flex-col items-center animate-fade-in">
             <div className="text-center px-4">
@@ -457,6 +547,112 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Lembrei a senha! <span className="text-teal-600">Voltar</span>
             </button>
           </form>
+        )}
+
+        {/* ── CADASTRO PELA GESTÃO ──────────────────────────────────────── */}
+        {authMode === 'admin_register' && (
+          <div className="w-full animate-fade-in">
+
+            {/* PASSO 1 — Confirmar identidade do gestor */}
+            {adminStep === 'auth' && (
+              <form onSubmit={handleAdminAuth} className="w-full space-y-4 flex flex-col items-center">
+                <div className="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl text-center">
+                  <p className="text-[9px] font-black text-blue-700 uppercase tracking-wide">
+                    🔐 Confirme sua identidade de gestor para continuar
+                  </p>
+                </div>
+
+                <div className="space-y-1 w-full text-left">
+                  <label className="text-[9px] font-black text-[#002b5c] uppercase ml-6 tracking-widest opacity-70">Seu e-mail de Gestor</label>
+                  <input
+                    required type="email" placeholder="seu@prof.educacao.sp.gov.br"
+                    value={adminEmail} onChange={e => setAdminEmail(e.target.value)}
+                    className="w-full h-11 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-blue-500 transition-all lowercase"
+                  />
+                </div>
+                <div className="space-y-1 w-full text-left">
+                  <label className="text-[9px] font-black text-[#002b5c] uppercase ml-6 tracking-widest opacity-70">Sua Senha</label>
+                  <input
+                    required type="password" placeholder="••••••••"
+                    value={adminPassword} onChange={e => setAdminPassword(e.target.value)}
+                    className="w-full h-11 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+
+                {error && <div className="p-3 w-full bg-red-50 text-red-600 rounded-[24px] text-[8.5px] font-black text-center uppercase border border-red-100 leading-tight">{error}</div>}
+
+                <button type="submit" disabled={isLoading}
+                  className="w-full h-12 bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2">
+                  {isLoading ? 'VERIFICANDO...' : 'CONFIRMAR IDENTIDADE'}
+                </button>
+                <button type="button" onClick={() => { resetAdminForm(); setAuthMode('login'); }}
+                  className="mt-2 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-[#002b5c] transition-colors">
+                  ← Voltar para o Login
+                </button>
+              </form>
+            )}
+
+            {/* PASSO 2 — Formulário de cadastro */}
+            {adminStep === 'form' && (
+              <form onSubmit={handleAdminRegisterProfessor} className="w-full space-y-4 flex flex-col items-center">
+                <div className="w-full p-4 bg-teal-50 border border-teal-100 rounded-2xl text-center">
+                  <p className="text-[9px] font-black text-teal-700 uppercase tracking-wide">
+                    ✅ Identidade confirmada — cadastre o professor abaixo
+                  </p>
+                </div>
+
+                <div className="space-y-1 w-full text-left">
+                  <label className="text-[9px] font-black text-[#002b5c] uppercase ml-6 tracking-widest opacity-70">E-mail do Professor</label>
+                  <input
+                    required type="email" placeholder="professor@prof.educacao.sp.gov.br"
+                    value={newProfEmail} onChange={e => setNewProfEmail(e.target.value)}
+                    className="w-full h-11 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-teal-500 transition-all lowercase"
+                  />
+                </div>
+
+                <div className="space-y-1 w-full text-left">
+                  <label className="text-[9px] font-black text-[#002b5c] uppercase ml-6 tracking-widest opacity-70">Nome Completo do Professor</label>
+                  <input
+                    required type="text" placeholder="NOME COMPLETO"
+                    value={newProfNome} onChange={e => setNewProfNome(e.target.value.toUpperCase())}
+                    className="w-full h-11 px-6 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-[#002b5c] outline-none focus:ring-2 focus:ring-teal-500 transition-all uppercase"
+                  />
+                </div>
+
+                {/* Senha temporária gerada automaticamente */}
+                <div className="w-full p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl">
+                  <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Senha temporária:</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xl font-black text-amber-800 tracking-widest">{tempPassword}</span>
+                    <button type="button" onClick={() => setTempPassword(generateTempPassword())}
+                      className="text-[8px] font-black text-amber-600 uppercase hover:text-amber-800 underline whitespace-nowrap">
+                      Nova senha
+                    </button>
+                  </div>
+                  <p className="text-[8px] font-bold text-amber-500 uppercase mt-2 leading-relaxed">
+                    ⚠️ Anote e repasse ao professor para o primeiro acesso.
+                  </p>
+                </div>
+
+                {error && <div className="p-3 w-full bg-red-50 text-red-600 rounded-[24px] text-[8.5px] font-black text-center uppercase border border-red-100 leading-tight">{error}</div>}
+                {message && (
+                  <div className="p-4 w-full bg-teal-50 border border-teal-200 rounded-2xl">
+                    <pre className="text-[9px] font-black text-teal-700 uppercase leading-relaxed whitespace-pre-wrap text-center">{message}</pre>
+                  </div>
+                )}
+
+                <button type="submit" disabled={isLoading}
+                  className="w-full h-12 bg-gradient-to-r from-teal-500 to-teal-700 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 mt-2">
+                  {isLoading ? 'CADASTRANDO...' : 'CADASTRAR PROFESSOR'}
+                </button>
+
+                <button type="button" onClick={() => { resetAdminForm(); setAuthMode('login'); }}
+                  className="mt-2 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-[#002b5c] transition-colors">
+                  ← Voltar para o Login
+                </button>
+              </form>
+            )}
+          </div>
         )}
 
         <div className="mt-8 text-center w-full">
