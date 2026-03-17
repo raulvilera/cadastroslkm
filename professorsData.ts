@@ -1,75 +1,187 @@
 // Mapeamento de e-mails institucionais para nomes de professores
-// EE FIORAVANTE IERVOLINO — uso exclusivo desta escola
+// EE PROFESSOR LYDIA KITZ MOREIRA — uso exclusivo desta escola
 
 export interface ProfessorData {
     email: string;
     nome: string;
+    role?: 'gestor' | 'professor';
 }
 
-/**
- * E-mails de gestão com perfil fixo que não necessitam de verificação no banco de dados.
- */
-export const FIXED_GESTAO_EMAILS = [
-    'gestao@escola.com',
-    'vilera@prof.educacao.sp.gov.br',
-    'patriciavilera@gmail.com',
-    'patriciavilera@gmai.com'
-];
-
-/**
- * E-mails com acesso dual (gestor + professor)
- */
-export const DUAL_ACCESS_EMAILS = [
-    'vilera@prof.educacao.sp.gov.br',
-    'patriciavilera@gmail.com',
-    'patriciavilera@gmai.com'
+export const EXCLUSIVE_MANAGEMENT_EMAILS = [
+    'cadastroslkm@gmail.com',
+    'erineidearagao@prof.educacao.sp.gov.br',
+    'patriciag@prof.educacao.sp.gov.br',
+    'regianecurti@prof.educacao.sp.gov.br',
+    'michellemoraes@prof.educacao.sp.gov.br'
 ];
 
 export const PROFESSORS_DB: ProfessorData[] = [
-    // ── Gestão Fioravante ─────────────────────────────────────────────────────
-    { email: 'gestao@escola.com',                              nome: 'GESTÃO ESCOLAR' },
-    { email: 'vilera@prof.educacao.sp.gov.br',                 nome: 'RAUL VILERA - GESTÃO' },
-    { email: 'patriciavilera@gmail.com',                       nome: 'PATRICIA VILERA - GESTÃO' },
-    { email: 'patriciavilera@gmai.com',                        nome: 'PATRICIA VILERA - GESTÃO' },
+    // ── Gestão LKM ────────────────────────────────────────────────────────────
+    { email: 'gestao@escola.com',                               nome: 'GESTÃO ESCOLAR',                          role: 'gestor' },
+    { email: 'vilera@prof.educacao.sp.gov.br',                  nome: 'RAUL VILERA - GESTÃO',                    role: 'gestor' },
+    { email: 'cadastroslkm@gmail.com',                          nome: 'CADASTROS LKM - GESTÃO',                  role: 'gestor' },
+    { email: 'alinecardoso1@prof.educacao.sp.gov.br',           nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
+    { email: 'alinecardoso1@professor.educacao.sp.gov.br',      nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
+    { email: 'aline.gestao@prof.educacao.sp.gov.br',            nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
+    { email: 'deizylaura@prof.educacao.sp.gov.br',              nome: 'DEIZY LAURA - GESTÃO',                    role: 'gestor' },
+    { email: 'anderson.ikawa@servidor.educacao.sp.gov.br',      nome: 'ANDERSON IKAWA - GESTÃO',                 role: 'gestor' },
+    { email: 'erineidearagao@prof.educacao.sp.gov.br',          nome: 'ERINEIDE LEITE ARAGÃO NERY - GESTÃO',     role: 'gestor' },
+    { email: 'patriciag@prof.educacao.sp.gov.br',               nome: 'PATRÍCIA GOMES ROCHA RIBEIRO - GESTÃO',   role: 'gestor' },
+    { email: 'regianecurti@prof.educacao.sp.gov.br',            nome: 'REGIANE CURTI DE SOUZA OLIVEIRA - GESTÃO',role: 'gestor' },
+    { email: 'michellemoraes@prof.educacao.sp.gov.br',          nome: 'MICHELLE DE MORAES ANDRADE - GESTÃO',     role: 'gestor' },
+    { email: 'anaosouza@prof.educacao.sp.gov.br',               nome: 'ANA SOUZA - GESTÃO',                      role: 'gestor' },
 
-    // ── Professores Fioravante ────────────────────────────────────────────────
-    { email: 'alexandreos@prof.educacao.sp.gov.br',            nome: 'ALEXANDRE OLIVEIRA DOS SANTOS' },
-    { email: 'anapolito@prof.educacao.sp.gov.br',              nome: 'ANA CAROLINA POLITO PINHEIRO' },
-    { email: 'anasantos51@prof.educacao.sp.gov.br',            nome: 'ANA PAULA DE SANTANA SANTOS' },
-    { email: 'anielisilva@prof.educacao.sp.gov.br',            nome: 'ANIELI SOFIA RODRIGUES DA SILVA' },
-    { email: 'brunanicole@prof.educacao.sp.gov.br',            nome: 'BRUNA NICOLE FERREIRA SANTOS' },
-    { email: 'camilacostamonteiro@prof.educacao.sp.gov.br',    nome: 'CAMILA COSTA MONTEIRO ROSSI' },
-    { email: 'carolinamduarte@prof.educacao.sp.gov.br',        nome: 'CAROLINA MARIA DUARTE' },
-    { email: 'cintiabernadete@prof.educacao.sp.gov.br',        nome: 'CINTIA BERNADETE FERRAZ MATAVELLI' },
-    { email: 'clarinetesilva@prof.educacao.sp.gov.br',         nome: 'CLARINETE HELENA ALVES DA SILVA' },
-    { email: 'denisesalvatierra@prof.educacao.sp.gov.br',      nome: 'DENISE SALVATIERRA ROMAO' },
-    { email: 'edvaniabarros@prof.educacao.sp.gov.br',          nome: 'EDVANIA BEZERRA BARROS' },
-    { email: 'ellenmeire@prof.educacao.sp.gov.br',             nome: 'ELLEN MEIRE MARIANO DE SOUSA' },
-    { email: 'giselesalviato@prof.educacao.sp.gov.br',         nome: 'GISELE SALVIATO CARNEIRO SINCIC' },
-    { email: 'gcabrera@prof.educacao.sp.gov.br',               nome: 'GISLENE CABRERA' },
-    { email: 'iaravlima@prof.educacao.sp.gov.br',              nome: 'IARA VIEIRA LIMA' },
-    { email: 'itamaras@prof.educacao.sp.gov.br',               nome: 'ITAMARA SANTANA DE OLIVEIRA' },
-    { email: 'janeteg@prof.educacao.sp.gov.br',                nome: 'JANETE GALDINO DOS SANTOS SOUZA' },
-    { email: 'jocelma@prof.educacao.sp.gov.br',                nome: 'JOCELMA FERREIRA DOS SANTOS' },
-    { email: 'joycemarilia@prof.educacao.sp.gov.br',           nome: 'JOYCE MARILIA DA SILVA DIAS' },
-    { email: 'julio.amorim@educacao.sp.gov.br',                nome: 'JULIO CESAR DE SOUSA AMORIM' },
-    { email: 'kelly.alves1@educacao.sp.gov.br',                nome: 'KELLY MOURA BEZERRA ALVES' },
-    { email: 'lainechagas@prof.educacao.sp.gov.br',            nome: 'LAINE SÁ DE SOUZA CHAGAS' },
-    { email: 'luciane.proenca@educacao.sp.gov.br',             nome: 'LUCIANE MARIA DA SILVA PROENCA' },
-    { email: 'luizvieiragomes@prof.educacao.sp.gov.br',        nome: 'LUIZ VIEIRA GOMES' },
-    { email: 'marciasaturnino@prof.educacao.sp.gov.br',        nome: 'MARCIA BETIZ SATURNINO' },
-    { email: 'marciacoelho@prof.educacao.sp.gov.br',           nome: 'MARCIA REGINA PEREIRA COELHO' },
-    { email: 'marciagomez@prof.educacao.sp.gov.br',            nome: 'MARCIA RITA GOMEZ MALERBA' },
-    { email: 'isagomes@prof.educacao.sp.gov.br',               nome: 'MARIA ISABEL GOMES SANTANA FERNANDES' },
-    { email: 'marianaventura@prof.educacao.sp.gov.br',         nome: 'MARIANA CAROLINA BOA VENTURA' },
-    { email: 'marineide.sacramento@educacao.sp.gov.br',        nome: 'MARINEIDE DE OLIVEIRA MENDES SACRAMENTO' },
-    { email: 'patricia.alexandre1@educacao.sp.gov.br',         nome: 'PATRICIA DE OLIVEIRA ALEXANDRE VILERA' },
-    { email: 'rosirenel@prof.educacao.sp.gov.br',              nome: 'ROSIRENE LEME BERALDI GOTTARDI' },
-    { email: 'silmara.lima01@educacao.sp.gov.br',              nome: 'SILMARA APARECIDA DE LIMA' },
-    { email: 'sueli.silva9@educacao.sp.gov.br',                nome: 'SUELI CORREIA DA SILVA' },
-    { email: 'vagner.gallego@educacao.sp.gov.br',              nome: 'VAGNER DA SILVA GALLEGO' },
-    { email: 'vanessacatiane@prof.educacao.sp.gov.br',         nome: 'VANESSA CATIANE DA SILVA PORTO' },
-    { email: 'vanessardantas@prof.educacao.sp.gov.br',         nome: 'VANESSA RODRIGUES DANTAS' },
+    // ── Professores LKM ───────────────────────────────────────────────────────
+    { email: 'luth@professor.educacao.sp.gov.br',               nome: 'ALEX LUTH PEREIRA MARANHÃO' },
+    { email: 'luth@prof.educacao.sp.gov.br',                    nome: 'ALEX LUTH PEREIRA MARANHÃO' },
+    { email: 'avarella@professor.educacao.sp.gov.br',           nome: 'ALEXANDRA PAULA VARELLA DE SOUZA' },
+    { email: 'avarella@prof.educacao.sp.gov.br',                nome: 'ALEXANDRA PAULA VARELLA DE SOUZA' },
+    { email: 'alisonv@professor.educacao.sp.gov.br',            nome: 'ALISON VASCONCELOS BESERRA' },
+    { email: 'alisonv@prof.educacao.sp.gov.br',                 nome: 'ALISON VASCONCELOS BESERRA' },
+    { email: 'anapereira08@professor.educacao.sp.gov.br',       nome: 'ANA PAULA ALVES PEREIRA' },
+    { email: 'anapereira08@prof.educacao.sp.gov.br',            nome: 'ANA PAULA ALVES PEREIRA' },
+    { email: 'sanfreitas@professor.educacao.sp.gov.br',         nome: 'ANDREIA DOS SANTOS FREITAS' },
+    { email: 'sanfreitas@prof.educacao.sp.gov.br',              nome: 'ANDREIA DOS SANTOS FREITAS' },
+    { email: 'andreiamadureira@professor.educacao.sp.gov.br',   nome: 'ANDREIA MADUREIRA REIS' },
+    { email: 'andreiamadureira@prof.educacao.sp.gov.br',        nome: 'ANDREIA MADUREIRA REIS' },
+    { email: 'antoniocarloso@professor.educacao.sp.gov.br',     nome: 'ANTÔNIO CARLOS DE OLIVEIRA' },
+    { email: 'antoniocarloso@prof.educacao.sp.gov.br',          nome: 'ANTÔNIO CARLOS DE OLIVEIRA' },
+    { email: 'antonioramosaraujo@professor.educacao.sp.gov.br', nome: 'ANTÔNIO RAMOS DE ARAUJO' },
+    { email: 'antonioramosaraujo@prof.educacao.sp.gov.br',      nome: 'ANTÔNIO RAMOS DE ARAUJO' },
+    { email: 'antoniowilton@professor.educacao.sp.gov.br',      nome: 'ANTÔNIO WILTON WANDERLEY CABRAL' },
+    { email: 'antoniowilton@prof.educacao.sp.gov.br',           nome: 'ANTÔNIO WILTON WANDERLEY CABRAL' },
+    { email: 'augustolino@professor.educacao.sp.gov.br',        nome: 'AUGUSTO LINO PESSOA NETO' },
+    { email: 'augustolino@prof.educacao.sp.gov.br',             nome: 'AUGUSTO LINO PESSOA NETO' },
+    { email: 'carolinapermoniam@professor.educacao.sp.gov.br',  nome: 'CAROLINA PERMONIAM PARUSSOLO' },
+    { email: 'carolinapermoniam@prof.educacao.sp.gov.br',       nome: 'CAROLINA PERMONIAM PARUSSOLO' },
+    { email: 'charlesd@professor.educacao.sp.gov.br',           nome: 'CHARLES DALAN JESUS DOS SANTOS' },
+    { email: 'charlesd@prof.educacao.sp.gov.br',                nome: 'CHARLES DALAN JESUS DOS SANTOS' },
+    { email: 'cicero1@professor.educacao.sp.gov.br',            nome: 'CÍCERO FERREIRA' },
+    { email: 'cicero1@prof.educacao.sp.gov.br',                 nome: 'CÍCERO FERREIRA' },
+    { email: 'aguiarl@professor.educacao.sp.gov.br',            nome: 'CLAUDINEIA DE AGUIAR LIMA' },
+    { email: 'aguiarl@prof.educacao.sp.gov.br',                 nome: 'CLAUDINEIA DE AGUIAR LIMA' },
+    { email: 'danielalmeida@professor.educacao.sp.gov.br',      nome: 'DANIEL DE FREITAS ALMEIDA' },
+    { email: 'danielalmeida@prof.educacao.sp.gov.br',           nome: 'DANIEL DE FREITAS ALMEIDA' },
+    { email: 'daniellopesbarbosa@professor.educacao.sp.gov.br', nome: 'DANIEL LOPES BARBOSA' },
+    { email: 'daniellopesbarbosa@prof.educacao.sp.gov.br',      nome: 'DANIEL LOPES BARBOSA' },
+    { email: 'danielaflima@professor.educacao.sp.gov.br',       nome: 'DANIELA FERREIRA LIMA' },
+    { email: 'danielaflima@prof.educacao.sp.gov.br',            nome: 'DANIELA FERREIRA LIMA' },
+    { email: 'deyseoliveira@professor.educacao.sp.gov.br',      nome: 'DEYSE DE MIRANDA OLIVEIRA' },
+    { email: 'deyseoliveira@prof.educacao.sp.gov.br',           nome: 'DEYSE DE MIRANDA OLIVEIRA' },
+    { email: 'ediane@professor.educacao.sp.gov.br',             nome: 'EDIANE VIEIRA DA SILVA' },
+    { email: 'ediane@prof.educacao.sp.gov.br',                  nome: 'EDIANE VIEIRA DA SILVA' },
+    { email: 'edileusa@professor.educacao.sp.gov.br',           nome: 'EDILEUSA NUNES PEREIRA' },
+    { email: 'edileusa@prof.educacao.sp.gov.br',                nome: 'EDILEUSA NUNES PEREIRA' },
+    { email: 'henriquefonseca@professor.educacao.sp.gov.br',    nome: 'EDUARDO HENRIQUE DA FONSECA' },
+    { email: 'henriquefonseca@prof.educacao.sp.gov.br',         nome: 'EDUARDO HENRIQUE DA FONSECA' },
+    { email: 'essantos@professor.educacao.sp.gov.br',           nome: 'ELIANE SANTOS SILVA' },
+    { email: 'essantos@prof.educacao.sp.gov.br',                nome: 'ELIANE SANTOS SILVA' },
+    { email: 'elias1@professor.educacao.sp.gov.br',             nome: 'ELIAS MONTEIRO DA SILVA' },
+    { email: 'elias1@prof.educacao.sp.gov.br',                  nome: 'ELIAS MONTEIRO DA SILVA' },
+    { email: 'elisabetepires@professor.educacao.sp.gov.br',     nome: 'ELISABETE APARECIDA PIRES' },
+    { email: 'elisabetepires@prof.educacao.sp.gov.br',          nome: 'ELISABETE APARECIDA PIRES' },
+    { email: 'egabler@professor.educacao.sp.gov.br',            nome: 'EMERSON GABLER DE ALMEIDA' },
+    { email: 'egabler@prof.educacao.sp.gov.br',                 nome: 'EMERSON GABLER DE ALMEIDA' },
+    { email: 'euzeli@professor.educacao.sp.gov.br',             nome: 'EUZELI ARAÚJO DE OLIVEIRA' },
+    { email: 'euzeli@prof.educacao.sp.gov.br',                  nome: 'EUZELI ARAÚJO DE OLIVEIRA' },
+    { email: 'fabianoaugusto@professor.educacao.sp.gov.br',     nome: 'FABIANO AUGUSTO PIEDADE' },
+    { email: 'fabianoaugusto@prof.educacao.sp.gov.br',          nome: 'FABIANO AUGUSTO PIEDADE' },
+    { email: 'camilof@professor.educacao.sp.gov.br',            nome: 'FÁBIO CAMILO' },
+    { email: 'camilof@prof.educacao.sp.gov.br',                 nome: 'FÁBIO CAMILO' },
+    { email: 'fernandojs@professor.educacao.sp.gov.br',         nome: 'FERNANDO JOSÉ DA SILVA FILHO' },
+    { email: 'fernandojs@prof.educacao.sp.gov.br',              nome: 'FERNANDO JOSÉ DA SILVA FILHO' },
+    { email: 'flaviacri@professor.educacao.sp.gov.br',          nome: 'FLÁVIA CRISTINA APARECIDA BICHLER' },
+    { email: 'flaviacri@prof.educacao.sp.gov.br',               nome: 'FLÁVIA CRISTINA APARECIDA BICHLER' },
+    { email: 'flaviofleury@professor.educacao.sp.gov.br',       nome: 'FLÁVIO CARDOSO FLEURY' },
+    { email: 'flaviofleury@prof.educacao.sp.gov.br',            nome: 'FLÁVIO CARDOSO FLEURY' },
+    { email: 'gabrielaserighelli@professor.educacao.sp.gov.br', nome: 'GABRIELA SERIGHELLI DE MELO' },
+    { email: 'gabrielaserighelli@prof.educacao.sp.gov.br',      nome: 'GABRIELA SERIGHELLI DE MELO' },
+    { email: 'gelsonalmeida@professor.educacao.sp.gov.br',      nome: 'GELSON DE ALMEIDA BATISTA' },
+    { email: 'gelsonalmeida@prof.educacao.sp.gov.br',           nome: 'GELSON DE ALMEIDA BATISTA' },
+    { email: 'genilton@professor.educacao.sp.gov.br',           nome: 'GENILTON DE OLIVEIRA SILVA' },
+    { email: 'genilton@prof.educacao.sp.gov.br',                nome: 'GENILTON DE OLIVEIRA SILVA' },
+    { email: 'oshikawa@professor.educacao.sp.gov.br',           nome: 'IVANILDE DOS SANTOS OSHIKAWA' },
+    { email: 'oshikawa@prof.educacao.sp.gov.br',                nome: 'IVANILDE DOS SANTOS OSHIKAWA' },
+    { email: 'janinabraga@professor.educacao.sp.gov.br',        nome: 'JANINA DOS PASSOS BRAGA DE ALMEIDA' },
+    { email: 'janinabraga@prof.educacao.sp.gov.br',             nome: 'JANINA DOS PASSOS BRAGA DE ALMEIDA' },
+    { email: 'joseaparecidosilva@professor.educacao.sp.gov.br', nome: 'JOSÉ APARECIDO DA SILVA' },
+    { email: 'joseaparecidosilva@prof.educacao.sp.gov.br',      nome: 'JOSÉ APARECIDO DA SILVA' },
+    { email: 'juarezgomes@professor.educacao.sp.gov.br',        nome: 'JUAREZ GOMES DE MAGALHÃES FILHO' },
+    { email: 'juarezgomes@prof.educacao.sp.gov.br',             nome: 'JUAREZ GOMES DE MAGALHÃES FILHO' },
+    { email: 'juremas@professor.educacao.sp.gov.br',            nome: 'JUREMA SOLEDADE FURINI SANTOS' },
+    { email: 'juremas@prof.educacao.sp.gov.br',                 nome: 'JUREMA SOLEDADE FURINI SANTOS' },
+    { email: 'katiusciabomfim@professor.educacao.sp.gov.br',    nome: 'KATIUSCIA ALVES BOMFIM' },
+    { email: 'katiusciabomfim@prof.educacao.sp.gov.br',         nome: 'KATIUSCIA ALVES BOMFIM' },
+    { email: 'luanalima01@professor.educacao.sp.gov.br',        nome: 'LUANA CAROLINE ALVES LIMA' },
+    { email: 'luanalima01@prof.educacao.sp.gov.br',             nome: 'LUANA CAROLINE ALVES LIMA' },
+    { email: 'luanafreitas@professor.educacao.sp.gov.br',       nome: 'LUANA DE FREITAS SILVA' },
+    { email: 'luanafreitas@prof.educacao.sp.gov.br',            nome: 'LUANA DE FREITAS SILVA' },
+    { email: 'luanapaiva01@professor.educacao.sp.gov.br',       nome: 'LUANA DE PAIVA' },
+    { email: 'luanapaiva01@prof.educacao.sp.gov.br',            nome: 'LUANA DE PAIVA' },
+    { email: 'novaiscorreia@professor.educacao.sp.gov.br',      nome: 'LUCIANA NOVAIS CORREIA SANTOS' },
+    { email: 'novaiscorreia@prof.educacao.sp.gov.br',           nome: 'LUCIANA NOVAIS CORREIA SANTOS' },
+    { email: 'lucianomoreira@professor.educacao.sp.gov.br',     nome: 'LUCIANO MOREIRA DE AZEVEDO' },
+    { email: 'lucianomoreira@prof.educacao.sp.gov.br',          nome: 'LUCIANO MOREIRA DE AZEVEDO' },
+    { email: 'marcielsilva@professor.educacao.sp.gov.br',       nome: 'MARCIEL DA SILVA' },
+    { email: 'marcielsilva@prof.educacao.sp.gov.br',            nome: 'MARCIEL DA SILVA' },
+    { email: 'marcunha@professor.educacao.sp.gov.br',           nome: 'MARIA HELENA CUNHA MORO' },
+    { email: 'marcunha@prof.educacao.sp.gov.br',                nome: 'MARIA HELENA CUNHA MORO' },
+    { email: 'quiteriasantos@professor.educacao.sp.gov.br',     nome: 'MARIA QUITÉRIA FERREIRA DOS SANTOS' },
+    { email: 'quiteriasantos@prof.educacao.sp.gov.br',          nome: 'MARIA QUITÉRIA FERREIRA DOS SANTOS' },
+    { email: 'mariceliasilva@professor.educacao.sp.gov.br',     nome: 'MARICELIA SILVA SANTOS PINA' },
+    { email: 'mariceliasilva@prof.educacao.sp.gov.br',          nome: 'MARICELIA SILVA SANTOS PINA' },
+    { email: 'marinafrancisco@professor.educacao.sp.gov.br',    nome: 'MARINA DA CONCEIÇÃO FRANCISCO SILVA' },
+    { email: 'marinafrancisco@prof.educacao.sp.gov.br',         nome: 'MARINA DA CONCEIÇÃO FRANCISCO SILVA' },
+    { email: 'mauriciobsantos@professor.educacao.sp.gov.br',    nome: 'MAURÍCIO DE BARROS SANTOS' },
+    { email: 'mauriciobsantos@prof.educacao.sp.gov.br',         nome: 'MAURÍCIO DE BARROS SANTOS' },
+    { email: 'michelepinhio@professor.educacao.sp.gov.br',      nome: 'MICHELE DE PINHO MORAES' },
+    { email: 'michelepinhio@prof.educacao.sp.gov.br',           nome: 'MICHELE DE PINHO MORAES' },
+    { email: 'moisesbarros@professor.educacao.sp.gov.br',       nome: 'MOISÉS ANTÔNIO DE BARROS' },
+    { email: 'moisesbarros@prof.educacao.sp.gov.br',            nome: 'MOISÉS ANTÔNIO DE BARROS' },
+    { email: 'paulaarmani@professor.educacao.sp.gov.br',        nome: 'PAULA ARMANI VILA' },
+    { email: 'paulaarmani@prof.educacao.sp.gov.br',             nome: 'PAULA ARMANI VILA' },
+    { email: 'pauloito@professor.educacao.sp.gov.br',           nome: 'PAULO ROBERTO DA SILVA ITO' },
+    { email: 'pauloito@prof.educacao.sp.gov.br',                nome: 'PAULO ROBERTO DA SILVA ITO' },
+    { email: 'pedrozanotti@professor.educacao.sp.gov.br',       nome: 'PEDRO ZANOTTI FILHO' },
+    { email: 'pedrozanotti@prof.educacao.sp.gov.br',            nome: 'PEDRO ZANOTTI FILHO' },
+    { email: 'reginasilvacastro@professor.educacao.sp.gov.br',  nome: 'REGINA DA SILVA CASTRO' },
+    { email: 'reginasilvacastro@prof.educacao.sp.gov.br',       nome: 'REGINA DA SILVA CASTRO' },
+    { email: 'renatahypolito@professor.educacao.sp.gov.br',     nome: 'RENATA MAGALHÃES HYPOLITO' },
+    { email: 'renatahypolito@prof.educacao.sp.gov.br',          nome: 'RENATA MAGALHÃES HYPOLITO' },
+    { email: 'ricardoamerico@professor.educacao.sp.gov.br',     nome: 'RICARDO AMÉRICO DA SILVA' },
+    { email: 'ricardoamerico@prof.educacao.sp.gov.br',          nome: 'RICARDO AMÉRICO DA SILVA' },
+    { email: 'robertosalgado@professor.educacao.sp.gov.br',     nome: 'ROBERTO SALGADO' },
+    { email: 'robertosalgado@prof.educacao.sp.gov.br',          nome: 'ROBERTO SALGADO' },
+    { email: 'rodrigovieira1@professor.educacao.sp.gov.br',     nome: 'RODRIGO VIEIRA' },
+    { email: 'rodrigovieira1@prof.educacao.sp.gov.br',          nome: 'RODRIGO VIEIRA' },
+    { email: 'rosanamiranda@professor.educacao.sp.gov.br',      nome: 'ROSANA APARECIDA MIRANDA' },
+    { email: 'rosanamiranda@prof.educacao.sp.gov.br',           nome: 'ROSANA APARECIDA MIRANDA' },
+    { email: 'roseliaraujo01@professor.educacao.sp.gov.br',     nome: 'ROSELI LUIZ ARAÚJO' },
+    { email: 'roseliaraujo01@prof.educacao.sp.gov.br',          nome: 'ROSELI LUIZ ARAÚJO' },
+    { email: 'rosimerypessoa@professor.educacao.sp.gov.br',     nome: 'ROSIMERY DE SOUZA PESSOA' },
+    { email: 'rosimerypessoa@prof.educacao.sp.gov.br',          nome: 'ROSIMERY DE SOUZA PESSOA' },
+    { email: 'rosmaracardoso@professor.educacao.sp.gov.br',     nome: 'ROSMARA DA SILVA CARDOSO' },
+    { email: 'rosmaracardoso@prof.educacao.sp.gov.br',          nome: 'ROSMARA DA SILVA CARDOSO' },
+    { email: 'sandracristinamacedo@professor.educacao.sp.gov.br', nome: 'SANDRA CRISTINA MACEDO MORAES' },
+    { email: 'sandracristinamacedo@prof.educacao.sp.gov.br',    nome: 'SANDRA CRISTINA MACEDO MORAES' },
+    { email: 'sergioagripino@professor.educacao.sp.gov.br',     nome: 'SÉRGIO AGRIPINO VILLA NOVA' },
+    { email: 'sergioagripino@prof.educacao.sp.gov.br',          nome: 'SÉRGIO AGRIPINO VILLA NOVA' },
+    { email: 'silvasimone@professor.educacao.sp.gov.br',        nome: 'SIMONE DA SILVA' },
+    { email: 'silvasimone@prof.educacao.sp.gov.br',             nome: 'SIMONE DA SILVA' },
+    { email: 'almeidafazio@professor.educacao.sp.gov.br',       nome: 'SOLANGE ALMEIDA DA SILVA' },
+    { email: 'almeidafazio@prof.educacao.sp.gov.br',            nome: 'SOLANGE ALMEIDA DA SILVA' },
+    { email: 'suzineidefreitas@professor.educacao.sp.gov.br',   nome: 'SUZINEIDE SILVA DE FREITAS' },
+    { email: 'suzineidefreitas@prof.educacao.sp.gov.br',        nome: 'SUZINEIDE SILVA DE FREITAS' },
+    { email: 'titto@professor.educacao.sp.gov.br',              nome: 'TITTO AUGUSTO NASCIMENTO SILVA' },
+    { email: 'titto@prof.educacao.sp.gov.br',                   nome: 'TITTO AUGUSTO NASCIMENTO SILVA' },
+    { email: 'vanessaivete@professor.educacao.sp.gov.br',       nome: 'VANESSA IVETE GOMES DOS SANTOS' },
+    { email: 'vanessaivete@prof.educacao.sp.gov.br',            nome: 'VANESSA IVETE GOMES DOS SANTOS' },
+    { email: 'vaniapenha@professor.educacao.sp.gov.br',         nome: 'VANIA PENHA DE BARROS' },
+    { email: 'vaniapenha@prof.educacao.sp.gov.br',              nome: 'VANIA PENHA DE BARROS' },
+    { email: 'camera@professor.educacao.sp.gov.br',             nome: 'VIVIANE LEAL CÂMERA DE MORAES' },
+    { email: 'camera@prof.educacao.sp.gov.br',                  nome: 'VIVIANE LEAL CÂMERA DE MORAES' },
+    { email: 'wmota@professor.educacao.sp.gov.br',              nome: 'WILSON RODRIGUES MOTA' },
+    { email: 'wmota@prof.educacao.sp.gov.br',                   nome: 'WILSON RODRIGUES MOTA' },
 ];
 
 /**
@@ -77,22 +189,14 @@ export const PROFESSORS_DB: ProfessorData[] = [
  */
 const normalizeInstitutionalEmail = (email: string): string => {
     const [user, domain] = email.toLowerCase().trim().split('@');
-    const institutionalDomains = [
-        'prof.educacao.sp.gov.br',
-        'professor.educacao.sp.gov.br',
-        'servidor.educacao.sp.gov.br',
-        'educacao.sp.gov.br',
-    ];
-    if (institutionalDomains.includes(domain)) {
+    if (domain === 'prof.educacao.sp.gov.br' || domain === 'professor.educacao.sp.gov.br') {
         return `${user}@prof.educacao.sp.gov.br`;
     }
     return email.toLowerCase().trim();
 };
 
-export const normalizeEmail = (email: string): string => normalizeInstitutionalEmail(email);
-
 /**
- * Verifica se o e-mail está registrado no sistema Fioravante
+ * Verifica se o e-mail está registrado no sistema LKM
  */
 export const isProfessorRegistered = (email: string): boolean => {
     const normalizedTarget = normalizeInstitutionalEmail(email);
@@ -100,21 +204,16 @@ export const isProfessorRegistered = (email: string): boolean => {
 };
 
 /**
- * Verifica se o e-mail é de gestão
+ * Retorna o role do e-mail a partir da lista local LKM.
  */
-export const isGestaoEmail = (email: string): boolean => {
-    return FIXED_GESTAO_EMAILS.includes(email.toLowerCase().trim());
-};
-
-/**
- * Verifica se é e-mail institucional válido
- */
-export const isInstitutionalEmail = (email: string): boolean => {
-    const lower = email.toLowerCase().trim();
-    return lower.endsWith('@prof.educacao.sp.gov.br') ||
-        lower.endsWith('@professor.educacao.sp.gov.br') ||
-        lower.endsWith('@servidor.educacao.sp.gov.br') ||
-        lower.endsWith('@educacao.sp.gov.br');
+export const getRoleFromLocalDB = (email: string): 'gestor' | 'professor' | null => {
+    const lowerEmail = email.toLowerCase().trim();
+    const exactMatch = PROFESSORS_DB.find(p => p.email.toLowerCase().trim() === lowerEmail);
+    if (exactMatch) return exactMatch.role || 'professor';
+    const normalizedTarget = normalizeInstitutionalEmail(lowerEmail);
+    const found = PROFESSORS_DB.find(p => normalizeInstitutionalEmail(p.email) === normalizedTarget);
+    if (!found) return null;
+    return found.role || 'professor';
 };
 
 /**
