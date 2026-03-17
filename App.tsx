@@ -425,40 +425,99 @@ const App = () => {
     if (user) loadCloudIncidents();
   }, [user]);
 
+  // Mapeia um registro bruto do Supabase para o tipo Incident
+  const mapSupabaseToIncident = (i: any): Incident => ({
+    id: i.id,
+    studentName: i.student_name,
+    ra: i.ra,
+    classRoom: i.class_room,
+    professorName: i.professor_name,
+    discipline: i.discipline,
+    date: i.date,
+    time: i.time,
+    registerDate: i.register_date,
+    returnDate: i.return_date,
+    description: i.description,
+    irregularities: i.irregularities,
+    category: i.category,
+    severity: i.severity as any,
+    status: i.status as any,
+    source: i.source as any,
+    pdfUrl: i.pdf_url,
+    authorEmail: i.author_email,
+    managementFeedback: i.management_feedback,
+    managementFeedbackAt: i.management_feedback_at,
+    managementFeedbackReadAt: i.management_feedback_read_at,
+    lastViewedAt: i.last_viewed_at
+  });
+
   const loadCloudIncidents = async () => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
+      // ── Filtro de 30 dias: apenas registros recentes são carregados na inicialização.
+      // Os registros anteriores permanecem intactos na nuvem e podem ser consultados
+      // a qualquer momento pelo Histórico Permanente por Aluno.
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const cutoffISO = thirtyDaysAgo.toISOString();
+
+      console.log(`📅 [LOAD] Carregando registros a partir de: ${cutoffISO}`);
+
       const { data: incData, error } = await supabase
         .from('incidents')
         .select('*')
+        .gte('created_at', cutoffISO)
         .order('created_at', { ascending: false });
+
       if (!error && incData) {
-        const mapped: Incident[] = incData.map(i => ({
-          id: i.id,
-          studentName: i.student_name,
-          ra: i.ra,
-          classRoom: i.class_room,
-          professorName: i.professor_name,
-          discipline: i.discipline,
-          date: i.date,
-          time: i.time,
-          registerDate: i.register_date,
-          returnDate: i.return_date,
-          description: i.description,
-          irregularities: i.irregularities,
-          category: i.category,
-          severity: i.severity as any,
-          status: i.status as any,
-          source: i.source as any,
-          pdfUrl: i.pdf_url,
-          authorEmail: i.author_email,
-          managementFeedback: i.management_feedback,
-          lastViewedAt: i.last_viewed_at
-        }));
+        const mapped: Incident[] = incData.map(mapSupabaseToIncident);
         setIncidents(mapped);
         localStorage.setItem('lkm_incidents_cache', JSON.stringify(mapped));
+        console.log(`✅ [LOAD] ${mapped.length} registros dos últimos 30 dias carregados.`);
       }
     } catch (e) { console.warn("Sincronização offline."); }
+  };
+
+  // Busca o histórico COMPLETO de um aluno específico (todos os registros, sem limite de data)
+  const loadFullStudentHistory = async (ra: string): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .eq('ra', ra)
+        .order('created_at', { ascending: false });
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar histórico completo:", e); }
+    return [];
+  };
+
+  // Busca registros anteriores a 30 dias para consulta/impressão (sem alterar o estado principal)
+  const loadArchivedIncidents = async (filters?: { studentName?: string; classRoom?: string; dateFrom?: string; dateTo?: string }): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const cutoffISO = thirtyDaysAgo.toISOString();
+
+      let query = supabase
+        .from('incidents')
+        .select('*')
+        .lt('created_at', cutoffISO)
+        .order('created_at', { ascending: false })
+        .limit(200); // Limite de segurança para não sobrecarregar
+
+      if (filters?.studentName) {
+        query = query.ilike('student_name', `%${filters.studentName}%`);
+      }
+      if (filters?.classRoom) {
+        query = query.eq('class_room', filters.classRoom);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar arquivo histórico:", e); }
+    return [];
   };
 
   const syncPendingRecords = async () => {
@@ -749,7 +808,9 @@ const App = () => {
     onUpdateIncident: handleUpdateIncident,
     onLogout: handleLogout,
     onOpenSearch: () => setSearchModalOpen(true),
-    onSyncStudents: handleSyncStudents
+    onSyncStudents: handleSyncStudents,
+    onLoadFullStudentHistory: loadFullStudentHistory,
+    onLoadArchivedIncidents: loadArchivedIncidents,
   };
 
   // Determina qual visualização renderizar com base no e-mail e role
