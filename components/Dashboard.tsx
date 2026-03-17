@@ -64,8 +64,9 @@ import type { Incident, User, Student, ManagementReferral } from '../types';
 import { generateIncidentPDF } from '../services/pdfService';
 import StatusBadge from './StatusBadge';
 import { supabase } from '../services/supabaseClient';
-import { ALLOWED_CLASSES } from '../data/studentsData';
+import { STUDENTS_DB } from '../studentsData';
 import { normalizeClassName } from '../utils/formatters';
+const ALLOWED_CLASSES = Array.from(new Set(STUDENTS_DB.map(s => normalizeClassName(s.turma))));
 
 interface DashboardProps {
   user: User;
