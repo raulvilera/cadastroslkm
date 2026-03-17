@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      emptyOutDir: true,
       sourcemap: false,
       rollupOptions: {
         output: {
