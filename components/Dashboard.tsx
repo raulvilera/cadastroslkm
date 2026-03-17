@@ -78,9 +78,11 @@ interface DashboardProps {
   onOpenSearch: () => void;
   onUpdateIncident?: (incident: Incident) => void;
   onSyncStudents?: () => Promise<void>;
+  onLoadFullStudentHistory?: (ra: string) => Promise<Incident[]>;
+  onLoadArchivedIncidents?: (filters?: { studentName?: string; classRoom?: string }) => Promise<Incident[]>;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents }) => {
   const [classRoom, setClassRoom] = useState('');
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
@@ -141,6 +143,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [studentHistory, setStudentHistory] = useState<Incident[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // Estados para o Arquivo Histórico (registros anteriores a 30 dias)
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveSearchName, setArchiveSearchName] = useState('');
+  const [archiveSearchClass, setArchiveSearchClass] = useState('');
+  const [archivedIncidents, setArchivedIncidents] = useState<Incident[]>([]);
+  const [isLoadingArchive, setIsLoadingArchive] = useState(false);
+  const [archiveSearched, setArchiveSearched] = useState(false);
+
   const ra = useMemo(() => {
     const s = students.find(st => st.nome === studentName && st.turma === classRoom);
     return s ? s.ra : '---';
@@ -150,42 +160,66 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     setIsLoadingHistory(true);
     setSelectedStudentForHistory(student);
     try {
-      const { data, error } = await supabase
-        .from('incidents')
-        .select('*')
-        .eq('ra', student.ra)
-        .order('created_at', { ascending: false });
+      // Usa a prop especializada que busca o histórico COMPLETO do aluno (sem filtro de data)
+      if (onLoadFullStudentHistory) {
+        const data = await onLoadFullStudentHistory(student.ra);
+        setStudentHistory(data);
+      } else {
+        // Fallback: busca direta (sem filtro de data)
+        const { data, error } = await supabase
+          .from('incidents')
+          .select('*')
+          .eq('ra', student.ra)
+          .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setStudentHistory(data.map(i => ({
-          id: i.id,
-          studentName: i.student_name,
-          ra: i.ra,
-          classRoom: i.class_room,
-          professorName: i.professor_name,
-          discipline: i.discipline,
-          date: i.date,
-          time: i.time,
-          registerDate: i.register_date,
-          returnDate: i.return_date,
-          description: i.description,
-          irregularities: i.irregularities,
-          category: i.category,
-          severity: i.severity as any,
-          status: i.status as any,
-          source: i.source as any,
-          pdfUrl: i.pdf_url,
-          authorEmail: i.author_email,
-          managementFeedback: i.management_feedback,
-          managementFeedbackAt: i.management_feedback_at,
-          managementFeedbackReadAt: i.management_feedback_read_at,
-          lastViewedAt: i.last_viewed_at
-        })));
+        if (!error && data) {
+          setStudentHistory(data.map(i => ({
+            id: i.id,
+            studentName: i.student_name,
+            ra: i.ra,
+            classRoom: i.class_room,
+            professorName: i.professor_name,
+            discipline: i.discipline,
+            date: i.date,
+            time: i.time,
+            registerDate: i.register_date,
+            returnDate: i.return_date,
+            description: i.description,
+            irregularities: i.irregularities,
+            category: i.category,
+            severity: i.severity as any,
+            status: i.status as any,
+            source: i.source as any,
+            pdfUrl: i.pdf_url,
+            authorEmail: i.author_email,
+            managementFeedback: i.management_feedback,
+            managementFeedbackAt: i.management_feedback_at,
+            managementFeedbackReadAt: i.management_feedback_read_at,
+            lastViewedAt: i.last_viewed_at
+          })));
+        }
       }
     } catch (e) {
       console.error("Erro ao buscar histórico:", e);
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  const handleArchiveSearch = async () => {
+    if (!onLoadArchivedIncidents) return;
+    setIsLoadingArchive(true);
+    setArchiveSearched(true);
+    try {
+      const results = await onLoadArchivedIncidents({
+        studentName: archiveSearchName.trim() || undefined,
+        classRoom: archiveSearchClass.trim() || undefined,
+      });
+      setArchivedIncidents(results);
+    } catch (e) {
+      console.error("Erro ao buscar arquivo histórico:", e);
+    } finally {
+      setIsLoadingArchive(false);
     }
   };
 
@@ -541,6 +575,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             </svg>
             Limpeza DB
           </button>
+          {onLoadArchivedIncidents && (
+            <button
+              onClick={() => { setShowArchiveModal(true); setArchiveSearched(false); setArchivedIncidents([]); }}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
+              title="Consultar registros anteriores a 30 dias"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12" />
+              </svg>
+              Arquivo Histórico
+            </button>
+          )}
         </div>
       </header>
 
@@ -1248,6 +1294,121 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 className="px-12 py-4 bg-[#002b5c] text-white font-black text-[10px] uppercase rounded-full hover:shadow-xl transition-all active:scale-95"
               >
                 Fechar Histórico
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Arquivo Histórico (registros anteriores a 30 dias) ─────────── */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
+            <div className="bg-gradient-to-r from-purple-900 to-purple-700 p-6 text-center shrink-0 border-b-4 border-purple-400">
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">🗄️ Arquivo Histórico</h3>
+              <p className="text-purple-300 text-[9px] font-bold mt-1 uppercase">Registros anteriores a 30 dias — dados preservados na nuvem</p>
+            </div>
+
+            <div className="p-6 border-b border-gray-100 bg-purple-50/50 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Nome do Aluno</label>
+                  <input
+                    type="text"
+                    value={archiveSearchName}
+                    onChange={e => setArchiveSearchName(e.target.value)}
+                    placeholder="Ex: JOÃO DA SILVA..."
+                    className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all uppercase text-black"
+                    onKeyDown={e => e.key === 'Enter' && handleArchiveSearch()}
+                  />
+                </div>
+                <div className="w-full sm:w-44 space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Turma</label>
+                  <select
+                    value={archiveSearchClass}
+                    onChange={e => setArchiveSearchClass(e.target.value)}
+                    className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all text-black cursor-pointer"
+                  >
+                    <option value="">Todas as turmas</option>
+                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={handleArchiveSearch}
+                  disabled={isLoadingArchive || (!archiveSearchName.trim() && !archiveSearchClass.trim())}
+                  className="h-11 px-8 bg-purple-600 text-white font-black text-[10px] uppercase rounded-2xl hover:bg-purple-700 transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0"
+                >
+                  {isLoadingArchive ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+              <p className="text-[8px] font-bold text-purple-500 uppercase mt-2 ml-1">
+                ℹ️ Informe ao menos o nome do aluno ou a turma para pesquisar. Máx. 200 registros por consulta.
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+              {isLoadingArchive ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultando arquivo histórico...</p>
+                </div>
+              ) : archiveSearched && archivedIncidents.length === 0 ? (
+                <div className="py-20 text-center bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
+                  <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum registro histórico encontrado</p>
+                  <p className="text-gray-300 text-[9px] mt-1">Tente outro nome ou turma</p>
+                </div>
+              ) : !archiveSearched ? (
+                <div className="py-20 text-center">
+                  <div className="text-6xl mb-4">🗄️</div>
+                  <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.2em]">Use os filtros acima para consultar</p>
+                  <p className="text-gray-300 text-[9px] mt-2">Todos os registros antigos estão preservados na nuvem</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest ml-2">{archivedIncidents.length} registro(s) encontrado(s)</p>
+                  {archivedIncidents.map(inc => (
+                    <div key={inc.id} className="p-5 bg-white border border-purple-100 rounded-[28px] shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-[11px] font-black text-purple-700 uppercase">{inc.studentName}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">{inc.classRoom}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{inc.date}</span>
+                          <StatusBadge status={inc.status} size="small" />
+                        </div>
+                        <span className="px-3 py-1 bg-purple-50 rounded-lg text-[8px] font-black text-purple-500 uppercase">{inc.category}</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-600 uppercase italic line-clamp-3">{inc.description}</p>
+                      <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase">PROF: {inc.professorName}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => generateIncidentPDF(inc, 'view')}
+                            title="Visualizar documento"
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => generateIncidentPDF(inc, 'download')}
+                            title="Baixar documento"
+                            className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
+              <button
+                onClick={() => { setShowArchiveModal(false); setArchivedIncidents([]); setArchiveSearchName(''); setArchiveSearchClass(''); setArchiveSearched(false); }}
+                className="px-12 py-4 bg-purple-700 text-white font-black text-[10px] uppercase rounded-full hover:bg-purple-800 hover:shadow-xl transition-all active:scale-95"
+              >
+                Fechar Arquivo
               </button>
             </div>
           </div>
