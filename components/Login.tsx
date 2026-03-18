@@ -166,13 +166,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           console.log('✅ [LOGIN] Gestor identificado via lista hardcoded:', displayEmail);
         }
 
-        // Só consulta o banco se ainda não definiu como gestor hardcoded
-        if (!userRole) {
-          const dbRole = await fetchRoleWithTimeout();
-          if (dbRole) {
-            userRole = dbRole as any;
-            console.log('✅ [LOGIN] Role do banco:', userRole);
-          }
+        const dbRole = await fetchRoleWithTimeout();
+        if (dbRole) {
+          userRole = dbRole as any;
+          console.log('✅ [LOGIN] Role do banco:', userRole);
         }
 
         if (!userRole) {
@@ -246,7 +243,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           .from('authorized_professors')
           .select('role')
           .or(orFilterReg)
-          .eq('escola', 'lkm')
           .maybeSingle();
 
         let userRole: 'gestor' | 'professor' | null = null;
