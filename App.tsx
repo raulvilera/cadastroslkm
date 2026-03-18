@@ -126,10 +126,11 @@ const App = () => {
               return;
             }
 
-            // Evita re-renders desnecessários para INITIAL_SESSION
+            // Evita processamento desnecessário do evento inicial
             if (event === 'INITIAL_SESSION') return;
 
             // ✅ Se o Login.tsx está processando, ignorar eventos SIGNED_IN/TOKEN_REFRESHED
+            // para não interferir com o fluxo de login que já determina o role corretamente.
             if (loginInProgressRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
               console.log('⏸️ [APP] onAuthStateChange ignorado — login em progresso');
               return;
@@ -188,40 +189,33 @@ const App = () => {
 
           authListener = subscription;
 
-          // 4. Verificação inicial da sessão — com timeout para não travar
+          // 4. Verificação inicial da sessão
           if (!isDuringRecovery) {
-            try {
-              const sessionResult = await Promise.race([
-                supabase.auth.getSession(),
-                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 3000))
-              ]);
-              const session = sessionResult?.data?.session;
-              if (session?.user) {
-                const sessionEmail = session.user.email!.toLowerCase();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const sessionEmail = session.user.email!.toLowerCase();
 
-                if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
-                  console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
+              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
+                console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                  return { email: sessionEmail, role: 'gestor' };
+                });
+                setView('dashboard');
+              } else {
+                const role = await fetchRoleSafe(sessionEmail);
+                if (role) {
                   setUser(prev => {
-                    if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
-                    return { email: sessionEmail, role: 'gestor' };
+                    if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                    return { email: sessionEmail, role: role as any };
                   });
                   setView('dashboard');
                 } else {
-                  const role = await fetchRoleSafe(sessionEmail);
-                  if (role) {
-                    setUser(prev => {
-                      if (prev?.email === sessionEmail && prev?.role === role) return prev;
-                      return { email: sessionEmail, role: role as any };
-                    });
-                    setView('dashboard');
-                  } else {
-                    setUser({ email: sessionEmail, role: 'professor' });
-                    setView('unauthorized');
-                  }
+                  setUser({ email: sessionEmail, role: 'professor' });
+                  setView('unauthorized');
                 }
               }
-            } catch (sessionErr) {
-              console.warn('⚠️ [APP] getSession timeout ou erro — continuando sem sessão:', sessionErr);
             }
           }
         } catch (e) {
@@ -239,7 +233,7 @@ const App = () => {
 
     const failsafeTimeout = setTimeout(() => {
       setLoading(false);
-    }, 3000); // 3 segundos — failsafe mais agressivo para mobile
+    }, 3000);
 
     initApp();
 
@@ -821,8 +815,6 @@ const App = () => {
     onSyncStudents: handleSyncStudents,
     onLoadFullStudentHistory: loadFullStudentHistory,
     onLoadArchivedIncidents: loadArchivedIncidents,
-    onToggleView: hasDualAccess ? handleToggleView : undefined,
-    viewMode: viewMode,
   };
 
   // Determina qual visualização renderizar com base no e-mail e role
@@ -836,6 +828,20 @@ const App = () => {
 
   return (
     <div className="relative min-h-screen bg-[#001a35]">
+      {/* Botão de alternância para acesso dual (Não disponível para Gestão Exclusiva) */}
+      {hasDualAccess && !isExclusiveManagement && (
+        <button
+          onClick={handleToggleView}
+          className="fixed top-4 right-4 z-50 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-wider shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+          title={`Alternar para área ${viewMode === 'gestor' ? 'do professor' : 'da gestão'}`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
+        </button>
+      )}
+
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
