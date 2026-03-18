@@ -19,6 +19,7 @@ export const PROFESSORS_DB: ProfessorData[] = [
     // ── Gestão LKM ────────────────────────────────────────────────────────────
     { email: 'gestao@escola.com',                               nome: 'GESTÃO ESCOLAR',                          role: 'gestor' },
     { email: 'vilera@prof.educacao.sp.gov.br',                  nome: 'RAUL VILERA - GESTÃO',                    role: 'gestor' },
+    { email: 'raulvilera@gmail.com',                            nome: 'RAUL VILERA - GESTÃO',                    role: 'gestor' },
     { email: 'cadastroslkm@gmail.com',                          nome: 'CADASTROS LKM - GESTÃO',                  role: 'gestor' },
     { email: 'alinecardoso1@prof.educacao.sp.gov.br',           nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
     { email: 'alinecardoso1@professor.educacao.sp.gov.br',      nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
