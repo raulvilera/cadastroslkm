@@ -848,7 +848,7 @@ const App = () => {
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-blue-950 to-black">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
