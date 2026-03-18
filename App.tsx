@@ -23,8 +23,11 @@ const GESTAO_EMAILS_HARDCODED = [
   'gestao@escola.com',
 ];
 
-// E-mail com acesso dual (gestor + professor)
-const DUAL_ACCESS_EMAIL = 'vilera@prof.educacao.sp.gov.br';
+// E-mails com acesso duplo (gestor + professor)
+const DUAL_ACCESS_EMAILS = [
+  'vilera@prof.educacao.sp.gov.br',
+  'raulvilera@gmail.com',
+];
 
 import { normalizeClassName } from './utils/formatters';
 
@@ -91,7 +94,7 @@ const App = () => {
               }
 
               // ✅ E-mail com acesso dual sempre entra como gestor no contexto do App
-              if (normalizedEmail === DUAL_ACCESS_EMAIL) {
+              if (DUAL_ACCESS_EMAILS.includes(normalizedEmail)) {
                 console.log('🔄 [APP] Acesso dual — role gestor:', normalizedEmail);
                 return 'gestor';
               }
@@ -161,7 +164,7 @@ const App = () => {
 
               // Só chega aqui se não há user definido (ex: reload da página com sessão ativa)
               // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
-              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || sessionEmail === DUAL_ACCESS_EMAIL) {
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || DUAL_ACCESS_EMAILS.includes(sessionEmail)) {
                 console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
@@ -201,7 +204,7 @@ const App = () => {
               const sessionEmail = session.user.email!.toLowerCase();
 
               // ✅ Mesma blindagem: gestão exclusiva e dual access nunca consultam o banco
-              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || sessionEmail === DUAL_ACCESS_EMAIL) {
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || DUAL_ACCESS_EMAILS.includes(sessionEmail)) {
                 console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
@@ -758,7 +761,7 @@ const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-orange-950 flex flex-col items-center justify-center">
+      <div className="h-screen w-full bg-orange-200 flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Portal Lydia Kitz 2026...</p>
       </div>
@@ -798,7 +801,7 @@ const App = () => {
     );
   }
 
-  const hasDualAccess = user?.email === DUAL_ACCESS_EMAIL;
+  const hasDualAccess = DUAL_ACCESS_EMAILS.includes(user?.email || "");
 
   const handleToggleView = () => {
     setViewMode(prev => prev === 'gestor' ? 'professor' : 'gestor');
@@ -845,7 +848,7 @@ const App = () => {
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
-    <div className="relative min-h-screen bg-green-900">
+    <div className="relative min-h-screen bg-gradient-to-br from-orange-200 via-lime-200 to-sky-200">
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
