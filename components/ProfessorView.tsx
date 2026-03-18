@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
+import { getProfessorNameFromEmail } from '../professorsData';
 
 interface ProfessorViewProps {
   user: User;
@@ -13,6 +14,8 @@ interface ProfessorViewProps {
   onLogout: () => void;
   onOpenSearch?: () => void;
   onSyncStudents?: () => void;
+  onToggleView?: () => void;
+  viewMode?: 'gestor' | 'professor';
 }
 
 const LISTA_IRREGULARIDADES = [
@@ -42,8 +45,19 @@ const IconTrash = () => (
 );
 
 const ProfessorView: React.FC<ProfessorViewProps> = ({
-  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout
+  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode
 }) => {
+  // ── Altura dinâmica do header fixo ───────────────────────────────────────
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(52);
+  useEffect(() => {
+    const update = () => { if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight); };
+    update();
+    const ro = new ResizeObserver(update);
+    if (headerRef.current) ro.observe(headerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   // ── Toast e Confirm internos ──────────────────────────────────────────────
   const [pvToast, setPvToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
   const pvShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
@@ -54,6 +68,9 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   const pvAskConfirm = (msg: string, onOk: () => void) => setPvConfirm({ msg, onOk });
 
   const [professorName, setProfessorName] = useState('');
+  useEffect(() => {
+    if (user?.email) setProfessorName(getProfessorNameFromEmail(user.email));
+  }, [user?.email]);
   const [classRoom, setClassRoom] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [discipline, setDiscipline] = useState('');
@@ -326,21 +343,33 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12">
-      <header className="bg-gradient-to-r from-black via-[#001030] to-[#002b5c] text-white px-8 py-3 flex justify-between items-center border-b border-white/10 shadow-lg sticky top-0 z-[50]">
-        <div className="flex flex-col">
-          <h1 className="text-sm font-black uppercase tracking-tighter">Área do Professor 2026</h1>
-          <p className="text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Fioravante Iervolino</p>
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12" style={{ paddingTop: headerHeight }}>
+      <header ref={headerRef} className="bg-gradient-to-r from-black/90 via-[#001030]/90 to-[#002b5c]/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
+        <div className="flex flex-col items-center sm:items-start">
+          <h1 className="text-xs sm:text-sm font-black uppercase tracking-tighter text-center sm:text-left">Área do Professor 2026</h1>
+          <p className="text-[8px] sm:text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Lydia Kitz Moreira</p>
         </div>
-        <div className="flex gap-6 items-center">
+        <div className="flex gap-2 sm:gap-4 items-center flex-wrap justify-center sm:justify-end">
           {unreadCount > 0 && (
             <div className="flex items-center gap-1.5 bg-amber-400 text-black px-3 py-1 rounded-full shadow animate-pulse">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               <span className="text-[9px] font-black uppercase">{unreadCount} devolutiva{unreadCount > 1 ? 's' : ''}</span>
             </div>
           )}
-          <span className="text-[10px] font-bold text-white/70">{user.email}</span>
-          <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md">Sair</button>
+          <span className="hidden sm:inline text-[10px] font-bold text-white/70">{user.email}</span>
+          {onToggleView && (
+            <button
+              onClick={onToggleView}
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+              title={`Alternar para área ${viewMode === 'professor' ? 'da gestão' : 'do professor'}`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Ver como Gestão
+            </button>
+          )}
+          <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md whitespace-nowrap">Sair</button>
         </div>
       </header>
 
@@ -364,8 +393,8 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
             <form onSubmit={handleSave} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-white uppercase tracking-widest">PROFESSOR RESPONSÁVEL (DIGITE SEU NOME)</label>
-                  <input type="text" value={professorName} onChange={e => setProfessorName(e.target.value)} placeholder="Digite seu nome completo..." className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400" />
+                  <label className="text-[10px] font-black text-white uppercase tracking-widest">PROFESSOR RESPONSÁVEL</label>
+                  <input type="text" value={professorName} onChange={e => setProfessorName(e.target.value)} placeholder="Nome do professor..." className="w-full h-11 px-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
@@ -412,10 +441,35 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-white uppercase tracking-widest">IRREGULARIDADES</label>
-                <div className="flex flex-wrap gap-2">
-                  {LISTA_IRREGULARIDADES.map(item => (
-                    <button key={item} type="button" onClick={() => toggleIrregularity(item)} className={`px-4 py-2 rounded-lg border transition-all text-[10px] font-bold ${selectedIrregularities.includes(item) ? 'bg-[#1e3a8a] text-white border-transparent shadow-lg' : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20'}`}>{item}</button>
-                  ))}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'ATRASO',            icon: '⏰' },
+                    { label: 'SEM MATERIAL',       icon: '📚' },
+                    { label: 'USO DE CELULAR',     icon: '📵' },
+                    { label: 'CONVERSA',           icon: '💬' },
+                    { label: 'DESRESPEITO',        icon: '🚫' },
+                    { label: 'INDISCIPLINA',       icon: '⚠️' },
+                    { label: 'DESACATO',           icon: '😤' },
+                    { label: 'SEM TAREFA',         icon: '📝' },
+                    { label: 'SAIU SEM PERMISSÃO', icon: '🚪' },
+                  ].map(({ label, icon }) => {
+                    const selected = selectedIrregularities.includes(label);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => toggleIrregularity(label)}
+                        className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 transition-all text-center
+                          ${selected
+                            ? 'bg-[#1e3a8a] border-blue-400 text-white shadow-lg scale-[1.03]'
+                            : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}
+                      >
+                        <span className="text-base leading-none">{icon}</span>
+                        <span className="text-[8px] font-black uppercase leading-tight">{label}</span>
+                        {selected && <span className="text-[7px] text-blue-300 font-black">✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -516,16 +570,77 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
         {/* PAINEL DE REGISTROS */}
         <section className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-300">
-          <div className="px-8 py-5 border-b border-gray-300 flex items-center justify-between bg-gradient-to-r from-black to-[#002b5c]">
-            <div>
-              <h3 className="text-white font-black text-xs uppercase tracking-widest">PAINEL DE REGISTROS (ÚLTIMOS 30 DIAS)</h3>
-              <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5">Visualize, baixe o PDF ou edite seus registros</p>
+          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black to-[#002b5c]">
+            <div className="flex flex-col items-center md:items-start w-full md:w-auto">
+              <h3 className="text-[11px] sm:text-[13px] text-white font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
+              <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left">Visualize, baixe o PDF ou edite seus registros</p>
             </div>
-            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Filtrar histórico..." className="bg-white/10 border border-white/20 rounded px-4 py-2 text-[10px] font-bold outline-none focus:bg-white focus:text-black w-64 text-white placeholder:text-white/40 shadow-inner" />
+            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Filtrar histórico..." className="bg-white/10 border border-white/20 rounded px-4 py-2 text-[10px] font-bold outline-none focus:bg-white focus:text-black w-full md:w-64 text-white placeholder:text-white/40 shadow-inner" />
           </div>
 
           <div className="max-h-[600px] overflow-auto custom-scrollbar bg-gray-50">
-            <table className="w-full border-collapse border border-gray-300">
+
+            {/* ── CARDS MOBILE (< sm) ─────────────────────────────────── */}
+            <div className="sm:hidden flex flex-col gap-[12px] bg-gray-100/80 p-3">
+              {filteredHistory.length > 0 ? filteredHistory.map((inc) => {
+                const unread = isUnreadFeedback(inc);
+                const hasFb  = hasFeedback(inc);
+                return (
+                  <div key={inc.id} className={`p-4 space-y-2 rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.10)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)] transition-shadow border ${unread ? 'border-amber-300 border-l-4 border-l-amber-400' : hasFb ? 'border-emerald-200' : 'border-blue-100'}`}
+                    style={{ background: unread
+                      ? 'linear-gradient(to bottom, #fffbeb 60%, #fde68a 100%)'
+                      : hasFb
+                        ? 'linear-gradient(to bottom, #f0fdf4 60%, #bbf7d0 100%)'
+                        : 'linear-gradient(to bottom, #ffffff 60%, #dbeafe 100%)'
+                    }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-gray-500">{inc.date}</span>
+                        <span className="bg-blue-100 text-blue-800 text-[9px] font-black px-2 py-0.5 rounded-full">{inc.classRoom}</span>
+                        {unread && <span className="bg-amber-500 text-white text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full">NOVA</span>}
+                      </div>
+                      <StatusBadge status={inc.status || 'Pendente'} size="small" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-[#002b5c] uppercase">{inc.studentName}</p>
+                      <p className="text-[9px] font-bold text-gray-400">RA: {inc.ra} · {inc.discipline || '---'}</p>
+                    </div>
+                    {inc.irregularities && inc.irregularities !== 'NENHUMA' && (
+                      <p className="text-[9px] font-bold text-red-600 uppercase">{inc.irregularities}</p>
+                    )}
+                    {referralLabels(inc).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {referralLabels(inc).map((lb, i) => (
+                          <span key={i} className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${lb.includes('Orientação') ? 'bg-emerald-100 text-emerald-700' : lb.includes('Gestora') ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{lb}</span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[9px] text-gray-600 italic leading-snug">{inc.description}</p>
+                    {hasFb && (
+                      <button onClick={() => handleViewFeedback(inc)} className={`w-full text-left flex items-center gap-1 text-[8px] font-black uppercase px-2 py-1.5 rounded transition-all ${unread ? 'bg-amber-400 text-amber-900' : 'bg-emerald-100 text-emerald-700'}`}>
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                        {unread ? 'Ver devolutiva da gestão' : '✅ Devolutiva registrada'}
+                      </button>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => handleViewPDF(inc)} className="flex-1 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-1"><IconEye /> Ver</button>
+                      <button onClick={() => handleDownloadPDFWithFeedback(inc)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-1 ${hasFb ? 'bg-amber-100 text-amber-700' : 'bg-green-50 text-green-600'}`}><IconDownload /> PDF</button>
+                      {canActOnIncident(inc) && (
+                        <button onClick={() => { setEditingIncident(inc); setEditDescription(inc.description || ''); }} className="flex-1 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-1"><IconEdit /> Editar</button>
+                      )}
+                      {canActOnIncident(inc) && (
+                        <button onClick={() => handleDelete(inc)} className="flex-1 py-1.5 bg-red-50 text-red-500 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-1"><IconTrash /> Excluir</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="px-6 py-16 text-center text-gray-400 text-[10px] font-black uppercase italic tracking-[0.2em] bg-white">Os registros gravados aparecerão automaticamente nesta grade...</div>
+              )}
+            </div>
+
+            {/* ── TABELA DESKTOP (≥ sm) ────────────────────────────────── */}
+            <table className="hidden sm:table w-full border-collapse border border-gray-300">
               <thead className="sticky top-0 bg-[#f8fafc] z-20">
                 <tr className="bg-[#1e3a8a] text-white">
                   <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-center w-[100px]">DATA</th>
@@ -573,10 +688,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                     <td className="border border-gray-300 px-3 py-2 text-[9px] max-w-[250px]">
                       <p className="font-medium text-gray-400 truncate">{inc.description}</p>
                       {hasFb && (
-                        <button
-                          onClick={() => handleViewFeedback(inc)}
-                          className={`mt-1 w-full text-left flex items-center gap-1 text-[8px] font-black uppercase px-2 py-1 rounded transition-all ${unread ? 'bg-amber-400 text-amber-900 hover:bg-amber-500' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
-                        >
+                        <button onClick={() => handleViewFeedback(inc)} className={`mt-1 w-full text-left flex items-center gap-1 text-[8px] font-black uppercase px-2 py-1 rounded transition-all ${unread ? 'bg-amber-400 text-amber-900 hover:bg-amber-500' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                           <svg className="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
                           {unread ? 'Ver devolutiva da gestão' : '✅ Devolutiva registrada'}
                         </button>
@@ -588,11 +700,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                     <td className="border border-gray-300 px-2 py-2">
                       <div className="flex items-center justify-center gap-1">
                         <button title="Visualizar ocorrência" onClick={() => handleViewPDF(inc)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all shadow-sm"><IconEye /></button>
-                        <button
-                          title={hasFb ? "Baixar PDF completo (com devolutiva)" : "Baixar PDF"}
-                          onClick={() => handleDownloadPDFWithFeedback(inc)}
-                          className={`p-1.5 rounded-lg transition-all shadow-sm ${hasFb ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-                        ><IconDownload /></button>
+                        <button title={hasFb ? "Baixar PDF completo (com devolutiva)" : "Baixar PDF"} onClick={() => handleDownloadPDFWithFeedback(inc)} className={`p-1.5 rounded-lg transition-all shadow-sm ${hasFb ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}><IconDownload /></button>
                         {canActOnIncident(inc) && (
                           <button title="Editar descrição" onClick={() => { setEditingIncident(inc); setEditDescription(inc.description || ''); }} className="p-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-all shadow-sm"><IconEdit /></button>
                         )}
@@ -611,7 +719,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
           </div>
           <div className="bg-[#f8fafc] px-8 py-3 border-t border-gray-300 flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-4">
-              <span className="text-[9px] font-black text-gray-400 uppercase">Sistema de Ocorrências EE Fioravante Iervolino • v2026.1</span>
+              <span className="text-[9px] font-black text-gray-400 uppercase">Sistema de Ocorrências EE Lydia Kitz Moreira • v2026.1</span>
               <span className="flex items-center gap-1 text-[8px] font-black text-amber-700 uppercase"><span className="w-2.5 h-2.5 bg-amber-400 rounded-sm inline-block"></span>Devolutiva nova</span>
               <span className="flex items-center gap-1 text-[8px] font-black text-emerald-700 uppercase"><span className="w-2.5 h-2.5 bg-emerald-300 rounded-sm inline-block"></span>Devolutiva lida</span>
             </div>
