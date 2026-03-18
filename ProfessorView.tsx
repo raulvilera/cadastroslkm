@@ -345,7 +345,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-950 to-black font-sans pb-12" style={{ paddingTop: headerHeight }}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 font-sans pb-12" style={{ paddingTop: headerHeight }}>
       <header ref={headerRef} className="bg-gradient-to-r from-black to-blue-900 text-white px-8 py-3 flex justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50]">
         <div className="flex flex-col">
           <h1 className="text-sm font-black uppercase tracking-tighter">Área do Professor 2026</h1>
@@ -387,11 +387,11 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
       <main className="max-w-7xl mx-auto mt-8 px-6 space-y-8">
         {/* FORMULÁRIO */}
-        <div className="bg-gradient-to-br from-blue-900 via-blue-950 to-black rounded-xl shadow-2xl overflow-hidden border border-white/5">
+        <div className="bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 rounded-xl shadow-2xl overflow-hidden border border-white/5">
           <div className="bg-gradient-to-r from-black to-blue-900 py-3 text-center border-b border-blue-900/40">
             <h2 className="text-white font-black text-xs uppercase tracking-widest">LANÇAMENTO DE REGISTROS DISCIPLINARES</h2>
           </div>
-          <div className="p-8 bg-gradient-to-br from-blue-900 via-blue-950 to-black">
+          <div className="p-8 bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
             <form onSubmit={handleSave} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
