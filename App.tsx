@@ -500,16 +500,13 @@ const App = () => {
   const loadArchivedIncidents = async (filters?: { studentName?: string; classRoom?: string; dateFrom?: string; dateTo?: string }): Promise<Incident[]> => {
     if (!isSupabaseConfigured || !supabase) return [];
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const cutoffISO = thirtyDaysAgo.toISOString();
-
+      // Busca TODOS os registros — sem filtro de data — para garantir que
+      // registros antigos (com created_at nulo ou inconsistente) sejam encontrados
       let query = supabase
         .from('incidents')
         .select('*')
-        .lt('created_at', cutoffISO)
         .order('created_at', { ascending: false })
-        .limit(200); // Limite de segurança para não sobrecarregar
+        .limit(500);
 
       if (filters?.studentName) {
         query = query.ilike('student_name', `%${filters.studentName}%`);
@@ -802,6 +799,10 @@ const App = () => {
     setViewMode(prev => prev === 'gestor' ? 'professor' : 'gestor');
   };
 
+  // Deve ser declarado antes de commonProps
+  const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
+  const isExclusiveManagement = GESTAO_EMAILS_HARDCODED.includes(normalizedUserEmail);
+
   const commonProps = {
     user: user!,
     incidents: incidents,
@@ -815,33 +816,14 @@ const App = () => {
     onSyncStudents: handleSyncStudents,
     onLoadFullStudentHistory: loadFullStudentHistory,
     onLoadArchivedIncidents: loadArchivedIncidents,
+    onToggleView: (hasDualAccess && !isExclusiveManagement) ? handleToggleView : undefined,
+    viewMode: viewMode,
   };
 
-  // Determina qual visualização renderizar com base no e-mail e role
-  const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
-  const isExclusiveManagement = GESTAO_EMAILS_HARDCODED.includes(normalizedUserEmail);
-
-  // ✅ Para gestão exclusiva, a view é SEMPRE gestor — independente do user.role.
-  // Isso garante que mesmo se o role for sobrescrito por um evento assíncrono do Supabase,
-  // o Dashboard da gestão continue sendo renderizado.
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
     <div className="relative min-h-screen bg-[#001a35]">
-      {/* Botão de alternância para acesso dual (Não disponível para Gestão Exclusiva) */}
-      {hasDualAccess && !isExclusiveManagement && (
-        <button
-          onClick={handleToggleView}
-          className="fixed top-4 right-4 z-50 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-wider shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-          title={`Alternar para área ${viewMode === 'gestor' ? 'do professor' : 'da gestão'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
-        </button>
-      )}
-
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
