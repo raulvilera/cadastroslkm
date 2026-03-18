@@ -556,12 +556,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12 overflow-x-hidden" style={{ paddingTop: headerHeight }}>
-      <header ref={headerRef} className="bg-gradient-to-r from-black/90 to-blue-900/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
+      <header ref={headerRef} className="bg-gradient-to-r from-black to-blue-900 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-xl gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
           <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO LYDIA KITZ MOREIRA 2026</h1>
           <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase">Painel de Controle Administrativo</p>
         </div>
-        <div className="flex gap-4 sm:gap-6 items-center">
+        <div className="flex gap-2 sm:gap-3 items-center flex-wrap justify-end">
           <div className="hidden md:flex flex-col items-end">
             <span className="text-[10px] font-black uppercase">{user.email}</span>
             <span className="text-[8px] font-bold text-orange-500 uppercase">Nível: Administrador</span>
@@ -578,10 +578,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
               {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
             </button>
           )}
-          <button onClick={onLogout} className="bg-white hover:bg-red-50 text-[#002b5c] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95">Sair</button>
+          <button onClick={onLogout} className="bg-white hover:bg-red-50 text-[#002b5c] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 whitespace-nowrap">Sair</button>
           <button
             onClick={() => { setShowProfessorsModal(true); fetchProfessors(); }}
-            className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
+            className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
             Professores
@@ -589,7 +589,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
           {onSyncStudents && (
             <button
               onClick={onSyncStudents}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
               title="Sincronizar alunos do Google Sheets para o Supabase"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -598,21 +598,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
               Sincronizar Alunos
             </button>
           )}
-          <button
-            onClick={handleCleanupDatabase}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
-            title="Limpar alunos de turmas obsoletas do banco de dados"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Limpeza DB
-          </button>
           {onLoadArchivedIncidents && (
             <button
               onClick={() => { setShowArchiveModal(true); setArchiveSearched(false); setArchivedIncidents([]); }}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
-              title="Consultar registros anteriores a 30 dias"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+              title="Consultar registros históricos"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12" />
