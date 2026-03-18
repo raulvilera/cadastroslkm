@@ -90,6 +90,12 @@ const App = () => {
                 return 'gestor';
               }
 
+              // ✅ E-mail com acesso dual sempre entra como gestor no contexto do App
+              if (normalizedEmail === DUAL_ACCESS_EMAIL) {
+                console.log('🔄 [APP] Acesso dual — role gestor:', normalizedEmail);
+                return 'gestor';
+              }
+
               // CORREÇÃO DEFINITIVA: busca SEMPRE pelo email exato.
               // Nunca adicionar variantes de domínio — isso causava vilera@professor
               // retornar o role de vilera@prof (gestor) por colisão na query.
@@ -155,7 +161,7 @@ const App = () => {
 
               // Só chega aqui se não há user definido (ex: reload da página com sessão ativa)
               // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
-              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || sessionEmail === DUAL_ACCESS_EMAIL) {
                 console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
@@ -194,8 +200,8 @@ const App = () => {
             if (session?.user) {
               const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco
-              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
+              // ✅ Mesma blindagem: gestão exclusiva e dual access nunca consultam o banco
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || sessionEmail === DUAL_ACCESS_EMAIL) {
                 console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
                 setUser(prev => {
                   if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
