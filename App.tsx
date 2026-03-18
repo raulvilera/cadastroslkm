@@ -761,7 +761,7 @@ const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-orange-200 flex flex-col items-center justify-center">
+      <div className="h-screen w-full bg-blue-900 flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Portal Lydia Kitz 2026...</p>
       </div>
@@ -848,7 +848,7 @@ const App = () => {
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-orange-200 via-lime-200 to-sky-200">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-blue-950 to-black">
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
