@@ -187,33 +187,40 @@ const App = () => {
 
           authListener = subscription;
 
-          // 4. Verificação inicial da sessão
+          // 4. Verificação inicial da sessão — com timeout para não travar
           if (!isDuringRecovery) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-              const sessionEmail = session.user.email!.toLowerCase();
+            try {
+              const sessionResult = await Promise.race([
+                supabase.auth.getSession(),
+                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 3000))
+              ]);
+              const session = sessionResult?.data?.session;
+              if (session?.user) {
+                const sessionEmail = session.user.email!.toLowerCase();
 
-              // ✅ Mesma blindagem: gestão exclusiva nunca consulta o banco
-              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
-                console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
-                setUser(prev => {
-                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
-                  return { email: sessionEmail, role: 'gestor' };
-                });
-                setView('dashboard');
-              } else {
-                const role = await fetchRoleSafe(sessionEmail);
-                if (role) {
+                if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail)) {
+                  console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
                   setUser(prev => {
-                    if (prev?.email === sessionEmail && prev?.role === role) return prev;
-                    return { email: sessionEmail, role: role as any };
+                    if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                    return { email: sessionEmail, role: 'gestor' };
                   });
                   setView('dashboard');
                 } else {
-                  setUser({ email: sessionEmail, role: 'professor' });
-                  setView('unauthorized');
+                  const role = await fetchRoleSafe(sessionEmail);
+                  if (role) {
+                    setUser(prev => {
+                      if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                      return { email: sessionEmail, role: role as any };
+                    });
+                    setView('dashboard');
+                  } else {
+                    setUser({ email: sessionEmail, role: 'professor' });
+                    setView('unauthorized');
+                  }
                 }
               }
+            } catch (sessionErr) {
+              console.warn('⚠️ [APP] getSession timeout ou erro — continuando sem sessão:', sessionErr);
             }
           }
         } catch (e) {
@@ -221,9 +228,9 @@ const App = () => {
         }
       }
 
-      // 5. Iniciar sincronização de pendentes se houver internet
+      // 5. Iniciar sincronização de pendentes em background (não bloqueia o loading)
       if (navigator.onLine) {
-        syncPendingRecords();
+        syncPendingRecords().catch(() => {});
       }
 
       setLoading(false);
@@ -231,7 +238,7 @@ const App = () => {
 
     const failsafeTimeout = setTimeout(() => {
       setLoading(false);
-    }, 8000); // 8 segundos para evitar travamento infinito no spinner
+    }, 3000); // 3 segundos — failsafe mais agressivo para mobile
 
     initApp();
 
