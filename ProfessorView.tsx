@@ -47,7 +47,7 @@ const IconTrash = () => (
 const ProfessorView: React.FC<ProfessorViewProps> = ({
   user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode
 }) => {
-  // ── Altura dinâmica do header fixo ───────────────────────────────────────
+  // ── Header fixo — altura dinâmica ─────────────────────────────────────────
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(52);
   useEffect(() => {
@@ -68,9 +68,11 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   const pvAskConfirm = (msg: string, onOk: () => void) => setPvConfirm({ msg, onOk });
 
   const [professorName, setProfessorName] = useState('');
+  // Nome automático pelo email
   useEffect(() => {
     if (user?.email) setProfessorName(getProfessorNameFromEmail(user.email));
   }, [user?.email]);
+
   const [classRoom, setClassRoom] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [discipline, setDiscipline] = useState('');
@@ -361,7 +363,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
             <button
               onClick={onToggleView}
               className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
-              title={`Alternar para área ${viewMode === 'professor' ? 'da gestão' : 'do professor'}`}
+              title="Ver como Gestão"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -587,12 +589,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                 const hasFb  = hasFeedback(inc);
                 return (
                   <div key={inc.id} className={`p-4 space-y-2 rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.10)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)] transition-shadow border ${unread ? 'border-amber-300 border-l-4 border-l-amber-400' : hasFb ? 'border-emerald-200' : 'border-blue-100'}`}
-                    style={{ background: unread
-                      ? 'linear-gradient(to bottom, #fffbeb 60%, #fde68a 100%)'
-                      : hasFb
-                        ? 'linear-gradient(to bottom, #f0fdf4 60%, #bbf7d0 100%)'
-                        : 'linear-gradient(to bottom, #ffffff 60%, #dbeafe 100%)'
-                    }}>
+                    style={{ background: unread ? 'linear-gradient(to bottom, #fffbeb 60%, #fde68a 100%)' : hasFb ? 'linear-gradient(to bottom, #f0fdf4 60%, #bbf7d0 100%)' : 'linear-gradient(to bottom, #ffffff 60%, #dbeafe 100%)' }}>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black text-gray-500">{inc.date}</span>
