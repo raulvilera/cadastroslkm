@@ -808,9 +808,20 @@ const App = () => {
   const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
   const isExclusiveManagement = GESTAO_EMAILS_HARDCODED.includes(normalizedUserEmail);
 
+  // Filtragem de ocorrências por perfil:
+  // Gestão: vê TODAS as ocorrências
+  // Professor: vê APENAS as próprias (author_email === email logado)
+  // Registros legados sem authorEmail: incluídos apenas se source === 'professor'
+  const incidentsForProfessor = incidents.filter(inc => {
+    if (inc.authorEmail) {
+      return inc.authorEmail.toLowerCase().trim() === (user?.email || '').toLowerCase().trim();
+    }
+    return inc.source === 'professor';
+  });
+
   const commonProps = {
     user: user!,
-    incidents: incidents,
+    incidents: incidents,           // Gestão sempre recebe todos
     students: students,
     classes: classes,
     onSave: handleSaveIncident,
@@ -825,6 +836,12 @@ const App = () => {
     viewMode: viewMode,
   };
 
+  // Props para a visão do professor — ocorrências filtradas pelo email
+  const professorProps = {
+    ...commonProps,
+    incidents: incidentsForProfessor,
+  };
+
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
 
   return (
@@ -837,7 +854,7 @@ const App = () => {
           </p>
           <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
         </div>
-      ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...commonProps} />))}
+      ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...professorProps} />))}
 
       {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
