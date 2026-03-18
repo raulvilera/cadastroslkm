@@ -555,7 +555,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-950 via-green-950 to-green-900 font-sans pb-12 overflow-x-hidden" style={{ paddingTop: headerHeight }}>
+    <div className="min-h-screen bg-gradient-to-br from-orange-200 via-lime-200 to-sky-200 font-sans pb-12 overflow-x-hidden" style={{ paddingTop: headerHeight }}>
       <header ref={headerRef} className="bg-gradient-to-r from-black to-blue-900 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-xl gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
           <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO LYDIA KITZ MOREIRA 2026</h1>
@@ -637,7 +637,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 <h2 className="text-white font-black text-[10px] sm:text-xs uppercase tracking-widest">EFETUAR NOVO REGISTRO ADMINISTRATIVO</h2>
               </div>
 
-              <div className="p-6 sm:p-10 bg-gradient-to-br from-orange-950 via-green-950 to-green-900">
+              <div className="p-6 sm:p-10 bg-gradient-to-br from-orange-200 via-lime-200 to-sky-200">
                 <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
                   <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
                     <div className="flex flex-col gap-2 w-full lg:w-48">
