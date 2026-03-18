@@ -2,13 +2,13 @@ import React from 'react';
 import { Incident } from '../types';
 
 interface StatusBadgeProps {
-    status: Incident['status'];
+    status: Incident['status'] | string;
     size?: 'small' | 'medium' | 'large';
     showLabel?: boolean;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'medium', showLabel = true }) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; textColor: string; borderColor: string; bgLight: string; icon: string; label: string }> = {
         'Pendente': {
             color: 'bg-red-500',
             textColor: 'text-red-600',
@@ -32,10 +32,33 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'medium', show
             bgLight: 'bg-green-50',
             icon: '🟢',
             label: 'RESOLVIDO'
-        }
+        },
+        'Arquivado': {
+            color: 'bg-gray-500',
+            textColor: 'text-gray-600',
+            borderColor: 'border-gray-200',
+            bgLight: 'bg-gray-50',
+            icon: '⚫',
+            label: 'ARQUIVADO'
+        },
+        'Concluído': {
+            color: 'bg-blue-500',
+            textColor: 'text-blue-700',
+            borderColor: 'border-blue-200',
+            bgLight: 'bg-blue-50',
+            icon: '🔵',
+            label: 'CONCLUÍDO'
+        },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] ?? {
+        color: 'bg-gray-400',
+        textColor: 'text-gray-600',
+        borderColor: 'border-gray-200',
+        bgLight: 'bg-gray-50',
+        icon: '⚪',
+        label: String(status ?? '---').toUpperCase()
+    };
 
     const sizeClasses = {
         small: 'text-[7px] px-2 py-0.5',
