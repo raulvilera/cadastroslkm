@@ -18,7 +18,6 @@ const GESTAO_EMAILS_HARDCODED = [
   'patriciag@prof.educacao.sp.gov.br',
   'regianecurti@prof.educacao.sp.gov.br',
   'michellemoraes@prof.educacao.sp.gov.br',
-  'vilera@prof.educacao.sp.gov.br',
   'deizylaura@prof.educacao.sp.gov.br',
   'aline.gestao@prof.educacao.sp.gov.br',
   'gestao@escola.com',
@@ -816,7 +815,7 @@ const App = () => {
     onSyncStudents: handleSyncStudents,
     onLoadFullStudentHistory: loadFullStudentHistory,
     onLoadArchivedIncidents: loadArchivedIncidents,
-    onToggleView: (hasDualAccess && !isExclusiveManagement) ? handleToggleView : undefined,
+    onToggleView: hasDualAccess ? handleToggleView : undefined,
     viewMode: viewMode,
   };
 
