@@ -64,7 +64,7 @@ import type { Incident, User, Student, ManagementReferral } from '../types';
 import { generateIncidentPDF } from '../services/pdfService';
 import StatusBadge from './StatusBadge';
 import { supabase } from '../services/supabaseClient';
-import { ALLOWED_CLASSES } from '../studentsData';
+import { STUDENTS_DB } from '../studentsData';
 import { normalizeClassName } from '../utils/formatters';
 import { getProfessorNameFromEmail } from '../professorsData';
 
@@ -429,9 +429,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
       if (fetchError) throw fetchError;
 
+      const allowedClasses = new Set(STUDENTS_DB.map(s => normalizeClassName(s.turma)));
       const studentsToRemove = allStudents.filter(s => {
         const normalized = normalizeClassName(s.turma);
-        return !ALLOWED_CLASSES.includes(normalized);
+        return !allowedClasses.has(normalized);
       });
 
       if (studentsToRemove.length === 0) {
