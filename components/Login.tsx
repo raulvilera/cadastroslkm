@@ -166,10 +166,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           console.log('✅ [LOGIN] Gestor identificado via lista hardcoded:', displayEmail);
         }
 
-        const dbRole = await fetchRoleWithTimeout();
-        if (dbRole) {
-          userRole = dbRole as any;
-          console.log('✅ [LOGIN] Role do banco:', userRole);
+        // Só consulta o banco se o role ainda não foi definido como gestor hardcoded
+        if (!userRole) {
+          const dbRole = await fetchRoleWithTimeout();
+          if (dbRole) {
+            userRole = dbRole as any;
+            console.log('✅ [LOGIN] Role do banco:', userRole);
+          }
         }
 
         if (!userRole) {
