@@ -346,7 +346,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-950 to-black font-sans pb-12" style={{ paddingTop: headerHeight }}>
-      <header ref={headerRef} className="bg-gradient-to-r from-black via-[#001030] to-[#002b5c] text-white px-8 py-3 flex justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50]">
+      <header ref={headerRef} className="bg-gradient-to-r from-black to-blue-900 text-white px-8 py-3 flex justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50]">
         <div className="flex flex-col">
           <h1 className="text-sm font-black uppercase tracking-tighter">Área do Professor 2026</h1>
           <p className="text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Lydia Kitz Moreira</p>
@@ -388,7 +388,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
       <main className="max-w-7xl mx-auto mt-8 px-6 space-y-8">
         {/* FORMULÁRIO */}
         <div className="bg-gradient-to-br from-blue-900 via-blue-950 to-black rounded-xl shadow-2xl overflow-hidden border border-white/5">
-          <div className="bg-gradient-to-r from-black to-[#002b5c] py-3 text-center border-b border-blue-900/40">
+          <div className="bg-gradient-to-r from-black to-blue-900 py-3 text-center border-b border-blue-900/40">
             <h2 className="text-white font-black text-xs uppercase tracking-widest">LANÇAMENTO DE REGISTROS DISCIPLINARES</h2>
           </div>
           <div className="p-8 bg-gradient-to-br from-blue-900 via-blue-950 to-black">
@@ -572,7 +572,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
         {/* PAINEL DE REGISTROS */}
         <section className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-300">
-          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black to-[#002b5c]">
+          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black to-blue-900">
             <div className="flex flex-col items-center md:items-start w-full md:w-auto">
               <h3 className="text-[11px] sm:text-[13px] text-white font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
               <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left">Visualize, baixe o PDF ou edite seus registros</p>
@@ -953,7 +953,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
       {viewingIncident && (
         <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4" onClick={() => setViewingIncident(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-black to-[#002b5c] rounded-xl px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-black to-blue-900 rounded-xl px-6 py-4 text-white">
               <h3 className="font-black text-sm uppercase tracking-widest">Detalhes da Ocorrência</h3>
               <p className="text-blue-200/60 text-[9px] font-bold mt-0.5 uppercase">EE Fioravante Iervolino</p>
             </div>
@@ -1015,7 +1015,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
       {editingIncident && (
         <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4" onClick={() => setEditingIncident(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-black to-[#002b5c] rounded-xl px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-black to-blue-900 rounded-xl px-6 py-4 text-white">
               <h3 className="font-black text-sm uppercase tracking-widest">Editar Descrição</h3>
               <p className="text-blue-200/60 text-[9px] font-bold mt-0.5 uppercase">{editingIncident.studentName} • {editingIncident.date}</p>
             </div>
