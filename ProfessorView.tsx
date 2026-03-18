@@ -346,23 +346,23 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12" style={{ paddingTop: headerHeight }}>
-      <header ref={headerRef} className="bg-gradient-to-r from-black via-[#001030] to-[#002b5c] text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50] gap-2 sm:gap-0">
-        <div className="flex flex-col items-center sm:items-start">
-          <h1 className="text-xs sm:text-sm font-black uppercase tracking-tighter text-center sm:text-left">Área do Professor 2026</h1>
-          <p className="text-[8px] sm:text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Lydia Kitz Moreira</p>
+      <header ref={headerRef} className="bg-gradient-to-r from-black via-[#001030] to-[#002b5c] text-white px-8 py-3 flex justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50]">
+        <div className="flex flex-col">
+          <h1 className="text-sm font-black uppercase tracking-tighter">Área do Professor 2026</h1>
+          <p className="text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Lydia Kitz Moreira</p>
         </div>
-        <div className="flex gap-2 sm:gap-4 items-center flex-wrap justify-center sm:justify-end">
+        <div className="flex gap-6 items-center">
           {unreadCount > 0 && (
             <div className="flex items-center gap-1.5 bg-amber-400 text-black px-3 py-1 rounded-full shadow animate-pulse">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               <span className="text-[9px] font-black uppercase">{unreadCount} devolutiva{unreadCount > 1 ? 's' : ''}</span>
             </div>
           )}
-          <span className="hidden sm:inline text-[10px] font-bold text-white/70">{user.email}</span>
+          <span className="text-[10px] font-bold text-white/70">{user.email}</span>
           {onToggleView && (
             <button
               onClick={onToggleView}
-              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
               title="Ver como Gestão"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +371,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
               Ver como Gestão
             </button>
           )}
-          <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md whitespace-nowrap">Sair</button>
+          <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md">Sair</button>
         </div>
       </header>
 
