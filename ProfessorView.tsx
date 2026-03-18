@@ -346,7 +346,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12" style={{ paddingTop: headerHeight }}>
-      <header ref={headerRef} className="bg-gradient-to-r from-black/90 via-[#001030]/90 to-[#002b5c]/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
+      <header ref={headerRef} className="bg-gradient-to-r from-black via-[#001030] to-[#002b5c] text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 shadow-lg fixed top-0 left-0 right-0 z-[50] gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
           <h1 className="text-xs sm:text-sm font-black uppercase tracking-tighter text-center sm:text-left">Área do Professor 2026</h1>
           <p className="text-[8px] sm:text-[9px] font-bold text-blue-200/60 uppercase tracking-widest leading-none">EE Lydia Kitz Moreira</p>
