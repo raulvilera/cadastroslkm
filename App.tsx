@@ -98,6 +98,7 @@ const App = () => {
                 .from('authorized_professors')
                 .select('role')
                 .eq('email', normalizedEmail)
+                .eq('escola', 'lkm')
                 .maybeSingle();
 
               const timeoutPromise = new Promise((_, reject) =>
