@@ -64,9 +64,9 @@ import type { Incident, User, Student, ManagementReferral } from '../types';
 import { generateIncidentPDF } from '../services/pdfService';
 import StatusBadge from './StatusBadge';
 import { supabase } from '../services/supabaseClient';
-import { STUDENTS_DB } from '../studentsData';
+import { ALLOWED_CLASSES } from '../studentsData';
 import { normalizeClassName } from '../utils/formatters';
-const ALLOWED_CLASSES = Array.from(new Set(STUDENTS_DB.map(s => normalizeClassName(s.turma))));
+import { getProfessorNameFromEmail } from '../professorsData';
 
 interface DashboardProps {
   user: User;
@@ -87,10 +87,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [classRoom, setClassRoom] = useState('');
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
+
+  useEffect(() => {
+    if (user?.email) {
+      setProfessorName(getProfessorNameFromEmail(user.email));
+    }
+  }, [user?.email]);
   const [classification, setClassification] = useState('');
   const [description, setDescription] = useState('');
   // ── Toast e Confirm internos ──────────────────────────────────────────────
   const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
+
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(60);
+  useEffect(() => {
+    const update = () => { if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight); };
+    update();
+    const ro = new ResizeObserver(update);
+    if (headerRef.current) ro.observe(headerRef.current);
+    return () => ro.disconnect();
+  }, []);
   const dgShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
     const id = Date.now(); setDgToast({ msg, type, id });
     setTimeout(() => setDgToast(t => t?.id === id ? null : t), dur);
@@ -535,10 +551,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12 overflow-x-hidden">
-      <header className="bg-gradient-to-r from-black to-blue-900 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 sticky top-0 z-[50] shadow-xl gap-2 sm:gap-0">
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12 overflow-x-hidden" style={{ paddingTop: headerHeight }}>
+      <header ref={headerRef} className="bg-gradient-to-r from-black/90 to-blue-900/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
-          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO FIORAVANTE IERVOLINO 2026</h1>
+          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO LYDIA KITZ MOREIRA 2026</h1>
           <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase">Painel de Controle Administrativo</p>
         </div>
         <div className="flex gap-4 sm:gap-6 items-center">
@@ -654,7 +670,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         value={professorName}
                         onChange={e => setProfessorName(e.target.value)}
                         placeholder="Nome do Gestor ou Professor"
-                        className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm uppercase w-full"
+                        className="h-12 sm:h-14 border-2 border-emerald-300 rounded-2xl px-5 text-xs font-bold !text-black bg-emerald-50 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 outline-none shadow-sm uppercase w-full"
                       />
                     </div>
                     <div className="flex flex-col gap-2 w-full lg:w-80">
@@ -724,20 +740,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
             <section className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100">
               <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black to-blue-900 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col">
-                    <h3 className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest">Painel de Registros (Últimos 30 dias)</h3>
-                    <button
-                      onClick={() => setShowPermanentSearch(true)}
-                      className="text-[9px] text-teal-400 font-black uppercase text-left hover:underline flex items-center gap-1 group"
-                    >
-                      Ir para Histórico Permanente
-                      <svg className="w-2.5 h-2.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                  <span className="bg-teal-500 text-white text-[8px] sm:text-[9px] px-3 py-1 rounded-full font-black uppercase whitespace-nowrap">{history.length} Recentes</span>
+                <div className="flex flex-col items-center md:items-start w-full md:w-auto">
+                  <h3 className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
+                  <button
+                    onClick={() => setShowPermanentSearch(true)}
+                    className="text-[9px] text-teal-400 font-black uppercase text-center md:text-left hover:underline flex items-center gap-1 group"
+                  >
+                    Ir para Histórico Permanente
+                    <svg className="w-2.5 h-2.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <div className="relative w-full md:w-64">
@@ -762,7 +775,58 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
               </div>
 
               <div className="overflow-x-auto custom-scrollbar bg-gray-50/30">
-                <table className="w-full text-left text-[10px] min-w-[1200px]">
+
+                {/* ── CARDS MOBILE (< sm) ───────────────────────────────── */}
+                <div className="sm:hidden flex flex-col gap-[12px] bg-gray-100/80 p-3">
+                  {history.length > 0 ? history.map(inc => (
+                    <div key={inc.id} className="p-4 space-y-2 rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.10)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)] transition-shadow border border-blue-100" style={{ background: 'linear-gradient(to bottom, #ffffff 60%, #dbeafe 100%)' }}>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-gray-500">{inc.date}</span>
+                          <span className="bg-blue-100 text-blue-800 text-[9px] font-black px-2 py-0.5 rounded-full">{inc.classRoom}</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <StatusBadge status={inc.status} size="small" />
+                          {inc.lastViewedAt && <span className="text-[7px] font-bold text-teal-600 uppercase">Visualizado</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black text-[#002b5c] uppercase">{inc.studentName}</p>
+                        <p className="text-[9px] font-bold text-gray-400">RA: {inc.ra}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{inc.category}</span>
+                        <span className="text-[9px] font-bold text-gray-500 uppercase">{inc.professorName}</span>
+                      </div>
+                      <p className="text-[9px] text-gray-600 italic leading-snug">{inc.description}</p>
+                      {inc.managementFeedback && (
+                        <div className="p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">DEVOLUTIVA: {inc.managementFeedback}</div>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={() => generateIncidentPDF(inc, 'view')} className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          Ver
+                        </button>
+                        <button onClick={() => generateIncidentPDF(inc, 'download')} className="flex-1 py-2 bg-green-50 text-green-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          PDF
+                        </button>
+                        <button onClick={() => openUpdateModal(inc)} className="flex-1 py-2 bg-teal-50 text-teal-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          Editar
+                        </button>
+                        <button onClick={() => onDelete(inc.id)} className="py-2 px-3 bg-red-50 text-red-600 rounded-xl flex items-center justify-center">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="p-20 text-center text-gray-300 font-black uppercase text-xs tracking-widest">Nenhum registro recente encontrado</div>
+                  )}
+                </div>
+
+                {/* ── TABELA DESKTOP (≥ sm) ─────────────────────────────── */}
+                <table className="hidden sm:table w-full text-left text-[10px] min-w-[1200px]">
                   <thead className="bg-[#f8fafc] border-b text-black sticky top-0 z-10">
                     <tr>
                       <th className="p-4 font-black uppercase">Data</th>
@@ -783,9 +847,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         <td className="p-4">
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={inc.status} size="small" />
-                            {inc.lastViewedAt && (
-                              <span className="text-[7px] font-bold text-teal-600 uppercase">Visualizado</span>
-                            )}
+                            {inc.lastViewedAt && <span className="text-[7px] font-bold text-teal-600 uppercase">Visualizado</span>}
                           </div>
                         </td>
                         <td className="p-4">
@@ -797,59 +859,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         <td className="p-4 font-bold text-blue-600">{inc.classRoom}</td>
                         <td className="p-4">
                           <div className="flex justify-center gap-3">
-                            <button
-                              onClick={() => generateIncidentPDF(inc, 'view')}
-                              className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all shadow-sm"
-                              title="Visualizar Documento"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
+                            <button onClick={() => generateIncidentPDF(inc, 'view')} className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all shadow-sm" title="Visualizar Documento">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             </button>
-                            <button
-                              onClick={() => generateIncidentPDF(inc, 'download')}
-                              className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-all shadow-sm"
-                              title="Baixar Documento"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
+                            <button onClick={() => generateIncidentPDF(inc, 'download')} className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-all shadow-sm" title="Baixar Documento">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             </button>
-                            <button
-                              onClick={() => openUpdateModal(inc)}
-                              className="p-3 bg-teal-50 text-teal-600 rounded-2xl hover:bg-teal-100 transition-all shadow-sm"
-                              title="Atualizar Status / Devolutiva"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
+                            <button onClick={() => openUpdateModal(inc)} className="p-3 bg-teal-50 text-teal-600 rounded-2xl hover:bg-teal-100 transition-all shadow-sm" title="Atualizar Status / Devolutiva">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                             </button>
                           </div>
                         </td>
                         <td className="p-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {inc.category}
-                          </span>
+                          <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{inc.category}</span>
                         </td>
                         <td className="p-4 font-black text-[#002b5c] uppercase truncate max-w-[150px]">{inc.professorName}</td>
                         <td className="p-4 max-sm truncate text-gray-600 italic">
                           <div>{inc.description}</div>
                           {inc.managementFeedback && (
-                            <div className="mt-2 p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">
-                              DEVOLUTIVA: {inc.managementFeedback}
-                            </div>
+                            <div className="mt-2 p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">DEVOLUTIVA: {inc.managementFeedback}</div>
                           )}
                         </td>
                         <td className="p-4 text-center">
-                          <button
-                            onClick={() => onDelete(inc.id)}
-                            className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                            title="Excluir registro"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                          <button onClick={() => onDelete(inc.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Excluir registro">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
                         </td>
                       </tr>
