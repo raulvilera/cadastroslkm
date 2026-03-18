@@ -125,8 +125,10 @@ const App = () => {
               return;
             }
 
+            // Evita re-renders desnecessários para INITIAL_SESSION
+            if (event === 'INITIAL_SESSION') return;
+
             // ✅ Se o Login.tsx está processando, ignorar eventos SIGNED_IN/TOKEN_REFRESHED
-            // para não interferir com o fluxo de login que já determina o role corretamente.
             if (loginInProgressRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
               console.log('⏸️ [APP] onAuthStateChange ignorado — login em progresso');
               return;
@@ -309,29 +311,22 @@ const App = () => {
 
             if (isSupabaseConfigured && supabase && session) {
               try {
-                // Usar upsert com onConflict='ra' para atualizar se já existir,
-                // evitando o erro 409 (duplicate key) da constraint students_ra_key.
-                // Registros manuais (com ra diferente) são preservados automaticamente.
-                // Deduplicar por RA — planilha pode ter RAs repetidos,
-                // o que causa "ON CONFLICT DO UPDATE command cannot affect row a second time"
-                const ts = Date.now();
-                const seenRa = new Map<string, (typeof sheetsStudents)[0]>();
-                sheetsStudents.forEach(s => { if (s.ra) seenRa.set(s.ra.trim(), s); });
-                const uniqueStudents = Array.from(seenRa.values());
+                // Apaga APENAS registros de sincronizações automáticas anteriores (prefixo 'synced-')
+                // Preserva registros inseridos manualmente (ex: '7anoe-', 'manual-')
+                await supabase.from('students').delete().like('id', 'synced-%');
 
+                // Inserir em lotes para evitar problemas de payload grande
                 const CHUNK_SIZE = 500;
-                for (let i = 0; i < uniqueStudents.length; i += CHUNK_SIZE) {
-                  const chunk = uniqueStudents.slice(i, i + CHUNK_SIZE);
-                  const studentsToUpsert = chunk.map((s, index) => ({
-                    id: `synced-${ts}-${i + index}`,
+                for (let i = 0; i < sheetsStudents.length; i += CHUNK_SIZE) {
+                  const chunk = sheetsStudents.slice(i, i + CHUNK_SIZE);
+                  const studentsToInsert = chunk.map((s, index) => ({
+                    id: `synced-${Date.now()}-${i + index}`,
                     nome: s.nome,
-                    ra: s.ra.trim(),
-                    turma: normalizeClassName(s.turma)
+                    ra: s.ra,
+                    turma: normalizeClassName(s.turma) // Garante normalização correta antes de salvar
                   }));
 
-                  const { error } = await supabase
-                    .from('students')
-                    .upsert(studentsToUpsert, { onConflict: 'ra', ignoreDuplicates: false });
+                  const { error } = await supabase.from('students').insert(studentsToInsert);
                   if (error) {
                     console.error(`❌ Erro ao sincronizar lote ${i / CHUNK_SIZE}:`, error.message);
                   }
@@ -818,6 +813,8 @@ const App = () => {
     onSyncStudents: handleSyncStudents,
     onLoadFullStudentHistory: loadFullStudentHistory,
     onLoadArchivedIncidents: loadArchivedIncidents,
+    onToggleView: hasDualAccess ? handleToggleView : undefined,
+    viewMode: viewMode,
   };
 
   // Determina qual visualização renderizar com base no e-mail e role
@@ -831,20 +828,6 @@ const App = () => {
 
   return (
     <div className="relative min-h-screen bg-[#001a35]">
-      {/* Botão de alternância para acesso dual (Não disponível para Gestão Exclusiva) */}
-      {hasDualAccess && !isExclusiveManagement && (
-        <button
-          onClick={handleToggleView}
-          className="fixed top-4 right-4 z-50 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-wider shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-          title={`Alternar para área ${viewMode === 'gestor' ? 'do professor' : 'da gestão'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
-        </button>
-      )}
-
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
         <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
           <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
