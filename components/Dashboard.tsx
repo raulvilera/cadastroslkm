@@ -81,25 +81,21 @@ interface DashboardProps {
   onSyncStudents?: () => Promise<void>;
   onLoadFullStudentHistory?: (ra: string) => Promise<Incident[]>;
   onLoadArchivedIncidents?: (filters?: { studentName?: string; classRoom?: string }) => Promise<Incident[]>;
-  onToggleView?: () => void;
-  viewMode?: 'gestor' | 'professor';
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents }) => {
   const [classRoom, setClassRoom] = useState('');
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
-
-  useEffect(() => {
-    if (user?.email) {
-      setProfessorName(getProfessorNameFromEmail(user.email));
-    }
-  }, [user?.email]);
   const [classification, setClassification] = useState('');
   const [description, setDescription] = useState('');
-  // ── Toast e Confirm internos ──────────────────────────────────────────────
-  const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
 
+  // Nome automático do gestor
+  useEffect(() => {
+    if (user?.email) setProfessorName(getProfessorNameFromEmail(user.email));
+  }, [user?.email]);
+
+  // Header fixo — altura dinâmica
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(60);
   useEffect(() => {
@@ -109,6 +105,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     if (headerRef.current) ro.observe(headerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  // ── Toast e Confirm internos ──────────────────────────────────────────────
+  const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
   const dgShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
     const id = Date.now(); setDgToast({ msg, type, id });
     setTimeout(() => setDgToast(t => t?.id === id ? null : t), dur);
@@ -565,18 +564,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             <span className="text-[10px] font-black uppercase">{user.email}</span>
             <span className="text-[8px] font-bold text-orange-500 uppercase">Nível: Administrador</span>
           </div>
-          {onToggleView && (
-            <button
-              onClick={onToggleView}
-              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-              title={`Alternar para área ${viewMode === 'gestor' ? 'do professor' : 'da gestão'}`}
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
-            </button>
-          )}
           <button onClick={onLogout} className="bg-white hover:bg-red-50 text-[#002b5c] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95">Sair</button>
           <button
             onClick={() => { setShowProfessorsModal(true); fetchProfessors(); }}
