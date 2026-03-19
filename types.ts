@@ -1,4 +1,3 @@
-
 export interface Student {
   id?: string;
   nome: string;
@@ -9,6 +8,17 @@ export interface Student {
 export interface ClassRoom {
   id: string;
   name: string;
+}
+
+// Encaminhamento feito pelo professor (múltipla seleção)
+export interface ProfessorReferral {
+  type: 'orientacao_individual' | 'encaminhamento_gestao' | 'busca_ativa' | 'incidente' | 'acidente';
+  description?: string; // orientacao_individual, incidente e acidente usam descrição
+}
+
+export interface ManagementReferral {
+  type: string;
+  description: string;
 }
 
 export interface Incident {
@@ -26,14 +36,27 @@ export interface Incident {
   description: string;
   severity: 'Baixa' | 'Média' | 'Alta' | 'Crítica';
   aiAnalysis?: string;
-  status: 'Pendente' | 'Em Análise' | 'Resolvido';
+  status: 'Pendente' | 'Em Análise' | 'Resolvido' | 'Visualizada' | 'Em Andamento' | 'Resolvida';
   category?: string;
   source: 'professor' | 'gestao';
   pdfUrl?: string;
-  authorEmail?: string; // E-mail do autor do registro para controle de exclusão
+  authorEmail?: string;
   managementFeedback?: string;
+  managementFeedbackAt?: string;      // quando a gestão salvou a devolutiva
+  managementFeedbackReadAt?: string;  // quando o professor visualizou
   lastViewedAt?: string;
-  isPendingSync?: boolean; // Indica se o registro ainda não foi salvo no servidor
+  isPendingSync?: boolean;
+  escola?: string;
+
+  // ── Encaminhamentos do Professor (múltiplos) ──────────────────────────
+  professorReferrals?: ProfessorReferral[];
+
+  // ── Legado (mantido para compatibilidade com registros antigos) ───────
+  referralType?: 'orientacao_individual' | 'encaminhamento_gestao' | 'busca_ativa' | null;
+  referralDescription?: string;
+
+  // ── Encaminhamentos da Gestão ─────────────────────────────────────────
+  managementReferrals?: ManagementReferral[];
 }
 
 export type View = 'login' | 'dashboard';
