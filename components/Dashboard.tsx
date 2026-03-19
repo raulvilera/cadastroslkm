@@ -121,6 +121,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [returnDate, setReturnDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Todos');
+  const [showStatusFilterMenu, setShowStatusFilterMenu] = useState(false);
 
   const regDateRef = useRef<HTMLInputElement>(null!);
   const retDateRef = useRef<HTMLInputElement>(null!);
@@ -466,12 +468,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
   const history = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return incidents.filter(i =>
-      (i.studentName || "").toLowerCase().includes(term) ||
-      (i.classRoom || "").toLowerCase().includes(term) ||
-      (i.professorName || "").toLowerCase().includes(term)
-    );
-  }, [incidents, searchTerm]);
+    return incidents.filter(i => {
+      const matchesSearch =
+        (i.studentName || "").toLowerCase().includes(term) ||
+        (i.classRoom || "").toLowerCase().includes(term) ||
+        (i.professorName || "").toLowerCase().includes(term);
+      const matchesStatus = statusFilter === 'Todos' || (i.status || '').toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [incidents, searchTerm, statusFilter]);
 
   // Lógica de Estatísticas
   const stats = useMemo(() => {
@@ -759,6 +764,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                   </button>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
+                  {/* ── Filtro por Ação ─────────────────────────────────── */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowStatusFilterMenu(prev => !prev)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase shadow-sm ${statusFilter !== 'Todos' ? 'bg-teal-500 border-teal-400 text-white' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'}`}
+                      title="Filtrar por tipo de ação"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
+                      <span className="hidden sm:inline">{statusFilter === 'Todos' ? 'Filtrar Ação' : statusFilter}</span>
+                    </button>
+                    {showStatusFilterMenu && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                        {['Todos', 'Visualizada', 'Pendente', 'Em Andamento', 'Resolvida'].map(opt => (
+                          <button
+                            key={opt}
+                            onClick={() => { setStatusFilter(opt); setShowStatusFilterMenu(false); }}
+                            className={`w-full text-left px-4 py-3 text-[11px] font-black uppercase transition-all ${statusFilter === opt ? 'bg-teal-500 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            {opt === 'Todos' && <span>✦ Todos</span>}
+                            {opt === 'Visualizada' && <span>👁 Visualizada</span>}
+                            {opt === 'Pendente' && <span>⏳ Pendente</span>}
+                            {opt === 'Em Andamento' && <span>🔄 Em Andamento</span>}
+                            {opt === 'Resolvida' && <span>✅ Resolvida</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="relative w-full md:w-64">
                     <input
                       type="text"
@@ -780,7 +813,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 </div>
               </div>
 
-              <div className="overflow-x-auto custom-scrollbar bg-gray-50/30">
+              <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar bg-gray-50/30">
 
                 {/* ── CARDS MOBILE (< sm) ───────────────────────────────── */}
                 <div className="sm:hidden flex flex-col gap-[12px] bg-gray-100/80 p-3">
@@ -841,9 +874,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       <th className="p-4 font-black uppercase">Turma</th>
                       <th className="p-4 text-center font-black uppercase">Documento Ação</th>
                       <th className="p-4 font-black uppercase">Tipo</th>
+                      <th className="p-4 text-center font-black uppercase">Remover</th>
                       <th className="p-4 font-black uppercase">Responsável</th>
                       <th className="p-4 font-black uppercase">Relato</th>
-                      <th className="p-4 text-center font-black uppercase">Remover</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
@@ -879,17 +912,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         <td className="p-4 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{inc.category}</span>
                         </td>
+                        <td className="p-4 text-center">
+                          <button onClick={() => onDelete(inc.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Excluir registro">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </td>
                         <td className="p-4 font-black text-[#002b5c] uppercase truncate max-w-[150px]">{inc.professorName}</td>
                         <td className="p-4 max-sm truncate text-gray-600 italic">
                           <div>{inc.description}</div>
                           {inc.managementFeedback && (
                             <div className="mt-2 p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">DEVOLUTIVA: {inc.managementFeedback}</div>
                           )}
-                        </td>
-                        <td className="p-4 text-center">
-                          <button onClick={() => onDelete(inc.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Excluir registro">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
                         </td>
                       </tr>
                     )) : (
