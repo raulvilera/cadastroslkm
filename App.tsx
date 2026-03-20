@@ -3,6 +3,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProfessorView from './components/ProfessorView';
 import ResetPassword from './components/ResetPassword';
+import SearchModal from './components/SearchModal';
 import { Incident, User, Student } from './types';
 
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
@@ -860,6 +861,15 @@ const App = () => {
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
           </div>
         ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...professorProps} />)
+      )}
+
+      {/* Modal de Busca Permanente */}
+      {searchModalOpen && (
+        <SearchModal
+          incidents={incidents}
+          students={students}
+          onClose={() => setSearchModalOpen(false)}
+        />
       )}
 
       {/* Marcador de Versão e Depuração Administrativa */}
