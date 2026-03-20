@@ -108,6 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     return () => ro.disconnect();
   }, []);
 
+
   // ── Toast e Confirm internos ──────────────────────────────────────────────
   const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
   const dgShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
@@ -122,7 +123,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('Todos');
-  const [showStatusFilterMenu, setShowStatusFilterMenu] = useState(false);
 
   const regDateRef = useRef<HTMLInputElement>(null!);
   const retDateRef = useRef<HTMLInputElement>(null!);
@@ -468,12 +468,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
   const history = useMemo(() => {
     const term = searchTerm.toLowerCase();
+
+    // Mapeia cada opção do filtro para todos os valores equivalentes no banco
+    const statusMap: Record<string, string[]> = {
+      'Todos': [],
+      'Visualizada': ['visualizada'],
+      'Pendente': ['pendente'],
+      'Em Andamento': ['em andamento', 'em análise', 'em analise'],
+      'Resolvida': ['resolvida', 'resolvido'],
+    };
+
     return incidents.filter(i => {
       const matchesSearch =
         (i.studentName || "").toLowerCase().includes(term) ||
         (i.classRoom || "").toLowerCase().includes(term) ||
         (i.professorName || "").toLowerCase().includes(term);
-      const matchesStatus = statusFilter === 'Todos' || (i.status || '').toLowerCase() === statusFilter.toLowerCase();
+
+      const statusNorm = (i.status || '').toLowerCase().trim();
+      const matchesStatus =
+        statusFilter === 'Todos' ||
+        (statusMap[statusFilter] || []).includes(statusNorm);
+
       return matchesSearch && matchesStatus;
     });
   }, [incidents, searchTerm, statusFilter]);
@@ -750,67 +765,71 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             </div>
 
             <section className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100">
-              <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black to-blue-900 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                  <h3 className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
-                  <button
-                    onClick={() => setShowPermanentSearch(true)}
-                    className="text-[9px] text-teal-400 font-black uppercase text-center md:text-left hover:underline flex items-center gap-1 group"
-                  >
-                    Ir para Histórico Permanente
-                    <svg className="w-2.5 h-2.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  {/* ── Filtro por Ação ─────────────────────────────────── */}
-                  <div className="relative">
+              <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black to-blue-900 text-white flex flex-col gap-4">
+
+                {/* ── Linha 1: título + busca + busca permanente ── */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-3">
+                  <div className="flex flex-col items-center md:items-start w-full md:w-auto">
+                    <h3 className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
                     <button
-                      onClick={() => setShowStatusFilterMenu(prev => !prev)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase shadow-sm ${statusFilter !== 'Todos' ? 'bg-teal-500 border-teal-400 text-white' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'}`}
-                      title="Filtrar por tipo de ação"
+                      onClick={() => setShowPermanentSearch(true)}
+                      className="text-[9px] text-teal-400 font-black uppercase text-center md:text-left hover:underline flex items-center gap-1 group"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
-                      <span className="hidden sm:inline">{statusFilter === 'Todos' ? 'Filtrar Ação' : statusFilter}</span>
+                      Ir para Histórico Permanente
+                      <svg className="w-2.5 h-2.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                      </svg>
                     </button>
-                    {showStatusFilterMenu && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                        {['Todos', 'Visualizada', 'Pendente', 'Em Andamento', 'Resolvida'].map(opt => (
-                          <button
-                            key={opt}
-                            onClick={() => { setStatusFilter(opt); setShowStatusFilterMenu(false); }}
-                            className={`w-full text-left px-4 py-3 text-[11px] font-black uppercase transition-all ${statusFilter === opt ? 'bg-teal-500 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
-                          >
-                            {opt === 'Todos' && <span>✦ Todos</span>}
-                            {opt === 'Visualizada' && <span>👁 Visualizada</span>}
-                            {opt === 'Pendente' && <span>⏳ Pendente</span>}
-                            {opt === 'Em Andamento' && <span>🔄 Em Andamento</span>}
-                            {opt === 'Resolvida' && <span>✅ Resolvida</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                  <div className="relative w-full md:w-64">
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="Filtrar recentes..."
-                      className="w-full pl-10 pr-6 py-2 rounded-xl bg-white/10 border border-white/20 text-[9px] sm:text-[10px] text-white outline-none"
-                    />
-                    <svg className="w-4 h-4 absolute left-3 top-2.5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Filtrar recentes..."
+                        className="w-full pl-10 pr-6 py-2 rounded-xl bg-white/10 border border-white/20 text-[9px] sm:text-[10px] text-white outline-none"
+                      />
+                      <svg className="w-4 h-4 absolute left-3 top-2.5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <button
+                      onClick={onOpenSearch}
+                      className="bg-teal-500 hover:bg-teal-600 text-white p-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2 flex-shrink-0"
+                      title="Busca Profunda na Planilha"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      <span className="text-[10px] font-black uppercase hidden sm:inline">Busca Permanente</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={onOpenSearch}
-                    className="bg-teal-500 hover:bg-teal-600 text-white p-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2"
-                    title="Busca Profunda na Planilha"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <span className="text-[10px] font-black uppercase hidden sm:inline">Busca Permanente</span>
-                  </button>
                 </div>
+
+                {/* ── Linha 2: filtro por ação (pills sempre visíveis) ── */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-black uppercase text-white/50 tracking-widest">Filtrar por ação:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'Todos',       icon: '✦' },
+                      { label: 'Visualizada', icon: '👁' },
+                      { label: 'Pendente',    icon: '⏳' },
+                      { label: 'Em Andamento',icon: '🔄' },
+                      { label: 'Resolvida',   icon: '✅' },
+                    ].map(({ label, icon }) => (
+                      <button
+                        key={label}
+                        onClick={() => setStatusFilter(label)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase transition-all border ${
+                          statusFilter === label
+                            ? 'bg-teal-500 border-teal-400 text-white shadow-lg scale-105'
+                            : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
+                        }`}
+                      >
+                        <span>{icon}</span>
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
               <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar bg-gray-50/30">
