@@ -8,7 +8,7 @@ import { Incident, User, Student } from './types';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
-import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
+import { isProfessorRegistered, getRoleFromLocalDB, PROFESSORS_DB } from './professorsData';
 
 // ✅ Lista hardcoded de gestores — funciona mesmo se professorsData.ts
 // tiver problema de import ou build. Fonte de verdade absoluta.
@@ -60,9 +60,36 @@ const App = () => {
     let authListener: any = null;
 
     const initApp = async () => {
-      // 1. Carregar cache de incidentes
+      // 1. Carregar cache de incidentes — filtra SOMENTE registros da escola LKM
+      // Registros com escola='lkm' são aceitos.
+      // Registros SEM campo escola são aceitos apenas se o authorEmail pertence ao LKM.
+      // Registros de outras escolas (escola='fioravante' etc.) são sempre removidos.
       const cached = localStorage.getItem('lkm_incidents_cache');
-      if (cached) setIncidents(JSON.parse(cached));
+      if (cached) {
+        try {
+          const all = JSON.parse(cached);
+          const lkmEmails = new Set(
+            PROFESSORS_DB.map(p => p.email.toLowerCase().trim())
+          );
+          const lkmOnly = all.filter((inc: any) => {
+            if (inc.escola === 'lkm') return true;
+            if (inc.escola && inc.escola !== 'lkm') return false;
+            // sem campo escola: aceita só se authorEmail é do LKM
+            if (inc.authorEmail) {
+              return lkmEmails.has(inc.authorEmail.toLowerCase().trim());
+            }
+            // sem escola e sem authorEmail: descarta para não exibir lixo
+            return false;
+          });
+          if (lkmOnly.length !== all.length) {
+            console.log(`🧹 [CACHE] Removidos ${all.length - lkmOnly.length} registros de outras escolas do cache.`);
+            localStorage.setItem('lkm_incidents_cache', JSON.stringify(lkmOnly));
+          }
+          setIncidents(lkmOnly);
+        } catch {
+          localStorage.removeItem('lkm_incidents_cache');
+        }
+      }
 
       if (isSupabaseConfigured && supabase) {
         try {
@@ -440,6 +467,7 @@ const App = () => {
   // Mapeia um registro bruto do Supabase para o tipo Incident
   const mapSupabaseToIncident = (i: any): Incident => ({
     id: i.id,
+    escola: i.escola,
     studentName: i.student_name,
     ra: i.ra,
     classRoom: i.class_room,
@@ -478,6 +506,7 @@ const App = () => {
       const { data: incData, error } = await supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .gte('created_at', cutoffISO)
         .order('created_at', { ascending: false });
 
@@ -497,6 +526,7 @@ const App = () => {
       const { data, error } = await supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .eq('ra', ra)
         .order('created_at', { ascending: false });
       if (!error && data) return data.map(mapSupabaseToIncident);
@@ -513,6 +543,7 @@ const App = () => {
       let query = supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .order('created_at', { ascending: false })
         .limit(500);
 
@@ -549,6 +580,7 @@ const App = () => {
         // Tenta salvar no Supabase
         const { error } = await supabase.from('incidents').insert({
           id: item.id,
+          escola: 'lkm',
           student_name: item.studentName,
           ra: item.ra,
           class_room: item.classRoom,
@@ -632,6 +664,7 @@ const App = () => {
         if (isSupabaseConfigured && supabase) {
           const { error } = await supabase.from('incidents').insert({
             id: item.id,
+            escola: 'lkm',
             student_name: item.studentName,
             ra: item.ra,
             class_room: item.classRoom,
