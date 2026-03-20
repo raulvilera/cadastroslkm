@@ -801,7 +801,7 @@ const App = () => {
     );
   }
 
-  const hasDualAccess = DUAL_ACCESS_EMAILS.includes(user?.email || "");
+  const hasDualAccess = DUAL_ACCESS_EMAILS.includes((user?.email || "").toLowerCase().trim());
 
   const handleToggleView = () => {
     setViewMode(prev => prev === 'gestor' ? 'professor' : 'gestor');
@@ -849,15 +849,18 @@ const App = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
-      {shouldShowGestorView ? <Dashboard {...commonProps} /> : (view === 'unauthorized' ? (
-        <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
-          <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
-          <p className="text-gray-400 mb-8 max-w-md uppercase text-[10px] tracking-widest leading-loose">
-            Seu e-mail ({user?.email}) está autenticado, mas não consta na lista de professores autorizados da EE Lydia Kitz Moreira.
-          </p>
-          <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
-        </div>
-      ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...professorProps} />))}
+      {shouldShowGestorView ? <Dashboard {...commonProps} /> : (
+        hasDualAccess ? <ProfessorView {...professorProps} /> :
+        view === 'unauthorized' ? (
+          <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
+            <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
+            <p className="text-gray-400 mb-8 max-w-md uppercase text-[10px] tracking-widest leading-loose">
+              Seu e-mail ({user?.email}) está autenticado, mas não consta na lista de professores autorizados da EE Lydia Kitz Moreira.
+            </p>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
+          </div>
+        ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...professorProps} />)
+      )}
 
       {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
