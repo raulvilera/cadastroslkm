@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lkm-gestao-v17';
+const CACHE_NAME = 'lkm-gestao-v18';
 // index.html e JS/CSS nunca são cacheados — sempre buscados da rede
 const ASSETS_TO_CACHE = [
     '/manifest.json',
@@ -6,14 +6,16 @@ const ASSETS_TO_CACHE = [
     '/pwa-512x512.png'
 ];
 
+// Instala e ativa imediatamente, sem esperar o app ser fechado
 self.addEventListener('install', function (event) {
-    console.log('[SW] Instalando Service Worker...');
+    console.log('[SW] Instalando Service Worker v18...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(function (cache) {
                 return cache.addAll(ASSETS_TO_CACHE);
             })
             .then(function () {
+                // Força ativação imediata sem precisar fechar o app
                 return self.skipWaiting();
             })
     );
@@ -33,9 +35,25 @@ self.addEventListener('activate', function (event) {
                 );
             })
             .then(function () {
+                // Assume controle de todas as abas abertas imediatamente
                 return self.clients.claim();
             })
+            .then(function () {
+                // Avisa todas as abas para recarregar e pegar versão nova
+                return self.clients.matchAll({ type: 'window' }).then(function (clients) {
+                    clients.forEach(function (client) {
+                        client.postMessage({ type: 'SW_UPDATED' });
+                    });
+                });
+            })
     );
+});
+
+// Recebe mensagem da página pedindo para pular espera
+self.addEventListener('message', function (event) {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // HTML, JS e CSS: NUNCA cacheados — sempre da rede
