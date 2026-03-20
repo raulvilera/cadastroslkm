@@ -14,6 +14,8 @@ interface ProfessorViewProps {
   onLogout: () => void;
   onOpenSearch?: () => void;
   onSyncStudents?: () => void;
+  onToggleView?: () => void;
+  viewMode?: 'gestor' | 'professor';
 }
 
 const LISTA_IRREGULARIDADES = [
@@ -43,7 +45,7 @@ const IconTrash = () => (
 );
 
 const ProfessorView: React.FC<ProfessorViewProps> = ({
-  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout
+  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode
 }) => {
   // ── Header fixo — altura dinâmica ─────────────────────────────────────────
   const headerRef = useRef<HTMLElement>(null);
@@ -357,6 +359,16 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
             </div>
           )}
           <span className="hidden sm:inline text-[10px] font-bold text-white/70">{user.email}</span>
+          {onToggleView && (
+            <button
+              onClick={onToggleView}
+              title="Alternar para área da gestão"
+              className="bg-blue-500 hover:bg-blue-400 text-white px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-md whitespace-nowrap flex items-center gap-1.5"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              Ver como Gestão
+            </button>
+          )}
           <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md whitespace-nowrap">Sair</button>
         </div>
       </header>
