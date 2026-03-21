@@ -342,7 +342,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const lowerEmail = adminEmail.toLowerCase().trim();
 
-      if (!GESTAO_EMAILS_HARDCODED.includes(lowerEmail)) {
+      const roleLocal = getRoleFromLocalDB(lowerEmail);
+      if (roleLocal !== 'gestor' && !GESTAO_EMAILS_HARDCODED.includes(lowerEmail)) {
         throw new Error('APENAS GESTORES PODEM USAR ESTA FUNÇÃO.');
       }
 

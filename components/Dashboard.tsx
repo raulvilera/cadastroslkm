@@ -156,6 +156,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [newProfEmail, setNewProfEmail] = useState('');
   const [newProfNome, setNewProfNome] = useState('');
   const [isManagingProfs, setIsManagingProfs] = useState(false);
+  const [tempPasswordToShow, setTempPasswordToShow] = useState('');
+
+  const generateTempPassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
 
   // Estados para Busca no Histórico Permanente
   const [showPermanentSearch, setShowPermanentSearch] = useState(false);
@@ -393,17 +399,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     if (!newProfEmail || !newProfNome) return;
 
     setIsManagingProfs(true);
-    const { error } = await supabase.from('authorized_professors').insert([
-      { email: newProfEmail.toLowerCase().trim(), nome: newProfNome.toUpperCase().trim(), escola: 'lkm', role: 'professor' }
-    ]);
+    setTempPasswordToShow('');
+    
+    const lowerEmail = newProfEmail.toLowerCase().trim();
+    const nome = newProfNome.toUpperCase().trim();
+    const generatedPassword = generateTempPassword();
 
-    if (error) {
-      dgShowToast("Erro ao adicionar professor: " + error.message, "error"); return;
-    } else {
-      setNewProfEmail('');
-      setNewProfNome('');
-      await fetchProfessors();
+    // 1. Criar conta no Supabase Auth
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: lowerEmail,
+      password: generatedPassword,
+    });
+
+    if (signUpError && !signUpError.message.includes('User already registered')) {
+      dgShowToast("Erro ao criar auth: " + signUpError.message, "error");
+      setIsManagingProfs(false);
+      return;
     }
+
+    // 2. Garantir que está na tabela authorized_professors
+    const { error: insertError } = await supabase.from('authorized_professors').upsert([
+      { email: lowerEmail, nome, escola: 'lkm', role: 'professor' }
+    ], { onConflict: 'email' });
+
+    if (insertError) {
+      dgShowToast("Erro ao autorizar professor.", "error");
+      setIsManagingProfs(false);
+      return;
+    }
+
+    // 3. Enviar link de redefinição
+    await supabase.auth.resetPasswordForEmail(lowerEmail, {
+      redirectTo: `https://cadastroslkm.vercel.app/`,
+    });
+
+    setTempPasswordToShow(generatedPassword);
+    dgShowToast("Professor criado com sucesso!", "success");
+    setNewProfEmail('');
+    setNewProfNome('');
+    await fetchProfessors();
     setIsManagingProfs(false);
   };
 
@@ -1545,6 +1579,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                   >
                     {isManagingProfs ? 'Salvando...' : 'Adicionar Professor'}
                   </button>
+                  {tempPasswordToShow && (
+                    <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl mt-4 animate-fade-in shadow-sm">
+                      <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 text-center">Senha temporária gerada:</p>
+                      <span className="text-2xl font-black text-amber-800 tracking-widest block text-center mt-2">{tempPasswordToShow}</span>
+                      <p className="text-[8px] font-bold text-amber-500 uppercase mt-3 leading-relaxed text-center">
+                        ⚠️ Anote e repasse ao professor para o primeiro acesso.
+                      </p>
+                    </div>
+                  )}
                 </form>
 
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl">
@@ -1596,7 +1639,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
             <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
               <button
-                onClick={() => setShowProfessorsModal(false)}
+                onClick={() => { setShowProfessorsModal(false); setTempPasswordToShow(''); }}
                 className="px-12 py-4 bg-[#002b5c] text-white font-black text-[10px] uppercase rounded-full hover:shadow-xl transition-all active:scale-95"
               >
                 Fechar Painel
