@@ -418,12 +418,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     }
 
     // 2. Garantir que está na tabela authorized_professors
-    const { error: insertError } = await supabase.from('authorized_professors').upsert([
+    const { error: insertError } = await supabase.from('authorized_professors').insert([
       { email: lowerEmail, nome, escola: 'lkm', role: 'professor' }
-    ], { onConflict: 'email' });
+    ]);
 
     if (insertError) {
-      dgShowToast("Erro ao autorizar professor.", "error");
+      if (insertError.code === '23505') { // Code for unique violation in Postgres
+         dgShowToast("Erro: Este professor já foi adicionado.", "error"); 
+      } else {
+         dgShowToast("Erro ao autorizar professor (Banco de Dados): " + insertError.message, "error");
+      }
       setIsManagingProfs(false);
       return;
     }
