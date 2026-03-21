@@ -925,9 +925,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       <th className="p-4 font-black uppercase">Turma</th>
                       <th className="p-4 text-center font-black uppercase">Documento Ação</th>
                       <th className="p-4 font-black uppercase">Tipo</th>
+                      <th className="p-4 text-center font-black uppercase">Remover</th>
                       <th className="p-4 font-black uppercase">Responsável</th>
                       <th className="p-4 font-black uppercase">Relato</th>
-                      <th className="p-4 text-center font-black uppercase">Remover</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
@@ -963,17 +963,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         <td className="p-4 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{inc.category}</span>
                         </td>
+                        <td className="p-4 text-center">
+                          <button onClick={() => onDelete(inc.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Excluir registro">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </td>
                         <td className="p-4 font-black text-[#002b5c] uppercase truncate max-w-[150px]">{inc.professorName}</td>
                         <td className="p-4 max-sm truncate text-gray-600 italic">
                           <div>{inc.description}</div>
                           {inc.managementFeedback && (
                             <div className="mt-2 p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">DEVOLUTIVA: {inc.managementFeedback}</div>
                           )}
-                        </td>
-                        <td className="p-4 text-center">
-                          <button onClick={() => onDelete(inc.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Excluir registro">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
                         </td>
                       </tr>
                     )) : (
