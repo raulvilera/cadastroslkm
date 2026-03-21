@@ -688,8 +688,8 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
         </div>
 
         {/* PAINEL DE REGISTROS */}
-        <section className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-300">
-          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black via-blue-900 to-black shadow-xl sticky z-30" style={{ top: headerHeight }}>
+        <section className="bg-transparent rounded-xl shadow-2xl border border-gray-300 overflow-visible">
+          <div className="px-6 sm:px-8 py-5 border-b border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black via-blue-900 to-black shadow-[0_15px_30px_rgba(0,0,0,0.3)] sticky z-30 rounded-t-xl" style={{ top: headerHeight }}>
             <div className="flex flex-col items-center md:items-start w-full md:w-auto">
               <h3 className="text-[11px] sm:text-[13px] text-white font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
               <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left whitespace-nowrap">Visualize, baixe o PDF ou edite seus registros</p>
@@ -699,7 +699,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
             </div>
           </div>
 
-          <div className="max-h-[600px] overflow-auto custom-scrollbar bg-gray-50">
+          <div className="bg-white rounded-b-xl overflow-hidden bg-gray-50">
 
             {/* ── CARDS MOBILE (< sm) ─────────────────────────────────── */}
             <div className="sm:hidden flex flex-col gap-[12px] bg-gray-100/80 p-3">
@@ -860,7 +860,8 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
             </div>
             <span className="text-[10px] font-black text-[#004a99] uppercase">{filteredHistory.length} registros no histórico</span>
           </div>
-        </section>
+        </div>
+      </section>
       </main>
 
       {/* ── MODAL DEVOLUTIVA DA GESTÃO ────────────────────────────────────── */}
