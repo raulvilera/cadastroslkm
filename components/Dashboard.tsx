@@ -748,7 +748,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
             </div>
 
             <section className="bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100">
-              <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black to-blue-900 text-white flex flex-col md:flex-row justify-between items-center gap-4 overflow-hidden relative">
+              <div className="px-6 sm:px-10 py-6 bg-gradient-to-r from-black via-blue-900 to-black text-white flex flex-col md:flex-row justify-between items-center gap-4 overflow-hidden sticky z-30 shadow-xl" style={{ top: headerHeight }}>
                 {/* Esquerda: Titulo e Subtitulo */}
                 <div className="flex flex-col items-center md:items-start w-full md:w-auto z-10">
                   <h3 className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
