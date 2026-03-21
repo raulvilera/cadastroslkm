@@ -544,47 +544,47 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
                   {/* Orientação Individual — abre pop-up */}
                   <button type="button" onClick={handleSelectOrientacao}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase
-                      ${hasReferral('orientacao_individual') ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}>
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase relative
+                      ${hasReferral('orientacao_individual') ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_10px_25px_rgba(0,0,0,0.5)] scale-[1.03] z-10' : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                     Orientação Individual com o Estudante
-                    {hasReferral('orientacao_individual') && <span className="ml-1 text-emerald-200">✓</span>}
+                    {hasReferral('orientacao_individual') && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                   </button>
 
                   {/* Encaminhamento Gestora — toggle direto */}
                   <button type="button" onClick={toggleEncGestao}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase
-                      ${hasReferral('encaminhamento_gestao') ? 'bg-orange-600 border-orange-400 text-white shadow-lg' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}>
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase relative
+                      ${hasReferral('encaminhamento_gestao') ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_10px_25px_rgba(0,0,0,0.5)] scale-[1.03] z-10' : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     Encaminhamento para a Equipe Gestora
-                    {hasReferral('encaminhamento_gestao') && <span className="ml-1 text-orange-200">✓</span>}
+                    {hasReferral('encaminhamento_gestao') && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                   </button>
 
                   {/* Busca Ativa — abre calendário */}
                   <button type="button" onClick={handleSelectBuscaAtiva}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase
-                      ${hasReferral('busca_ativa') ? 'bg-sky-600 border-sky-400 text-white shadow-lg' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}>
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase relative
+                      ${hasReferral('busca_ativa') ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_10px_25px_rgba(0,0,0,0.5)] scale-[1.03] z-10' : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" /></svg>
                     Busca Ativa
-                    {hasReferral('busca_ativa') && <span className="ml-1 text-sky-200">✓</span>}
+                    {hasReferral('busca_ativa') && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                   </button>
 
                   {/* Incidente — abre pop-up de descrição */}
                   <button type="button" onClick={handleSelectIncidente}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase
-                      ${hasReferral('incidente') ? 'bg-yellow-600 border-yellow-400 text-white shadow-lg' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}>
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase relative
+                      ${hasReferral('incidente') ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_10px_25px_rgba(0,0,0,0.5)] scale-[1.03] z-10' : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
                     Incidente
-                    {hasReferral('incidente') && <span className="ml-1 text-yellow-200">✓</span>}
+                    {hasReferral('incidente') && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                   </button>
 
                   {/* Acidente — abre pop-up de descrição */}
                   <button type="button" onClick={handleSelectAcidente}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase
-                      ${hasReferral('acidente') ? 'bg-red-700 border-red-400 text-white shadow-lg' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}>
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all text-[10px] font-black uppercase relative
+                      ${hasReferral('acidente') ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_10px_25px_rgba(0,0,0,0.5)] scale-[1.03] z-10' : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     Acidente
-                    {hasReferral('acidente') && <span className="ml-1 text-red-200">✓</span>}
+                    {hasReferral('acidente') && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                   </button>
                 </div>
 
