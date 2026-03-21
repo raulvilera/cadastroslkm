@@ -523,14 +523,14 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                         key={label}
                         type="button"
                         onClick={() => toggleIrregularity(label)}
-                        className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 transition-all text-center
+                        className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 transition-all text-center shadow-lg
                           ${selected
-                            ? 'bg-[#1e3a8a] border-blue-400 text-white shadow-lg scale-[1.03]'
-                            : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'}`}
+                            ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white scale-[1.04] shadow-[0_10px_25px_rgba(0,0,0,0.5)] z-10'
+                            : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}
                       >
-                        <span className="text-base leading-none">{icon}</span>
-                        <span className="text-[8px] font-black uppercase leading-tight">{label}</span>
-                        {selected && <span className="text-[7px] text-blue-300 font-black">✓</span>}
+                        <span className="text-base leading-none drop-shadow-md">{icon}</span>
+                        <span className="text-[8px] font-black uppercase leading-tight tracking-wider">{label}</span>
+                        {selected && <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
                       </button>
                     );
                   })}
