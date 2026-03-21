@@ -851,7 +851,6 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                 )}
               </tbody>
             </table>
-          </div>
           <div className="bg-[#f8fafc] px-8 py-3 border-t border-gray-300 flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-4">
               <span className="text-[9px] font-black text-gray-400 uppercase">Sistema de Ocorrências Escola LKM • v2026.1</span>
