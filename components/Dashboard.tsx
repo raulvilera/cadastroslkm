@@ -789,11 +789,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="relative w-full bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-[10px] font-black uppercase text-white outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer transition-all hover:bg-black/60 shadow-lg pr-10"
                     >
-                      <option value="todos" className="bg-gray-900 text-white">Todos os Status</option>
-                      <option value="Visualizada" className="bg-gray-900 text-white font-bold">Visualizadas</option>
-                      <option value="Pendente" className="bg-gray-900 text-white font-bold">Pendentes</option>
-                      <option value="Em andamento" className="bg-gray-900 text-white font-bold">Em Andamento</option>
-                      <option value="Resolvida" className="bg-gray-900 text-white font-bold">Resolvidas</option>
+                      <option value="todos" className="bg-white text-black font-black">Todos os Status</option>
+                      <option value="Visualizada" className="bg-white text-black font-black">Visualizadas</option>
+                      <option value="Pendente" className="bg-white text-black font-black">Pendentes</option>
+                      <option value="Em andamento" className="bg-white text-black font-black">Em Andamento</option>
+                      <option value="Resolvida" className="bg-white text-black font-black">Resolvidas</option>
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 group-hover:text-blue-400 transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
