@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
-import { getProfessorNameFromEmail } from '../data/professorsData';
+import { getProfessorNameFromEmail } from '../professorsData';
 
 interface ProfessorViewProps {
   user: User;
@@ -407,7 +407,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] font-sans pb-12" style={{ paddingTop: headerHeight }}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 font-sans pb-12" style={{ paddingTop: headerHeight }}>
       <header ref={headerRef} className="bg-gradient-to-r from-black/90 via-[#001030]/90 to-[#002b5c]/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
           <h1 className="text-xs sm:text-sm font-black uppercase tracking-tighter text-center sm:text-left">Área do Professor 2026</h1>
@@ -449,11 +449,11 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
       <main className="max-w-7xl mx-auto mt-8 px-6 space-y-8">
         {/* FORMULÁRIO */}
-        <div className="bg-gradient-to-br from-black via-[#000d1a] to-[#001a35] rounded-xl shadow-2xl overflow-hidden border border-white/5">
-          <div className="bg-gradient-to-r from-black to-[#002b5c] py-3 text-center border-b border-blue-900/40">
+        <div className="bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 rounded-xl shadow-2xl overflow-hidden border border-white/10">
+          <div className="bg-gradient-to-r from-black to-blue-900 py-3 text-center border-b border-blue-700/40">
             <h2 className="text-white font-black text-xs uppercase tracking-widest">LANÇAMENTO DE REGISTROS DISCIPLINARES</h2>
           </div>
-          <div className="p-8 bg-gradient-to-br from-black via-[#000d1a] to-[#001a35]">
+          <div className="p-8 bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
             <form onSubmit={handleSave} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">

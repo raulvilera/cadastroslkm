@@ -479,26 +479,21 @@ const App = () => {
       const fromSheets = fromSheetsRaw.map(t => normalizeClassName(t));
       const fromLocalDB = STUDENTS_DB.map(s => normalizeClassName(s.turma));
 
-      // Allowlist: apenas turmas do LKM (6º ao 9º ano EF)
-      const isLKMTurma = (t: string): boolean => {
-        const norm = t.toUpperCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^A-Z0-9]/g, '');
-        return (
-          norm.includes('6ANO') ||
-          norm.includes('7ANO') ||
-          norm.includes('8ANO') ||
-          norm.includes('9ANO')
-        );
-      };
-
       const uniqueClasses = Array.from(new Set([...fromStudents, ...fromSheets, ...fromLocalDB]))
         .filter(t => {
           if (!t || t === '---') return false;
           const low = t.toLowerCase();
           if (low.includes('desconsidera') || low.includes('desconsidere')) return false;
-          return isLKMTurma(t);
+          // ── Excluir turmas da EE Fioravante (1º–5º Ano e AEE*) ──────────────
+          const norm = t.toUpperCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^A-Z0-9]/g, '');
+          const isFioravante =
+            norm.startsWith('1ANO') || norm.startsWith('2ANO') ||
+            norm.startsWith('3ANO') || norm.startsWith('4ANO') ||
+            norm.startsWith('5ANO') || norm.includes('AEE');
+          return !isFioravante;
         });
 
       const sortedClasses = uniqueClasses.sort((a, b) => {
@@ -512,6 +507,9 @@ const App = () => {
           if (norm.includes('7ANO')) return 2;
           if (norm.includes('8ANO')) return 3;
           if (norm.includes('9ANO')) return 4;
+          if (norm.includes('1SERIE')) return 5;
+          if (norm.includes('2SERIE')) return 6;
+          if (norm.includes('3SERIE')) return 7;
           return 99;
         };
 
