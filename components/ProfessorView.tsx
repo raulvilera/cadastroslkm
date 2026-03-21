@@ -474,14 +474,27 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">SELECIONE OS ALUNOS</label>
                   <span className="text-[9px] font-black bg-white/10 text-white px-3 py-1 rounded-full uppercase">{selectedStudents.length} Selecionado(s)</span>
                 </div>
-                <div className="w-full h-64 overflow-y-auto bg-white/95 border border-gray-300 rounded-2xl p-4 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 shadow-inner">
-                  {classRoom ? studentsInClass.map((a, idx) => (
-                    <label key={a.ra || idx} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedStudents.includes(a.nome) ? 'bg-blue-600 border-blue-400 text-white shadow-md' : idx % 2 === 0 ? 'bg-white border-gray-100 text-black hover:border-blue-200' : 'bg-blue-50 border-blue-100 text-black hover:border-blue-300'}`}>
-                      <input type="checkbox" checked={selectedStudents.includes(a.nome)} onChange={() => toggleStudent(a.nome)} className="w-5 h-5 rounded-md text-blue-600" />
-                      <span className="text-[10px] font-black uppercase truncate">{a.nome}</span>
-                    </label>
-                  )) : (
-                    <div className="col-span-full h-full flex items-center justify-center text-gray-400 text-[10px] font-black uppercase italic">Selecione uma turma para carregar os alunos...</div>
+                <div className="w-full h-[450px] overflow-y-auto bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner via-blue-900/10">
+                  {classRoom ? studentsInClass.map((a, idx) => {
+                    const selected = selectedStudents.includes(a.nome);
+                    return (
+                      <label key={a.ra || idx} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer relative group
+                        ${selected 
+                          ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_8px_20px_rgba(0,0,0,0.4)] scale-[1.02] z-10' 
+                          : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
+                        <input type="checkbox" checked={selected} onChange={() => toggleStudent(a.nome)} className="hidden" />
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-400 border-blue-400' : 'bg-transparent border-white/20 group-hover:border-white/40'}`}>
+                          {selected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
+                        </div>
+                        <span className="text-[10px] font-black uppercase truncate tracking-wide">{a.nome}</span>
+                        {selected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+                      </label>
+                    );
+                  }) : (
+                    <div className="col-span-full h-full flex flex-col items-center justify-center text-white/20 gap-4">
+                      <svg className="w-12 h-12 opacity-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                      <p className="text-[10px] font-black uppercase italic tracking-[0.2em]">Selecione uma turma para carregar os alunos</p>
+                    </div>
                   )}
                 </div>
               </div>
