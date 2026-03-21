@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
-import { getProfessorNameFromEmail } from '../professorsData';
+import { getProfessorNameFromEmail } from '../professorsData'
 
 interface ProfessorViewProps {
   user: User;
