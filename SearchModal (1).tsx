@@ -57,9 +57,20 @@ const SearchModal: React.FC<SearchModalProps> = ({ incidents, students, onClose 
         <div className="p-4 border-b border-gray-100">
           <div className="relative">
             <svg className="w-4 h-4 absolute left-3 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Nome do aluno, RA, turma, professor..." className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-[11px] font-bold outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all" />
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Nome do aluno, RA, turma, professor..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-[11px] font-bold outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all"
+            />
           </div>
-          {query.trim() && <p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">{total} resultado{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}</p>}
+          {query.trim() && (
+            <p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">
+              {total} resultado{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
         <div className="overflow-y-auto flex-1 p-4 space-y-4">
           {!query.trim() && (
@@ -68,23 +79,39 @@ const SearchModal: React.FC<SearchModalProps> = ({ incidents, students, onClose 
               <p className="text-[10px] font-black uppercase tracking-widest">Digite para buscar</p>
             </div>
           )}
-          {query.trim() && total === 0 && <div className="text-center py-12 text-gray-400"><p className="text-[10px] font-black uppercase tracking-widest">Nenhum resultado encontrado</p></div>}
+          {query.trim() && total === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-[10px] font-black uppercase tracking-widest">Nenhum resultado encontrado</p>
+            </div>
+          )}
           {results.incidents.length > 0 && (
             <div>
-              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Ocorrências ({results.incidents.length})</h3>
+              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                Ocorrências ({results.incidents.length})
+              </h3>
               <div className="space-y-2">
                 {results.incidents.map(inc => (
                   <div key={inc.id} className="border border-gray-100 rounded-xl p-3 hover:border-teal-200 hover:bg-teal-50/30 transition-all">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div>
                         <p className="font-black text-[11px] text-gray-900">{inc.studentName}</p>
-                        <p className="text-[9px] text-gray-500 font-bold">{inc.classRoom} · {inc.date}{inc.time ? ` · ${inc.time}` : ''}</p>
-                        {inc.professorName && <p className="text-[9px] text-gray-400 font-bold">Prof: {inc.professorName}</p>}
+                        <p className="text-[9px] text-gray-500 font-bold">
+                          {inc.classRoom} · {inc.date}{inc.time ? ` · ${inc.time}` : ''}
+                        </p>
+                        {inc.professorName && (
+                          <p className="text-[9px] text-gray-400 font-bold">Prof: {inc.professorName}</p>
+                        )}
                       </div>
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${statusColor[inc.status] || 'bg-gray-100 text-gray-600'}`}>{inc.status}</span>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${statusColor[inc.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {inc.status}
+                      </span>
                     </div>
-                    {inc.description && <p className="text-[10px] text-gray-600 mt-1 line-clamp-2">{inc.description}</p>}
-                    {inc.irregularities && <p className="text-[9px] text-orange-600 font-bold mt-1">{inc.irregularities}</p>}
+                    {inc.description && (
+                      <p className="text-[10px] text-gray-600 mt-1 line-clamp-2">{inc.description}</p>
+                    )}
+                    {inc.irregularities && (
+                      <p className="text-[9px] text-orange-600 font-bold mt-1">{inc.irregularities}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -92,7 +119,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ incidents, students, onClose 
           )}
           {results.students.length > 0 && (
             <div>
-              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Alunos ({results.students.length})</h3>
+              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                Alunos ({results.students.length})
+              </h3>
               <div className="space-y-2">
                 {results.students.map((s, i) => (
                   <div key={s.ra || i} className="border border-gray-100 rounded-xl p-3 hover:border-blue-200 hover:bg-blue-50/30 transition-all flex items-center justify-between">
@@ -100,7 +129,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ incidents, students, onClose 
                       <p className="font-black text-[11px] text-gray-900">{s.nome}</p>
                       <p className="text-[9px] text-gray-500 font-bold">RA: {s.ra} · Turma: {s.turma}</p>
                     </div>
-                    <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase">{s.turma}</span>
+                    <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase">
+                      {s.turma}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -108,7 +139,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ incidents, students, onClose 
           )}
         </div>
         <div className="border-t border-gray-100 px-6 py-3 flex justify-end">
-          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all">Fechar</button>
+          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all">
+            Fechar
+          </button>
         </div>
       </div>
     </div>
