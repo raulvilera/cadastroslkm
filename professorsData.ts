@@ -11,8 +11,7 @@ export const EXCLUSIVE_MANAGEMENT_EMAILS = [
     'cadastroslkm@gmail.com',
     'erineidearagao@prof.educacao.sp.gov.br',
     'patriciag@prof.educacao.sp.gov.br',
-    'regianecurti@prof.educacao.sp.gov.br',
-    'michellemoraes@prof.educacao.sp.gov.br'
+    'regianecurti@prof.educacao.sp.gov.br'
 ];
 
 export const PROFESSORS_DB: ProfessorData[] = [
@@ -29,7 +28,7 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'erineidearagao@prof.educacao.sp.gov.br',          nome: 'ERINEIDE LEITE ARAGÃO NERY - GESTÃO',     role: 'gestor' },
     { email: 'patriciag@prof.educacao.sp.gov.br',               nome: 'PATRÍCIA GOMES ROCHA RIBEIRO - GESTÃO',   role: 'gestor' },
     { email: 'regianecurti@prof.educacao.sp.gov.br',            nome: 'REGIANE CURTI DE SOUZA OLIVEIRA - GESTÃO',role: 'gestor' },
-    { email: 'michellemoraes@prof.educacao.sp.gov.br',          nome: 'MICHELLE DE MORAES ANDRADE - GESTÃO',     role: 'gestor' },
+    { email: 'michellemoraes@prof.educacao.sp.gov.br',          nome: 'MICHELLE DE MORAES ANDRADE',     role: 'professor' },
     { email: 'anaosouza@prof.educacao.sp.gov.br',               nome: 'ANA SOUZA - GESTÃO',                      role: 'gestor' },
 
     // ── Professores LKM ───────────────────────────────────────────────────────

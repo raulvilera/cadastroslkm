@@ -11,7 +11,6 @@ const GESTAO_EMAILS_HARDCODED = [
   'erineidearagao@prof.educacao.sp.gov.br',
   'patriciag@prof.educacao.sp.gov.br',
   'regianecurti@prof.educacao.sp.gov.br',
-  'michellemoraes@prof.educacao.sp.gov.br',
   'vilera@prof.educacao.sp.gov.br',
   'raulvilera@gmail.com',
   'deizylaura@prof.educacao.sp.gov.br',
