@@ -689,7 +689,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
         {/* PAINEL DE REGISTROS */}
         <section className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-300">
-          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black to-blue-900 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+          <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black via-blue-900 to-black shadow-xl sticky z-30" style={{ top: headerHeight }}>
             <div className="flex flex-col items-center md:items-start w-full md:w-auto">
               <h3 className="text-[11px] sm:text-[13px] text-white font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
               <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left whitespace-nowrap">Visualize, baixe o PDF ou edite seus registros</p>
