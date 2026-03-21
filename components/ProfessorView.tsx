@@ -677,41 +677,12 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
         {/* PAINEL DE REGISTROS */}
         <section className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-300">
           <div className="px-6 sm:px-8 py-5 border-b border-gray-300 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-black to-blue-900 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-            {/* Esquerda: Titulo e Subtitulo */}
             <div className="flex flex-col items-center md:items-start w-full md:w-auto">
               <h3 className="text-[11px] sm:text-[13px] text-white font-black uppercase tracking-widest text-center w-full md:text-left">PAINEL DE REGISTROS</h3>
-              <button className="text-teal-400 text-[8px] font-black uppercase mt-1 flex items-center gap-1 hover:text-teal-300 transition-colors">
-                Ir para Histórico Permanente
-                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7"/></svg>
-              </button>
+              <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left whitespace-nowrap">Visualize, baixe o PDF ou edite seus registros</p>
             </div>
-
-            {/* Centro: Contador de Ocorrências */}
-            <div className="flex-1 flex justify-center order-first md:order-none">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 px-6 py-2 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all duration-300 shadow-inner">
-                <div className="relative">
-                  <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping absolute opacity-75"></div>
-                  <div className="relative w-2.5 h-2.5 bg-blue-400 rounded-full shadow-[0_0_10px_rgba(96,165,250,0.8)]"></div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-black text-blue-200/60 uppercase tracking-[0.2em] leading-none mb-1">Total de Registros</span>
-                  <span className="text-white text-base font-black leading-none drop-shadow-md tracking-tighter">
-                    {filteredHistory.length < 10 ? `0${filteredHistory.length}` : filteredHistory.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Direita: Busca */}
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative group flex-1 md:flex-none">
-                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 group-focus-within:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                 <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Filtrar recentes..." className="bg-white/10 border border-white/20 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold outline-none focus:bg-white focus:text-black focus:ring-4 focus:ring-blue-500/20 w-full md:w-56 text-white placeholder:text-white/40 transition-all shadow-inner" />
-              </div>
-              <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-lg transition-all active:scale-95 whitespace-nowrap">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                  Busca Permanente
-              </button>
+              <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Filtrar histórico..." className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:bg-white focus:text-black w-full md:w-64 text-white placeholder:text-white/40 shadow-inner" />
             </div>
           </div>
 
