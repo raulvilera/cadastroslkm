@@ -121,6 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [returnDate, setReturnDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
 
   const regDateRef = useRef<HTMLInputElement>(null!);
   const retDateRef = useRef<HTMLInputElement>(null!);
@@ -466,12 +467,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
   const history = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return incidents.filter(i =>
-      (i.studentName || "").toLowerCase().includes(term) ||
-      (i.classRoom || "").toLowerCase().includes(term) ||
-      (i.professorName || "").toLowerCase().includes(term)
-    );
-  }, [incidents, searchTerm]);
+    return incidents.filter(i => {
+      const matchSearch = (i.studentName || "").toLowerCase().includes(term) ||
+                          (i.classRoom || "").toLowerCase().includes(term) ||
+                          (i.professorName || "").toLowerCase().includes(term);
+      const matchStatus = statusFilter === 'todos' || i.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [incidents, searchTerm, statusFilter]);
 
   // Lógica de Estatísticas
   const stats = useMemo(() => {
@@ -775,6 +778,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         </span>
                         <span className="text-blue-400 text-[10px] font-bold">REGISTROS</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Dropdown de Filtro de Status (NOVO) */}
+                  <div className="relative group min-w-[140px]">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-teal-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="relative w-full bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-[10px] font-black uppercase text-white outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer transition-all hover:bg-black/60 shadow-lg pr-10"
+                    >
+                      <option value="todos" className="bg-gray-900 text-white">Todos os Status</option>
+                      <option value="Visualizada" className="bg-gray-900 text-white font-bold">Visualizadas</option>
+                      <option value="Pendente" className="bg-gray-900 text-white font-bold">Pendentes</option>
+                      <option value="Em andamento" className="bg-gray-900 text-white font-bold">Em Andamento</option>
+                      <option value="Resolvida" className="bg-gray-900 text-white font-bold">Resolvidas</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 group-hover:text-blue-400 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
