@@ -508,7 +508,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
       const matchSearch = (i.studentName || "").toLowerCase().includes(term) ||
                           (i.classRoom || "").toLowerCase().includes(term) ||
                           (i.professorName || "").toLowerCase().includes(term);
-      const matchStatus = statusFilter === 'todos' || i.status === statusFilter;
+      const incStatus = (i.status || 'Pendente').toLowerCase();
+      const filterStatus = statusFilter.toLowerCase();
+      const matchStatus = filterStatus === 'todos' || incStatus === filterStatus;
       return matchSearch && matchStatus;
     });
   }, [incidents, searchTerm, statusFilter]);
