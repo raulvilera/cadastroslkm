@@ -505,12 +505,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const history = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return incidents.filter(i => {
+      // 1) Filtro de busca de texto
       const matchSearch = (i.studentName || "").toLowerCase().includes(term) ||
                           (i.classRoom || "").toLowerCase().includes(term) ||
                           (i.professorName || "").toLowerCase().includes(term);
+                          
+      // 2) Filtro de Status
       const incStatus = (i.status || 'Pendente').toLowerCase();
       const filterStatus = statusFilter.toLowerCase();
-      const matchStatus = filterStatus === 'todos' || incStatus === filterStatus;
+      
+      let matchStatus = false;
+      if (filterStatus === 'todos') {
+        matchStatus = true;
+      } else if (filterStatus === 'visualizada') {
+        // "Visualizada" deve incluir tanto status literal quanto a prop lastViewedAt originada da visualização do PDF
+        matchStatus = incStatus === 'visualizada' || !!i.lastViewedAt;
+      } else {
+        matchStatus = incStatus === filterStatus;
+      }
+      
       return matchSearch && matchStatus;
     });
   }, [incidents, searchTerm, statusFilter]);
