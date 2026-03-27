@@ -143,7 +143,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             .from('authorized_professors')
             .select('role')
             .eq('email', displayEmail)
-            .eq('escola', 'lkm')
             .maybeSingle();
 
           const timeoutPromise = new Promise((_, reject) =>
@@ -407,7 +406,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       // 2. Garantir que está na tabela authorized_professors
       await supabase.from('authorized_professors').upsert([
-        { email: lowerEmail, nome, escola: 'lkm', role: 'professor' }
+        { email: lowerEmail, nome, role: 'professor' }
       ], { onConflict: 'email' });
 
       // 3. Enviar link de redefinição para o e-mail do professor

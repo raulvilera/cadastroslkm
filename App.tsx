@@ -205,7 +205,6 @@ const App = () => {
                 .from('authorized_professors')
                 .select('role')
                 .eq('email', normalizedEmail)
-                .eq('escola', 'lkm')
                 .maybeSingle();
 
               const timeoutPromise = new Promise((_, reject) =>
@@ -483,16 +482,12 @@ const App = () => {
           if (!t || t === '---') return false;
           const low = t.toLowerCase();
           if (low.includes('desconsidera') || low.includes('desconsidere')) return false;
-          // ── Excluir turmas da EE Fioravante (1º–5º Ano e AEE*) ──────────────
+          // ── Excluir turmas desnecessárias ──────────────
           const norm = t.toUpperCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^A-Z0-9]/g, '');
-          const isFioravante =
-            norm.startsWith('1ANO') || norm.startsWith('2ANO') ||
-            norm.startsWith('3ANO') || norm.startsWith('4ANO') ||
-            norm.startsWith('5ANO') || norm.includes('AEE');
-          return !isFioravante;
+          return true; // Todos os dados restantes são LKM
         });
 
       const sortedClasses = uniqueClasses.sort((a, b) => {

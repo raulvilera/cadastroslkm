@@ -302,7 +302,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
       category: classification,
       source: 'gestao',
       authorEmail: user.email,
-      escola: 'lkm',
     };
 
     onSave(newInc);
@@ -389,7 +388,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
   const fetchProfessors = async () => {
     setIsManagingProfs(true);
+<<<<<<< HEAD
     const { data } = await supabase.from('authorized_professors').select('email, nome').eq('escola', 'lkm').order('nome');
+=======
+    const { data } = await supabase.from('authorized_professors').select('email, nome').order('nome');
+>>>>>>> 398145b (Refactor: Remocao completa da logica e dados da Escola Fioravante)
     if (data) setProfessorsList(data);
     setIsManagingProfs(false);
   };
@@ -419,7 +422,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
 
     // 2. Garantir que está na tabela authorized_professors
     const { error: insertError } = await supabase.from('authorized_professors').insert([
+<<<<<<< HEAD
       { email: lowerEmail, nome, escola: 'lkm', role: 'professor' }
+=======
+      { email: lowerEmail, nome, role: 'professor' }
+>>>>>>> 398145b (Refactor: Remocao completa da logica e dados da Escola Fioravante)
     ]);
 
     if (insertError) {
@@ -448,7 +455,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const handleRemoveProfessor = async (email: string) => {
     dgAskConfirm(`Deseja remover o acesso de ${email}?`, async () => {
       setIsManagingProfs(true);
+<<<<<<< HEAD
       const { error } = await supabase.from('authorized_professors').delete().eq('email', email).eq('escola', 'lkm');
+=======
+      const { error } = await supabase.from('authorized_professors').delete().eq('email', email);
+>>>>>>> 398145b (Refactor: Remocao completa da logica e dados da Escola Fioravante)
       if (error) {
         dgShowToast("Erro ao remover professor.", "error");
       } else {

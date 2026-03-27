@@ -293,7 +293,6 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
         status: 'Pendente',
         source: 'professor',
         authorEmail: user.email,
-        escola: 'lkm',
         professorReferrals: profReferrals.length > 0 ? profReferrals : undefined,
         // Legado: manter campo antigo para compatibilidade
         referralType: profReferrals.length > 0 ? profReferrals[0].type : undefined,
