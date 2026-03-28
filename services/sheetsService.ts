@@ -1,11 +1,10 @@
-
 import { Incident, Student } from '../types';
 import { normalizeClassName } from '../utils/formatters';
 
 /**
  * URL do seu Google Apps Script implantado como Web App.
  */
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbziba7KN12x6onsQMKFe-DcW9qG-esqBG2KQx7uvvEMX7uKNuGvjYEP-DoNF_cpmDgH/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIJ6aotlvx3dHjixi5OgwLOWQGhQ6TThEW1eBqsnUMEBNK1lrFoA1EVPUAYiSqJAGR/exec';
 
 /**
  * Carrega a lista de alunos da planilha Google Sheets.
@@ -26,6 +25,30 @@ export const loadStudentsFromSheets = async (): Promise<Student[]> => {
 
     if (data.success && Array.isArray(data.students)) {
       console.log(`✅ Google Sheets: Carregados ${data.students.length} alunos`);
+
+      // Log detalhado de debug
+      if (data.debug) {
+        const d = data.debug;
+        console.log(`📋 Sheets debug:`, {
+          aba: d.sheetUsed,
+          linhaHeader: d.headerRow,
+          totalLinhas: d.totalRows,
+          totalColunas: d.totalCols,
+          blocosDetectados: d.classBlocksDetected?.length,
+          blocos: d.classBlocksDetected
+        });
+      }
+
+      // Log turmas encontradas
+      const turmasUnicas = [...new Set(data.students.map((s: any) => s.turma))].sort();
+      console.log(`📚 Turmas retornadas (${turmasUnicas.length}):`, turmasUnicas);
+
+      // Contagem por turma
+      const contagemPorTurma: Record<string, number> = {};
+      data.students.forEach((s: any) => {
+        contagemPorTurma[s.turma] = (contagemPorTurma[s.turma] || 0) + 1;
+      });
+      console.log('👥 Alunos por turma:', contagemPorTurma);
 
       // Salvar turmas detectadas pelo script (mesmo sem alunos) para o dropdown
       if (data.debug?.classBlocksDetected && Array.isArray(data.debug.classBlocksDetected)) {
