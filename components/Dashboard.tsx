@@ -196,6 +196,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
         const { data, error } = await supabase
           .from('incidents')
           .select('*')
+          .eq('escola', 'lkm')
           .eq('ra', student.ra)
           .order('created_at', { ascending: false });
 
