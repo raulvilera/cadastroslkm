@@ -464,6 +464,11 @@ const App = () => {
       // Garante que TODOS os estudantes na lista final tenham a turma normalizada
       finalStudents = finalStudents.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
 
+      // Ordenação alfabética dos alunos por nome (para todas as turmas)
+      finalStudents = finalStudents.sort((a, b) =>
+        a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
+      );
+
       if (!cancelled) setStudents(finalStudents); // ← FIX: guard de cancelamento
 
       // Gerar lista de turmas dinamicamente — inclui turmas da planilha mesmo sem alunos
