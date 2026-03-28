@@ -350,6 +350,8 @@ const App = () => {
   }, []); // Sem dependência de [view] para evitar loop
 
   useEffect(() => {
+    let cancelled = false; // ← FIX: evita race condition ao trocar de usuário
+
     const loadStudentsData = async (forceSync = false) => {
       let finalStudents: Student[] = [];
       let loadedFromSupabase = false;
@@ -450,32 +452,29 @@ const App = () => {
         }
       }
 
-      // 4. Último fallback: Dados locais
+      // 4. Último fallback: Dados locais (SEM mesclagem quando Supabase/Sheets carregou)
       if (finalStudents.length === 0) {
         finalStudents = STUDENTS_DB;
         console.log(`⚠️ Local: Usando ${STUDENTS_DB.length} alunos (studentsData.ts)`);
-      } else {
-        // Mescla alunos do banco local para turmas que não vieram do Supabase/Sheets
-        // Normaliza as turmas carregadas para comparação robusta
-        const turmasCarregadas = new Set(finalStudents.map(s => normalizeClassName(s.turma)));
-        const alunosFaltando = STUDENTS_DB.filter(s => !turmasCarregadas.has(normalizeClassName(s.turma)));
-        if (alunosFaltando.length > 0) {
-          console.log(`⚠️ Mesclando ${alunosFaltando.length} alunos de turmas faltantes do banco local`);
-          // Adiciona os alunos faltando com a turma já normalizada
-          finalStudents = [...finalStudents, ...alunosFaltando.map(s => ({ ...s, turma: normalizeClassName(s.turma) }))];
-        }
       }
+      // ← FIX: removido o bloco de mesclagem com STUDENTS_DB quando o servidor já
+      // retornou dados. Esse bloco causava mistura de alunos entre turmas ao trocar
+      // de turma, pois adicionava alunos do arquivo local sobre os do Supabase.
 
       // Garante que TODOS os estudantes na lista final tenham a turma normalizada
       finalStudents = finalStudents.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
 
-      setStudents(finalStudents);
+      if (!cancelled) setStudents(finalStudents); // ← FIX: guard de cancelamento
 
       // Gerar lista de turmas dinamicamente — inclui turmas da planilha mesmo sem alunos
       const fromStudents = finalStudents.map(s => normalizeClassName(s.turma));
       const fromSheetsRaw: string[] = (window as any).__allDetectedClasses || [];
       const fromSheets = fromSheetsRaw.map(t => normalizeClassName(t));
-      const fromLocalDB = STUDENTS_DB.map(s => normalizeClassName(s.turma));
+      // ← FIX: turmas locais SOMENTE como fallback quando não há dados do servidor.
+      // Antes era sempre incluído, gerando turmas "fantasmas" no dropdown.
+      const fromLocalDB = finalStudents.length === 0
+        ? STUDENTS_DB.map(s => normalizeClassName(s.turma))
+        : [];
 
       const uniqueClasses = Array.from(new Set([...fromStudents, ...fromSheets, ...fromLocalDB]))
         .filter(t => {
@@ -516,11 +515,13 @@ const App = () => {
         return a.localeCompare(b, 'pt-BR', { numeric: true });
       });
 
-      setClasses(sortedClasses);
+      if (!cancelled) setClasses(sortedClasses); // ← FIX: guard de cancelamento
     };
 
     loadStudentsData();
     (window as any).refreshStudents = (sync = false) => loadStudentsData(sync);
+
+    return () => { cancelled = true; }; // ← FIX: cleanup cancela resultado de req anterior
   }, [user]);
 
   const handleSyncStudents = async () => {
