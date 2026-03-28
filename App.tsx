@@ -379,6 +379,7 @@ const App = () => {
             const { data, error } = await supabase
               .from('students')
               .select('*')
+              .eq('escola', 'lkm')
               .order('nome')
               .range(from, from + PAGE_SIZE - 1);
 
@@ -431,19 +432,21 @@ const App = () => {
 
             if (isSupabaseConfigured && supabase && session) {
               try {
-                // Apaga APENAS registros de sincronizações automáticas anteriores (prefixo 'synced-')
-                // Preserva registros inseridos manualmente (ex: '7anoe-', 'manual-')
+                // Apaga TODOS os registros de alunos anteriores (tanto 'synced-' quanto 'lkm-')
+                // para garantir que a sincronização do Sheets seja a fonte de verdade
                 await supabase.from('students').delete().like('id', 'synced-%');
+                await supabase.from('students').delete().like('id', 'lkm-%');
 
                 // Inserir em lotes para evitar problemas de payload grande
                 const CHUNK_SIZE = 500;
                 for (let i = 0; i < sheetsStudents.length; i += CHUNK_SIZE) {
                   const chunk = sheetsStudents.slice(i, i + CHUNK_SIZE);
                   const studentsToInsert = chunk.map((s, index) => ({
-                    id: `synced-${Date.now()}-${i + index}`,
+                    id: `lkm-synced-${Date.now()}-${i + index}`,
                     nome: s.nome,
                     ra: s.ra,
-                    turma: normalizeClassName(s.turma) // Garante normalização correta antes de salvar
+                    turma: normalizeClassName(s.turma),
+                    escola: 'lkm'
                   }));
 
                   const { error } = await supabase.from('students').insert(studentsToInsert);
@@ -451,7 +454,7 @@ const App = () => {
                     console.error(`❌ Erro ao sincronizar lote ${i / CHUNK_SIZE}:`, error.message);
                   }
                 }
-                console.log('✅ Supabase: Sincronização concluída (registros manuais preservados)');
+                console.log('✅ Supabase: Sincronização concluída com escola=lkm');
               } catch (syncError) {
                 console.warn('⚠️ Supabase: Erro crítico na sincronização:', syncError);
               }
