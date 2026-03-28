@@ -159,9 +159,19 @@ const App = () => {
     let authListener: any = null;
 
     const initApp = async () => {
-      // 1. Carregar cache de incidentes
+      // 1. Carregar cache de incidentes — filtrando registros de outras escolas
       const cached = localStorage.getItem('lkm_incidents_cache');
-      if (cached) setIncidents(JSON.parse(cached));
+      if (cached) {
+        const all = JSON.parse(cached) as any[];
+        // Remove qualquer registro que não seja da LKM (ex: dados do Fioravante que possam ter
+        // ficado em cache de sessões anteriores ao isolamento por escola)
+        const lkmOnly = all.filter((i: any) => !i.escola || i.escola === 'lkm');
+        if (lkmOnly.length !== all.length) {
+          console.warn(`🧹 [CACHE] ${all.length - lkmOnly.length} registro(s) de outra escola removido(s) do cache local.`);
+          localStorage.setItem('lkm_incidents_cache', JSON.stringify(lkmOnly));
+        }
+        setIncidents(lkmOnly);
+      }
 
       if (isSupabaseConfigured && supabase) {
         try {
@@ -588,6 +598,7 @@ const App = () => {
       const { data: incData, error } = await supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .gte('created_at', cutoffISO)
         .order('created_at', { ascending: false });
 
@@ -607,6 +618,7 @@ const App = () => {
       const { data, error } = await supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .eq('ra', ra)
         .order('created_at', { ascending: false });
       if (!error && data) return data.map(mapSupabaseToIncident);
@@ -623,6 +635,7 @@ const App = () => {
       let query = supabase
         .from('incidents')
         .select('*')
+        .eq('escola', 'lkm')
         .order('created_at', { ascending: false })
         .limit(500);
 
@@ -659,6 +672,7 @@ const App = () => {
         // Tenta salvar no Supabase
         const { error } = await supabase.from('incidents').insert({
           id: item.id,
+          escola: 'lkm',
           student_name: item.studentName,
           ra: item.ra,
           class_room: item.classRoom,
@@ -742,6 +756,7 @@ const App = () => {
         if (isSupabaseConfigured && supabase) {
           const { error } = await supabase.from('incidents').insert({
             id: item.id,
+            escola: 'lkm',
             student_name: item.studentName,
             ra: item.ra,
             class_room: item.classRoom,
