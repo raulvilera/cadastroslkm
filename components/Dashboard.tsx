@@ -699,7 +699,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">TURMA / SÉRIE</label>
                       <select
                         value={classRoom}
-                        onChange={e => { setClassRoom(e.target.value); setStudentName(''); }}
+                        onChange={e => {
+                          setClassRoom(e.target.value);
+                          setStudentName('');
+                          setSelectedStudentForHistory(null); // ← FIX: limpa aluno do histórico
+                          setStudentHistory([]);              // ← FIX: limpa ocorrências carregadas
+                        }}
                         className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
                         <option value="">Selecione...</option>
