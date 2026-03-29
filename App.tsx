@@ -467,7 +467,8 @@ const App = () => {
 
       // 4. Último fallback: Dados locais (SEM mesclagem quando Supabase/Sheets carregou)
       if (finalStudents.length === 0) {
-        finalStudents = STUDENTS_DB;
+        // ← FIX: normalizar turmas do STUDENTS_DB antes de usar como fallback
+        finalStudents = STUDENTS_DB.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
         console.log(`⚠️ Local: Usando ${STUDENTS_DB.length} alunos (studentsData.ts)`);
       }
       // ← FIX: removido o bloco de mesclagem com STUDENTS_DB quando o servidor já
@@ -485,6 +486,7 @@ const App = () => {
       if (!cancelled) setStudents(finalStudents); // ← FIX: guard de cancelamento
 
       // Gerar lista de turmas dinamicamente — inclui turmas da planilha mesmo sem alunos
+      // ← FIX: usar Set com chave normalizada para evitar duplicatas por formatação diferente
       const fromStudents = finalStudents.map(s => normalizeClassName(s.turma));
       const fromSheetsRaw: string[] = (window as any).__allDetectedClasses || [];
       const fromSheets = fromSheetsRaw.map(t => normalizeClassName(t));
@@ -493,18 +495,26 @@ const App = () => {
       const fromLocalDB = finalStudents.length === 0
         ? STUDENTS_DB.map(s => normalizeClassName(s.turma))
         : [];
+      // ← FIX: deduplicação por valor normalizado — evita que o mesmo nome apareça
+      // duas vezes com grafias diferentes (ex: "7ºAno A" e "7ºANO A"), o que causava
+      // o select ficar dessincronizado após recarregamento assíncrono das turmas.
 
-      const uniqueClasses = Array.from(new Set([...fromStudents, ...fromSheets, ...fromLocalDB]))
+      // ← FIX: desduplicação por chave normalizada — garante que variações de grafia
+      // (ex: "7ºAno A" vs "7ºANO A") não gerem entradas duplicadas no dropdown.
+      // Isso evitava que o select ficasse dessincronizado após recarregamento async do Sheets.
+      const seenNorm = new Set<string>();
+      const uniqueClasses = [...fromStudents, ...fromSheets, ...fromLocalDB]
         .filter(t => {
           if (!t || t === '---') return false;
           const low = t.toLowerCase();
           if (low.includes('desconsidera') || low.includes('desconsidere')) return false;
-          // ── Excluir turmas desnecessárias ──────────────
-          const norm = t.toUpperCase()
+          const normKey = normalizeClassName(t).toUpperCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^A-Z0-9]/g, '');
-          return true; // Todos os dados restantes são LKM
+            .replace(/[^A-Z0-9 ]/g, '');
+          if (seenNorm.has(normKey)) return false;
+          seenNorm.add(normKey);
+          return true;
         });
 
       const sortedClasses = uniqueClasses.sort((a, b) => {
