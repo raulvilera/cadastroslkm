@@ -111,6 +111,19 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   });
 
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // ── FIX: reseta classRoom quando App.tsx recarrega classes assincronamente
+  // (ex: após carregar do Sheets). Se a turma atual sumir da lista, limpa o estado.
+  useEffect(() => {
+    if (!classRoom || classes.length === 0) return;
+    const normClass = normalizeClassName(classRoom);
+    const aindaValida = classes.some(c => normalizeClassName(c) === normClass);
+    if (!aindaValida) {
+      setClassRoom('');
+      setSelectedStudents([]);
+    }
+  }, [classes]);
+
   const studentsInClass = useMemo(() => {
     if (!classRoom) return [];
     const normClass = normalizeClassName(classRoom);
