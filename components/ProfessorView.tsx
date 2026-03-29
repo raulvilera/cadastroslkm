@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
 import { getProfessorNameFromEmail } from '../professorsData';
+import { normalizeClassName } from '../utils/formatters';
 
 interface ProfessorViewProps {
   user: User;
@@ -110,7 +111,11 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   });
 
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const studentsInClass = useMemo(() => students.filter(a => a.turma === classRoom), [classRoom, students]);
+  const studentsInClass = useMemo(() => {
+    if (!classRoom) return [];
+    const normClass = normalizeClassName(classRoom);
+    return students.filter(a => normalizeClassName(a.turma) === normClass);
+  }, [classRoom, students]);
 
   const canActOnIncident = (inc: Incident) => {
     if (user.role === 'gestor') return true;
@@ -461,7 +466,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
-                  <select value={classRoom} onChange={e => { setClassRoom(e.target.value); setSelectedStudents([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
+                  <select value={classRoom} onChange={e => { setClassRoom(normalizeClassName(e.target.value)); setSelectedStudents([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">Selecione a turma...</option>
                     {classes.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
