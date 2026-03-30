@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProfessorView from './components/ProfessorView';
@@ -10,6 +10,48 @@ import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
 import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
 import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
+
+// ── Error Boundary para capturar crashes do ProfessorView ────────────────────
+class ProfessorErrorBoundary extends React.Component<
+  { children: React.ReactNode; onLogout: () => void },
+  { hasError: boolean; errorMsg: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, errorMsg: '' };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, errorMsg: error?.message || 'Erro desconhecido' };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error('❌ [ProfessorView] Erro capturado pelo ErrorBoundary:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-full flex flex-col items-center justify-center text-white p-8 text-center bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
+          <div className="bg-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-5xl mb-4">⚠️</div>
+            <h2 className="text-lg font-black uppercase tracking-wider mb-2">Erro na Área do Professor</h2>
+            <p className="text-blue-200 text-[10px] uppercase tracking-widest mb-2">Ocorreu um erro inesperado ao carregar a tela.</p>
+            <p className="text-red-300 text-[9px] font-mono mb-6 bg-black/30 rounded-lg px-3 py-2">{this.state.errorMsg}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => this.setState({ hasError: false, errorMsg: '' })}
+                className="flex-1 bg-teal-500 hover:bg-teal-600 text-white py-2.5 rounded-xl font-black text-xs uppercase transition-all"
+              >Tentar Novamente</button>
+              <button
+                onClick={this.props.onLogout}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-black text-xs uppercase transition-all"
+              >Sair</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ✅ Lista hardcoded de gestores — funciona mesmo se professorsData.ts
 // tiver problema de import ou build. Fonte de verdade absoluta.
@@ -988,7 +1030,11 @@ const App = () => {
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
       {shouldShowGestorView ? <Dashboard {...commonProps} /> : (
-        hasDualAccess ? <ProfessorView {...professorProps} /> :
+        hasDualAccess ? (
+          <ProfessorErrorBoundary onLogout={handleLogout}>
+            <ProfessorView {...professorProps} />
+          </ProfessorErrorBoundary>
+        ) :
         view === 'unauthorized' ? (
           <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
             <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
@@ -997,7 +1043,11 @@ const App = () => {
             </p>
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
           </div>
-        ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : <ProfessorView {...professorProps} />)
+        ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : (
+          <ProfessorErrorBoundary onLogout={handleLogout}>
+            <ProfessorView {...professorProps} />
+          </ProfessorErrorBoundary>
+        ))
       )}
 
       {/* Modal de Busca Permanente — inline para evitar dependência de arquivo externo */}
