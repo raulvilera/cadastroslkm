@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
 import { getProfessorNameFromEmail } from '../professorsData';
@@ -112,29 +112,31 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  // ── FIX: reseta classRoom quando App.tsx recarrega classes assincronamente
-  // (ex: após carregar do Sheets). Se a turma atual sumir da lista, limpa o estado.
+  // ── Lista de alunos da turma selecionada — useEffect explícito no lugar do useMemo
+  // Isso evita qualquer problema de referência/closure que useMemo pode ter em React 19
+  const [studentsInClass, setStudentsInClass] = useState<Student[]>([]);
+
+  useEffect(() => {
+    if (!classRoom || students.length === 0) {
+      setStudentsInClass([]);
+      return;
+    }
+    const normClass = normalizeClassName(classRoom);
+    const filtered = students.filter(s => normalizeClassName(s.turma) === normClass);
+    setStudentsInClass(filtered);
+  }, [classRoom, students]);
+
+  // ── Valida classRoom quando a lista de turmas é recarregada pelo App
   useEffect(() => {
     if (!classRoom || classes.length === 0) return;
     const normClass = normalizeClassName(classRoom);
-    const aindaValida = classes.some(c => normalizeClassName(c) === normClass);
-    if (!aindaValida) {
+    const valida = classes.some(c => normalizeClassName(c) === normClass);
+    if (!valida) {
       setClassRoom('');
       setSelectedStudents([]);
+      setStudentsInClass([]);
     }
   }, [classes]);
-
-  const studentsInClass = useMemo(() => {
-    if (!classRoom) return [];
-    const normClass = normalizeClassName(classRoom);
-    const result = students.filter(a => normalizeClassName(a.turma) === normClass);
-    console.log('[DEBUG] classRoom:', JSON.stringify(classRoom), 'normClass:', JSON.stringify(normClass), 'students total:', students.length, 'filtrados:', result.length);
-    if (students.length > 0) {
-      const sample = students.slice(0, 3).map(s => ({ nome: s.nome, turma: s.turma, normTurma: normalizeClassName(s.turma) }));
-      console.log('[DEBUG] Amostra students:', JSON.stringify(sample));
-    }
-    return result;
-  }, [classRoom, students]);
 
   const canActOnIncident = (inc: Incident) => {
     if (user.role === 'gestor') return true;
@@ -485,7 +487,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
-                  <select value={classRoom} onChange={e => { const val = normalizeClassName(e.target.value); console.log('[DEBUG] onChange turma:', JSON.stringify(e.target.value), '->', JSON.stringify(val)); setClassRoom(val); setSelectedStudents([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
+                  <select value={classRoom} onChange={e => { setClassRoom(normalizeClassName(e.target.value)); setSelectedStudents([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">Selecione a turma...</option>
                     {classes.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
