@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
 import { getProfessorNameFromEmail } from '../professorsData';
@@ -293,7 +293,6 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
     e.preventDefault();
     if (!professorName || !classRoom || selectedStudents.length === 0 || !description) {
       pvShowToast('Preencha seu Nome, Turma, selecione ao menos um Aluno e relate o fato.', 'warning'); return;
-      return;
     }
     setIsSaving(true);
     const now = new Date();
@@ -395,7 +394,6 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   const handleDelete = (inc: Incident) => {
     if (!canActOnIncident(inc)) {
       pvShowToast('Você só pode excluir seus próprios registros.', 'error'); return;
-      return;
     }
     pvAskConfirm('Deseja excluir permanentemente este registro?', () => onDelete(inc.id));
   };
