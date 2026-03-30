@@ -122,7 +122,8 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
       return;
     }
     const normClass = normalizeClassName(classRoom);
-    const filtered = students.filter(s => normalizeClassName(s.turma) === normClass);
+    const filtered = students.filter(s => normalizeClassName(s.turma) === normClass)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     setStudentsInClass(filtered);
   }, [classRoom, students]);
 
@@ -405,7 +406,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
       (i.studentName || '').toLowerCase().includes(term) ||
       (i.classRoom || '').toLowerCase().includes(term) ||
       (i.professorName || '').toLowerCase().includes(term)
-    );
+    ).sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'pt-BR'));
   }, [incidents, searchTerm]);
 
   const unreadCount = filteredHistory.filter(isUnreadFeedback).length;
@@ -525,7 +526,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
               <div className="bg-black/40 rounded-2xl p-4 border border-white/10 shadow-inner">
                 <h3 className="text-yellow-400 font-black text-[9px] uppercase tracking-widest mb-3">CONFERÊNCIA DE NOMES E RAs</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {selectedStudents.length > 0 ? selectedStudents.map((name, i) => {
+                  {selectedStudents.length > 0 ? [...selectedStudents].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((name, i) => {
                     const student = students.find(s => s.nome === name && s.turma === classRoom);
                     return (
                       <div key={i} className="flex justify-between items-center bg-white/10 px-3 py-2 rounded-lg border border-white/5">
