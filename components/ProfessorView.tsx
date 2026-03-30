@@ -485,9 +485,9 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
-                  <select value={classRoom} onChange={e => { setClassRoom(normalizeClassName(e.target.value)); setSelectedStudents([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
+                  <select value={classRoom} onChange={e => { setClassRoom(e.target.value); setSelectedStudents([]); setStudentsInClass([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">Selecione a turma...</option>
-                    {classes.map(t => <option key={t} value={t}>{t}</option>)}
+                    {[...new Set(classes.map(t => normalizeClassName(t)))].sort().map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
