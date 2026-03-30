@@ -430,6 +430,26 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
     return [];
   };
 
+
+// ── Ordenação customizada de turmas: 6º-9ºAno → 1ª-3ªSérie ─────────────
+const sortClasses = (classList: string[]): string[] => {
+  const order = (t: string): number => {
+    const norm = normalizeClassName(t);
+    // 6º a 9º Ano
+    const anoMatch = norm.match(/^(\d+)[ºo°]?\s*ANO/i);
+    if (anoMatch) return 100 + parseInt(anoMatch[1]); // 106,107,108,109
+    // 1ª a 3ª Série
+    const serieMatch = norm.match(/^(\d+)[ªa°]?\s*S[EÉ]RIE/i);
+    if (serieMatch) return 200 + parseInt(serieMatch[1]); // 201,202,203
+    return 999;
+  };
+  return [...classList].sort((a, b) => {
+    const diff = order(a) - order(b);
+    if (diff !== 0) return diff;
+    return a.localeCompare(b, 'pt-BR');
+  });
+};
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 font-sans pb-12" style={{ paddingTop: headerHeight }}>
       <header ref={headerRef} className="bg-gradient-to-r from-black/90 via-[#001030]/90 to-[#002b5c]/90 backdrop-blur-md text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-[0_4px_24px_rgba(0,0,0,0.6)] gap-2 sm:gap-0">
@@ -488,7 +508,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
                   <select value={classRoom} onChange={e => { setClassRoom(e.target.value); setSelectedStudents([]); setStudentsInClass([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">Selecione a turma...</option>
-                    {[...new Set(classes.map(t => normalizeClassName(t)))].sort().map(t => <option key={t} value={t}>{t}</option>)}
+                    {sortClasses([...new Set(classes.map(t => normalizeClassName(t)))]).map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
