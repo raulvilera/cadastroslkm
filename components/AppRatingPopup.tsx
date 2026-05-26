@@ -1,33 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 const AppRatingPopup: React.FC = () => {
-  const [showPopup, setShowPopup] = useState(false);
+  const [showPopup, setShowPopup] = useState(true);
 
   useEffect(() => {
-    // Verificar a data do primeiro uso
-    const firstUsageStr = localStorage.getItem('lkm_first_usage_date');
-    const hasRatedStr = localStorage.getItem('lkm_has_rated_app');
-
-    if (hasRatedStr === 'true') {
-      return; // Já avaliou ou recusou permanentemente
-    }
-
-    const now = new Date().getTime();
-
-    if (!firstUsageStr) {
-      // Primeira vez abrindo o app
-      localStorage.setItem('lkm_first_usage_date', now.toString());
-      return;
-    }
-
-    const firstUsageTime = parseInt(firstUsageStr, 10);
-    // TEMPORÁRIO PARA TESTE: 0 milissegundos (aparece na hora)
-    const threeDaysInMillis = 0;
-
-    // Se passou do tempo definido do primeiro uso, exibe o popup
-    if (now - firstUsageTime > threeDaysInMillis) {
-      setShowPopup(true);
-    }
+    // Lógica desativada para forçar o teste
   }, []);
 
   const handleClose = () => {
