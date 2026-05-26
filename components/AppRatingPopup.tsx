@@ -21,10 +21,10 @@ const AppRatingPopup: React.FC = () => {
     }
 
     const firstUsageTime = parseInt(firstUsageStr, 10);
-    // 3 dias em milissegundos
-    const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
+    // TEMPORÁRIO PARA TESTE: 0 milissegundos (aparece na hora)
+    const threeDaysInMillis = 0;
 
-    // Se passou de 3 dias do primeiro uso, exibe o popup
+    // Se passou do tempo definido do primeiro uso, exibe o popup
     if (now - firstUsageTime > threeDaysInMillis) {
       setShowPopup(true);
     }
