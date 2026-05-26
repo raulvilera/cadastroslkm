@@ -3,6 +3,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProfessorView from './components/ProfessorView';
 import ResetPassword from './components/ResetPassword';
+import AppRatingPopup from './components/AppRatingPopup';
 
 import { Incident, User, Student } from './types';
 
@@ -1052,6 +1053,8 @@ const App = () => {
 
       {/* Modal de Busca Permanente — inline para evitar dependência de arquivo externo */}
       {searchModalOpen && <SearchModalInline incidents={incidents} students={students} onClose={() => setSearchModalOpen(false)} />}
+
+      <AppRatingPopup />
 
       {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
