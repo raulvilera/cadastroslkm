@@ -636,7 +636,11 @@ const App = () => {
     managementFeedback: i.management_feedback,
     managementFeedbackAt: i.management_feedback_at,
     managementFeedbackReadAt: i.management_feedback_read_at,
-    lastViewedAt: i.last_viewed_at
+    lastViewedAt: i.last_viewed_at,
+    // Dados estruturados conforme Resolução SEDUC nº 68/2026 (coluna jsonb)
+    measureData: i.measure_data
+      ? (typeof i.measure_data === 'string' ? JSON.parse(i.measure_data) : i.measure_data)
+      : undefined,
   });
 
   const loadCloudIncidents = async () => {
@@ -745,7 +749,8 @@ const App = () => {
           status: item.status,
           source: item.source,
           pdf_url: item.pdfUrl,
-          author_email: item.authorEmail
+          author_email: item.authorEmail,
+          measure_data: item.measureData ? JSON.stringify(item.measureData) : null
         });
 
         if (!error) {
@@ -829,7 +834,8 @@ const App = () => {
             status: item.status,
             source: item.source,
             pdf_url: item.pdfUrl,
-            author_email: item.authorEmail
+            author_email: item.authorEmail,
+            measure_data: item.measureData ? JSON.stringify(item.measureData) : null
           });
 
           if (error) {
