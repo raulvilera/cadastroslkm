@@ -123,6 +123,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
+  // ── Resolução SEDUC nº 68/2026 — Encaminhamento Pedagógico (Estudo Dirigido) ──
+  const [epAtividades, setEpAtividades] = useState<string[]>([]);
+  const [epEspaco, setEpEspaco] = useState('');
+  const [epProfissional, setEpProfissional] = useState('');
+  const [epDuracaoDias, setEpDuracaoDias] = useState('');
+  const [epReiterado, setEpReiterado] = useState(false);
+
+  // ── Resolução SEDUC nº 68/2026 — Afastamento Preventivo Temporário (Art. 11/12) ──
+  const [apHipotese, setApHipotese] = useState<'I' | 'II' | 'III' | ''>('');
+  const [apDataInicio, setApDataInicio] = useState('');
+  const [apPrazoDias, setApPrazoDias] = useState('5');
+  const [apDataRetornoPrevista, setApDataRetornoPrevista] = useState('');
+  const [apComunicadoFamilia, setApComunicadoFamilia] = useState(false);
+  const [apComunicadoURE, setApComunicadoURE] = useState(false);
+  const [apComunicadoRedeProtetiva, setApComunicadoRedeProtetiva] = useState(false);
+  const [apOportunidadeManifestacao, setApOportunidadeManifestacao] = useState(false);
+  const [apPlanoContinuidade, setApPlanoContinuidade] = useState('');
+
+  // ── Resolução SEDUC nº 68/2026 — Transferência Cautelar (Art. 13 a 22) ──────────
+  const [tcEtapaAtual, setTcEtapaAtual] = useState<1 | 2 | 3 | 4 | 5>(2);
+  const [tcAnaliseRisco, setTcAnaliseRisco] = useState('');
+  const [tcMedidasAnteriores, setTcMedidasAnteriores] = useState('');
+  const [tcComunicacoesFamilia, setTcComunicacoesFamilia] = useState('');
+  const [tcJustificativaTecnica, setTcJustificativaTecnica] = useState('');
+  const [tcMatriculaJudicial, setTcMatriculaJudicial] = useState(false);
+  const [tcNumeroProcesso, setTcNumeroProcesso] = useState('');
+  const [tcDataReuniaoConselho, setTcDataReuniaoConselho] = useState('');
+  const [tcMembrosConselho, setTcMembrosConselho] = useState('');
+  const [tcDecisaoConselho, setTcDecisaoConselho] = useState<'' | 'retorno_atividades' | 'manutencao_intensificacao_medidas' | 'articulacao_ure_rede_protetiva' | 'transferencia_deliberada'>('');
+  const [tcFundamentacaoDecisao, setTcFundamentacaoDecisao] = useState('');
+  const [tcUnidadeDestino, setTcUnidadeDestino] = useState('');
+  const [tcDataEfetivacao, setTcDataEfetivacao] = useState('');
+
+  const resetMeasureFields = () => {
+    setEpAtividades([]); setEpEspaco(''); setEpProfissional(''); setEpDuracaoDias(''); setEpReiterado(false);
+    setApHipotese(''); setApDataInicio(''); setApPrazoDias('5'); setApDataRetornoPrevista('');
+    setApComunicadoFamilia(false); setApComunicadoURE(false); setApComunicadoRedeProtetiva(false);
+    setApOportunidadeManifestacao(false); setApPlanoContinuidade('');
+    setTcEtapaAtual(2); setTcAnaliseRisco(''); setTcMedidasAnteriores(''); setTcComunicacoesFamilia('');
+    setTcJustificativaTecnica(''); setTcMatriculaJudicial(false); setTcNumeroProcesso('');
+    setTcDataReuniaoConselho(''); setTcMembrosConselho(''); setTcDecisaoConselho(''); setTcFundamentacaoDecisao('');
+    setTcUnidadeDestino(''); setTcDataEfetivacao('');
+  };
+
   const regDateRef = useRef<HTMLInputElement>(null!);
   const retDateRef = useRef<HTMLInputElement>(null!);
 
@@ -285,6 +329,55 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     const formattedDate = registerDate.split('-').reverse().join('/');
     const uniqueId = crypto.randomUUID();
 
+    // Monta measureData conforme a medida selecionada (Resolução SEDUC nº 68/2026)
+    let measureData: Incident['measureData'] = undefined;
+    if (classification === 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)') {
+      measureData = {
+        encaminhamentoPedagogico: {
+          atividades: epAtividades as any,
+          espacoUtilizado: epEspaco,
+          profissionalResponsavel: epProfissional,
+          duracaoDias: epDuracaoDias ? Number(epDuracaoDias) : undefined,
+          reiterado: epReiterado,
+        }
+      };
+    } else if (classification === 'AFASTAMENTO PREVENTIVO TEMPORÁRIO') {
+      measureData = {
+        afastamentoPreventivo: {
+          hipotese: (apHipotese || 'I') as 'I' | 'II' | 'III',
+          dataInicio: apDataInicio ? apDataInicio.split('-').reverse().join('/') : formattedDate,
+          prazoDiasLetivos: Number(apPrazoDias) || 5,
+          dataPrevistaRetorno: apDataRetornoPrevista ? apDataRetornoPrevista.split('-').reverse().join('/') : undefined,
+          prorrogado: false,
+          comunicadoFamilia: apComunicadoFamilia,
+          comunicadoURE: apComunicadoURE,
+          comunicadoRedeProtetiva: apComunicadoRedeProtetiva,
+          planoContinuidadePedagogica: apPlanoContinuidade,
+          oportunidadeManifestacaoAssegurada: apOportunidadeManifestacao,
+        }
+      };
+    } else if (classification === 'TRANSFERÊNCIA CAUTELAR') {
+      measureData = {
+        transferenciaCautelar: {
+          etapaAtual: tcEtapaAtual,
+          cronologiaFatos: description,
+          analiseRisco: tcAnaliseRisco,
+          medidasAdotadasAnteriormente: tcMedidasAnteriores,
+          comunicacoesFamilia: tcComunicacoesFamilia,
+          justificativaTecnicaTransferencia: tcJustificativaTecnica,
+          matriculaPorDecisaoJudicial: tcMatriculaJudicial,
+          numeroProcessoJudicial: tcNumeroProcesso || undefined,
+          dataReuniaoConselho: tcDataReuniaoConselho ? tcDataReuniaoConselho.split('-').reverse().join('/') : undefined,
+          membrosPresentesConselho: tcMembrosConselho || undefined,
+          decisaoConselho: tcDecisaoConselho || undefined,
+          fundamentacaoDecisaoConselho: tcFundamentacaoDecisao || undefined,
+          unidadeEscolarDestino: tcUnidadeDestino || undefined,
+          dataEfetivacao: tcDataEfetivacao ? tcDataEfetivacao.split('-').reverse().join('/') : undefined,
+          prazoRecursoDias: 5,
+        }
+      };
+    }
+
     const newInc: Incident = {
       id: uniqueId,
       classRoom,
@@ -303,12 +396,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
       category: classification,
       source: 'gestao',
       authorEmail: user.email,
+      measureData,
     };
 
     onSave(newInc);
     setStudentName('');
     setDescription('');
     setReturnDate('');
+    resetMeasureFields();
     setIsSaving(false);
   };
 
@@ -589,24 +684,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     return { topClasses, topStudents, topTypes, topProfs, topManagers };
   }, [incidents]);
 
-  const pedagogicalGuide = {
-    'OCORRÊNCIA DISCIPLINAR': [
-      'Advertência verbal ou escrita',
-      'Convocação dos pais ou responsáveis para mediação',
-      'Encaminhamento para o Conselho de Escola',
-      'Suspensão temporária (casos graves)'
+  const pedagogicalGuide: Record<string, string[]> = {
+    'OCORRÊNCIA DISCIPLINAR / PEDAGÓGICA (Nível I/II)': [
+      'Acolhimento e escuta dos envolvidos (Art. 7º, I)',
+      'Repactuação de compromisso e plano individual de acompanhamento (Art. 7º, III)',
+      'Mediação de conflitos e práticas restaurativas (Art. 7º, VI)',
+      'Articulação com a família ou responsáveis legais (Art. 7º, IV)'
     ],
-    'OCORRÊNCIA PEDAGÓGICA': [
-      'Reforço escolar ou recuperação paralela',
-      'Acompanhamento psicopedagógico',
-      'Adaptação de atividades curriculares',
-      'Criação de plano de estudo individualizado'
+    'ENCAMINHAMENTO PEDAGÓGICO — ESTUDO DIRIGIDO (Art. 7º, IX)': [
+      'Retirada pontual da sala, sob supervisão da equipe gestora (Art. 7º, IX)',
+      'Leitura orientada e produção escrita reflexiva (Art. 8º, I e II)',
+      'Atividades curriculares orientadas e continuidade da aprendizagem (Art. 8º, III)',
+      'Vedada utilização como castigo ou segregação (Art. 7º, § 6º)'
     ],
-    'MEDIDA EDUCATIVA': [
-      'Monitoria voluntária por período determinado',
-      'Escrita de reflexão crítica sobre o ocorrido',
-      'Serviço de apoio à organização da biblioteca/escola',
-      'Apresentação de trabalho sobre cidadania'
+    'AFASTAMENTO PREVENTIVO TEMPORÁRIO (Nível III)': [
+      'Cabível apenas quando a permanência representar risco concreto (Art. 11)',
+      'Prazo inicial máximo de 5 dias letivos, prorrogável (Art. 11, §§ 5º a 7º)',
+      'Comunicação imediata à família, à URE e à rede protetiva (Art. 12)',
+      'Continuidade pedagógica obrigatória durante o período (Art. 11, § 3º)'
+    ],
+    'TRANSFERÊNCIA CAUTELAR (Nível III — excepcional)': [
+      'Exige relatório circunstanciado com 12 itens obrigatórios (Art. 15)',
+      'Apreciação e deliberação pelo Conselho de Escola (Art. 16)',
+      'Contraditório, ampla defesa e notificação formal (Art. 17)',
+      'Efetivação e acolhimento acompanhados pela URE (Art. 19 a 22)'
     ]
   };
 
@@ -748,10 +849,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
                         <option value="">Selecione...</option>
-                        <option value="OCORRÊNCIA DISCIPLINAR">OCORRÊNCIA DISCIPLINAR</option>
-                        <option value="OCORRÊNCIA PEDAGÓGICA">OCORRÊNCIA PEDAGÓGICA</option>
-                        <option value="MEDIDA EDUCATIVA">MEDIDA EDUCATIVA</option>
+                        <option value="OCORRÊNCIA DISCIPLINAR">OCORRÊNCIA DISCIPLINAR (Nível I/II)</option>
+                        <option value="OCORRÊNCIA PEDAGÓGICA">OCORRÊNCIA PEDAGÓGICA (Nível I/II)</option>
+                        <option value="ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)">ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO) — Art. 7º, IX</option>
+                        <option value="AFASTAMENTO PREVENTIVO TEMPORÁRIO">AFASTAMENTO PREVENTIVO TEMPORÁRIO — Art. 11/12 (Nível III)</option>
+                        <option value="TRANSFERÊNCIA CAUTELAR">TRANSFERÊNCIA CAUTELAR — Art. 13 a 22 (Nível III)</option>
                       </select>
+                      <p className="text-[8px] text-orange-300 font-bold uppercase ml-1">Conforme Resolução SEDUC nº 68/2026</p>
                     </div>
                   </div>
 
@@ -766,23 +870,155 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                         className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       />
                     </div>
-
-                    {classification === 'MEDIDA EDUCATIVA' && (
-                      <div className="flex flex-col gap-2 cursor-pointer animate-fade-in" onClick={() => triggerPicker(retDateRef)}>
-                        <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1 cursor-pointer">DATA DE RETORNO (PÓS-MEDIDA)</label>
-                        <input
-                          ref={retDateRef}
-                          type="date"
-                          value={returnDate}
-                          onChange={e => setReturnDate(e.target.value)}
-                          className="h-12 sm:h-14 border border-orange-300 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-orange-500 outline-none shadow-sm cursor-pointer w-full"
-                        />
-                      </div>
-                    )}
                   </div>
 
+                  {/* ════════ Resolução SEDUC nº 68/2026 — Campos por medida ════════ */}
+
+                  {classification === 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)' && (
+                    <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
+                      <h3 className="text-[10px] font-black text-teal-300 uppercase tracking-widest">Estudo Dirigido — Art. 7º, IX e Art. 8º</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { key: 'leitura_orientada', label: 'Leitura orientada e reflexão (Art. 8º, I)' },
+                          { key: 'producao_escrita_reflexiva', label: 'Produção escrita reflexiva (Art. 8º, II)' },
+                          { key: 'atividades_curriculares', label: 'Atividades curriculares orientadas (Art. 8º, III)' },
+                          { key: 'acompanhamento_profissional', label: 'Acompanhamento por profissional (Art. 8º, IV)' },
+                        ].map(opt => (
+                          <label key={opt.key} className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={epAtividades.includes(opt.key)}
+                              onChange={() => setEpAtividades(prev => prev.includes(opt.key) ? prev.filter(k => k !== opt.key) : [...prev, opt.key])}
+                              className="w-4 h-4 accent-teal-500"
+                            />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <input value={epEspaco} onChange={e => setEpEspaco(e.target.value)} placeholder="Espaço utilizado na unidade escolar" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input value={epProfissional} onChange={e => setEpProfissional(e.target.value)} placeholder="Profissional responsável pela supervisão" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input type="number" min={1} value={epDuracaoDias} onChange={e => setEpDuracaoDias(e.target.value)} placeholder="Duração (dias)" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                      </div>
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-orange-300 uppercase cursor-pointer">
+                        <input type="checkbox" checked={epReiterado} onChange={e => setEpReiterado(e.target.checked)} className="w-4 h-4 accent-orange-500" />
+                        Adoção reiterada (Art. 7º, § 5º) — exige comunicação à família e plano individual de acompanhamento
+                      </label>
+                    </div>
+                  )}
+
+                  {classification === 'AFASTAMENTO PREVENTIVO TEMPORÁRIO' && (
+                    <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
+                      <h3 className="text-[10px] font-black text-orange-300 uppercase tracking-widest">Afastamento Preventivo Temporário — Art. 11 e 12</h3>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[9px] font-black text-white uppercase ml-1">Hipótese legal (Art. 11, § 1º)</label>
+                        <select value={apHipotese} onChange={e => setApHipotese(e.target.value as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
+                          <option value="">Selecione a hipótese...</option>
+                          <option value="I">I — Risco a terceiros (outros estudantes/profissionais)</option>
+                          <option value="II">II — Risco ao próprio estudante (retaliações, ameaças)</option>
+                          <option value="III">III — Recorrência grave / esgotamento de estratégias anteriores</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Data de início</label>
+                          <input type="date" value={apDataInicio} onChange={e => setApDataInicio(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Prazo (dias letivos)</label>
+                          <input type="number" min={1} max={5} value={apPrazoDias} onChange={e => setApPrazoDias(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Retorno previsto</label>
+                          <input type="date" value={apDataRetornoPrevista} onChange={e => setApDataRetornoPrevista(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                          <input type="checkbox" checked={apComunicadoFamilia} onChange={e => setApComunicadoFamilia(e.target.checked)} className="w-4 h-4 accent-teal-500" />
+                          Comunicado à família/responsáveis
+                        </label>
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                          <input type="checkbox" checked={apComunicadoURE} onChange={e => setApComunicadoURE(e.target.checked)} className="w-4 h-4 accent-teal-500" />
+                          Comunicado à URE
+                        </label>
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                          <input type="checkbox" checked={apComunicadoRedeProtetiva} onChange={e => setApComunicadoRedeProtetiva(e.target.checked)} className="w-4 h-4 accent-teal-500" />
+                          Comunicado à rede protetiva
+                        </label>
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                          <input type="checkbox" checked={apOportunidadeManifestacao} onChange={e => setApOportunidadeManifestacao(e.target.checked)} className="w-4 h-4 accent-teal-500" />
+                          Oportunidade de manifestação assegurada (Art. 12, § 3º)
+                        </label>
+                      </div>
+                      <textarea value={apPlanoContinuidade} onChange={e => setApPlanoContinuidade(e.target.value)} rows={2} placeholder="Plano de continuidade das atividades pedagógicas durante o afastamento (Art. 11, § 3º)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                    </div>
+                  )}
+
+                  {classification === 'TRANSFERÊNCIA CAUTELAR' && (
+                    <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
+                      <h3 className="text-[10px] font-black text-red-300 uppercase tracking-widest">Transferência Cautelar — Art. 13 a 22 (Relatório Circunstanciado + Ata)</h3>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[9px] font-black text-white uppercase ml-1">Etapa atual do procedimento (Art. 14)</label>
+                        <select value={tcEtapaAtual} onChange={e => setTcEtapaAtual(Number(e.target.value) as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
+                          <option value={1}>Etapa 1 — Afastamento preventivo temporário</option>
+                          <option value={2}>Etapa 2 — Relatório circunstanciado</option>
+                          <option value={3}>Etapa 3 — Apreciação preliminar do Conselho de Escola</option>
+                          <option value={4}>Etapa 4 — Contraditório, ampla defesa e deliberação</option>
+                          <option value={5}>Etapa 5 — Efetivação e acompanhamento pela URE</option>
+                        </select>
+                      </div>
+                      <textarea value={tcAnaliseRisco} onChange={e => setTcAnaliseRisco(e.target.value)} rows={2} placeholder="Análise da situação atual de risco (Art. 15, IV)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcMedidasAnteriores} onChange={e => setTcMedidasAnteriores(e.target.value)} rows={2} placeholder="Medidas pedagógicas/restaurativas/protetivas adotadas anteriormente (Art. 15, VI)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcComunicacoesFamilia} onChange={e => setTcComunicacoesFamilia(e.target.value)} rows={2} placeholder="Comunicações já realizadas à família ou responsáveis legais (Art. 15, VII)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcJustificativaTecnica} onChange={e => setTcJustificativaTecnica(e.target.value)} rows={3} placeholder="Justificativa técnica para a transferência cautelar (Art. 15, X)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
+                        <input type="checkbox" checked={tcMatriculaJudicial} onChange={e => setTcMatriculaJudicial(e.target.checked)} className="w-4 h-4 accent-red-500" />
+                        Matrícula decorrente de decisão judicial (Capítulo VII)
+                      </label>
+                      {tcMatriculaJudicial && (
+                        <input value={tcNumeroProcesso} onChange={e => setTcNumeroProcesso(e.target.value)} placeholder="Número do processo judicial" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Data da reunião do Conselho de Escola</label>
+                          <input type="date" value={tcDataReuniaoConselho} onChange={e => setTcDataReuniaoConselho(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Membros presentes</label>
+                          <input value={tcMembrosConselho} onChange={e => setTcMembrosConselho(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[9px] font-black text-white uppercase ml-1">Decisão do Conselho de Escola (Art. 16, § 3º)</label>
+                        <select value={tcDecisaoConselho} onChange={e => setTcDecisaoConselho(e.target.value as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
+                          <option value="">Selecione...</option>
+                          <option value="retorno_atividades">I — Retorno às atividades presenciais, com plano de acompanhamento</option>
+                          <option value="manutencao_intensificacao_medidas">II — Manutenção/intensificação das medidas pedagógicas</option>
+                          <option value="articulacao_ure_rede_protetiva">III — Articulação com a URE e rede protetiva</option>
+                          <option value="transferencia_deliberada">IV — Transferência cautelar deliberada</option>
+                        </select>
+                      </div>
+                      <textarea value={tcFundamentacaoDecisao} onChange={e => setTcFundamentacaoDecisao(e.target.value)} rows={2} placeholder="Fundamentação da decisão do Conselho de Escola" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+
+                      {tcDecisaoConselho === 'transferencia_deliberada' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+                          <input value={tcUnidadeDestino} onChange={e => setTcUnidadeDestino(e.target.value)} placeholder="Unidade escolar de destino" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] font-black text-white uppercase ml-1">Data de efetivação</label>
+                            <input type="date" value={tcDataEfetivacao} onChange={e => setTcDataEfetivacao(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">DESCRIÇÃO</label>
+                    <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">
+                      {classification === 'TRANSFERÊNCIA CAUTELAR' ? 'CRONOLOGIA DOS FATOS (RELATÓRIO CIRCUNSTANCIADO)' : 'DESCRIÇÃO'}
+                    </label>
                     <textarea
                       rows={5}
                       value={description}
