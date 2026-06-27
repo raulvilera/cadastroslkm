@@ -274,6 +274,40 @@ const identificationBlock = (ctx: DocContext, incident: Incident) => {
   ctx.y += 2;
 };
 
+// Art. 9º, § 1º — o registro deve conter "síntese da análise inicial e
+// atualização das intervenções e encaminhamentos adotados". Renderiza os
+// encaminhamentos do professor e da gestão já registrados no incidente.
+const PROFESSOR_REFERRAL_LABELS: Record<string, string> = {
+  orientacao_individual: "Orientação individual e retomada dos combinados de convivência (Art. 7º, II)",
+  encaminhamento_gestao: "Encaminhamento à gestão escolar",
+  busca_ativa: "Busca ativa do(a) estudante",
+  incidente: "Registro de incidente",
+  acidente: "Registro de acidente"
+};
+
+const writeReferralsSection = (ctx: DocContext, incident: Incident) => {
+  const hasProfessor = incident.professorReferrals && incident.professorReferrals.length > 0;
+  const hasManagement = incident.managementReferrals && incident.managementReferrals.length > 0;
+  if (!hasProfessor && !hasManagement) return;
+
+  writeSectionTitle(ctx, "INTERVENÇÕES E ENCAMINHAMENTOS ADOTADOS (ART. 9º, § 1º)");
+
+  if (hasProfessor) {
+    incident.professorReferrals!.forEach(r => {
+      const label = PROFESSOR_REFERRAL_LABELS[r.type] || r.type;
+      const text = r.description ? `${label} — ${r.description}` : label;
+      writeChecklistItem(ctx, true, text);
+    });
+  }
+  if (hasManagement) {
+    incident.managementReferrals!.forEach(r => {
+      const text = r.description ? `${r.type} — ${r.description}` : r.type;
+      writeChecklistItem(ctx, true, text);
+    });
+  }
+  ctx.y += 2;
+};
+
 // ════════════════════════════════════════════════════════════════════════
 // 1) OCORRÊNCIA DISCIPLINAR / OCORRÊNCIA PEDAGÓGICA
 //    Registro escolar nos termos do Art. 9º — caráter pedagógico,
@@ -292,6 +326,8 @@ const buildOcorrenciaGenerica = (ctx: DocContext, incident: Incident, title: str
   );
 
   writeBoxedText(ctx, "RELATO OBJETIVO DOS FATOS", incident.description, 45);
+
+  writeReferralsSection(ctx, incident);
 
   if (incident.irregularities && incident.irregularities !== 'NENHUMA') {
     writeLabelValue(ctx, "Observações adicionais", incident.irregularities);
@@ -337,6 +373,8 @@ const buildEncaminhamentoPedagogico = (ctx: DocContext, incident: Incident) => {
     .forEach(key => writeChecklistItem(ctx, !!d?.atividades?.includes(key), ATIVIDADE_LABELS[key]));
 
   writeBoxedText(ctx, "DESCRIÇÃO DA SITUAÇÃO QUE MOTIVOU O ENCAMINHAMENTO", incident.description, 40);
+
+  writeReferralsSection(ctx, incident);
 
   if (d?.reiterado) {
     writeParagraph(
@@ -404,16 +442,36 @@ const buildAfastamentoPreventivo = (ctx: DocContext, incident: Incident) => {
 
   writeBoxedText(ctx, "MOTIVAÇÃO E DESCRIÇÃO DOS FATOS", incident.description, 40);
 
-  writeSectionTitle(ctx, "COMUNICAÇÕES REALIZADAS (ART. 12)");
-  writeChecklistItem(ctx, !!d?.comunicadoFamilia, "À família ou aos responsáveis legais do(a) estudante");
-  writeChecklistItem(ctx, !!d?.comunicadoURE, "À Unidade Regional de Ensino (URE)");
-  writeChecklistItem(ctx, !!d?.comunicadoRedeProtetiva, "Aos órgãos da rede protetiva ou demais órgãos competentes (quando exigível)");
-  writeChecklistItem(ctx, !!d?.oportunidadeManifestacaoAssegurada, "Oportunidade de manifestação assegurada ao(à) estudante e à família (Art. 12, § 3º)");
+  writeSectionTitle(ctx, "COMUNICAÇÃO FORMAL À FAMÍLIA (ART. 12, § 1º)");
+  writeNumberedItem(ctx, "I", "Descrição objetiva da situação que motivou a medida: vide \"MOTIVAÇÃO E DESCRIÇÃO DOS FATOS\" acima e hipótese legal indicada neste documento.");
+  writeNumberedItem(ctx, "II", "O AFASTAMENTO PREVENTIVO TEMPORÁRIO possui caráter cautelar, excepcional e temporário, não constituindo punição, sanção definitiva ou decisão automática de transferência cautelar (Art. 11, § 2º).");
+  writeNumberedItem(
+    ctx,
+    "III",
+    d?.planoContinuidadePedagogica
+      ? `Continuidade das atividades pedagógicas: ${d.planoContinuidadePedagogica}`
+      : "Será assegurada a continuidade das atividades pedagógicas por meio de plano de estudos, atividades orientadas ou outra estratégia compatível com a etapa de ensino do(a) estudante, conforme Art. 11, § 3º."
+  );
+  writeNumberedItem(
+    ctx,
+    "IV",
+    "Próximos procedimentos: a Direção elaborará os registros e, se necessário, o relatório circunstanciado; ao término do prazo informado, " +
+    "havendo deliberação fundamentada, a medida poderá ser prorrogada por igual período ou seguida de transferência cautelar; não havendo " +
+    "tal deliberação, o(a) estudante retornará às atividades presenciais, com plano de acompanhamento quando necessário (Art. 11, §§ 6º a 8º)."
+  );
+  writeNumberedItem(
+    ctx,
+    "V",
+    "Canais para manifestação: a família ou os responsáveis legais poderão se manifestar presencialmente na Direção da unidade escolar, " +
+    "dentro do horário de funcionamento, por escrito protocolado na secretaria, ou pelo telefone institucional informado no cabeçalho deste " +
+    "documento, em qualquer momento durante o prazo da medida (Art. 12, § 3º)."
+  );
 
-  if (d?.planoContinuidadePedagogica) {
-    writeSectionTitle(ctx, "CONTINUIDADE DAS ATIVIDADES PEDAGÓGICAS (ART. 11, § 3º)");
-    writeParagraph(ctx, d.planoContinuidadePedagogica);
-  }
+  writeSectionTitle(ctx, "OUTRAS COMUNICAÇÕES INSTITUCIONAIS (ART. 12, CAPUT)");
+  writeChecklistItem(ctx, !!d?.comunicadoFamilia, "Comunicação formal à família ou aos responsáveis legais realizada");
+  writeChecklistItem(ctx, !!d?.comunicadoURE, "Comunicação à Unidade Regional de Ensino (URE) realizada");
+  writeChecklistItem(ctx, !!d?.comunicadoRedeProtetiva, "Comunicação aos órgãos da rede protetiva ou demais órgãos competentes (quando exigível)");
+  writeChecklistItem(ctx, !!d?.oportunidadeManifestacaoAssegurada, "Oportunidade de manifestação assegurada ao(à) estudante e à família, com garantias análogas ao contraditório e à ampla defesa (Art. 12, § 3º)");
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Ciência da Família / Responsável", "Assinatura da Direção / Gestão"]);
@@ -531,15 +589,52 @@ const buildAtaConselho = (ctx: DocContext, incident: Incident) => {
 
   writeParagraph(
     ctx,
-    `Da decisão caberá recurso no prazo de ${d?.prazoRecursoDias || 5} dias, no âmbito da URE de circunscrição da unidade ` +
-    "escolar de origem (Art. 18, § 2º). Todos os documentos e informações que subsidiaram a decisão, inclusive este " +
-    "relatório circunstanciado e a presente ata, serão arquivados na unidade escolar em caráter reservado, à disposição " +
-    "das autoridades competentes (Art. 18, § 1º).",
+    "Esta decisão será comunicada formalmente ao(à) estudante e à família ou aos responsáveis legais em documento próprio " +
+    "(Art. 18). Todos os documentos e informações que subsidiaram a decisão, inclusive este relatório circunstanciado e a " +
+    "presente ata, serão arquivados na unidade escolar em caráter reservado, à disposição das autoridades competentes " +
+    "(Art. 18, § 1º).",
     { size: 8.3, color: [90, 90, 90] }
   );
 
   writeParagraph(ctx, `GUARULHOS, ${d?.dataReuniaoConselho || incident.date}.`);
   writeSignatureLines(ctx, ["Presidência do Conselho de Escola", "Secretaria / Registro da Ata"]);
+  writeLegalFooterNote(ctx);
+};
+
+// Art. 18 — comunicação formal da decisão final, com fundamentos,
+// encaminhamentos adotados e toda a cadeia de recurso.
+const buildComunicacaoDecisaoFinal = (ctx: DocContext, incident: Incident) => {
+  const d = incident.measureData?.transferenciaCautelar;
+  writeDocTitle(ctx, "COMUNICAÇÃO FORMAL DA DECISÃO FINAL", "Art. 18 da " + RESOLUCAO_REF);
+  identificationBlock(ctx, incident);
+
+  writeParagraph(
+    ctx,
+    "Comunicamos formalmente ao(à) estudante e à família ou aos responsáveis legais a decisão final do Conselho de Escola " +
+    "ou colegiado equivalente, proferida em " + (d?.dataReuniaoConselho || "data não informada") + ", nos termos do Art. 18 da " + RESOLUCAO_REF + "."
+  );
+
+  writeSectionTitle(ctx, "FUNDAMENTOS DA DECISÃO");
+  writeParagraph(ctx, d?.fundamentacaoDecisaoConselho || "NÃO INFORMADO");
+
+  writeSectionTitle(ctx, "ENCAMINHAMENTO ADOTADO");
+  writeParagraph(ctx, d?.decisaoConselho ? DECISAO_CONSELHO_LABELS[d.decisaoConselho] : "NÃO INFORMADO", { bold: true });
+
+  writeSectionTitle(ctx, "POSSIBILIDADE DE RECURSO");
+  writeNumberedItem(ctx, "1", `Recurso à URE de circunscrição da unidade escolar de origem, no prazo de ${d?.prazoRecursoDias || 5} dias a contar desta comunicação (Art. 18, § 2º).`);
+  writeNumberedItem(ctx, "2", "A URE analisará o procedimento no prazo de 5 (cinco) dias, considerando a excepcionalidade da situação, a regularidade das providências adotadas e o atendimento ao Regimento Escolar (Art. 18, § 3º).");
+  writeNumberedItem(ctx, "3", "Da decisão da URE caberá recurso ao Conselho Estadual de Educação, no prazo de 10 (dez) dias, sem efeito suspensivo (Art. 18, § 4º).");
+
+  writeParagraph(
+    ctx,
+    "Todos os documentos e informações que subsidiaram esta decisão, inclusive o relatório circunstanciado e a ata " +
+    "deliberativa do Conselho de Escola, encontram-se arquivados na unidade escolar, em caráter reservado, à disposição " +
+    "das autoridades competentes (Art. 18, § 1º).",
+    { size: 8.3, color: [90, 90, 90] }
+  );
+
+  writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
+  writeSignatureLines(ctx, ["Ciência do Estudante / Família", "Assinatura da Direção / Gestão"]);
   writeLegalFooterNote(ctx);
 };
 
@@ -584,9 +679,9 @@ const buildTransferenciaCautelarDossier = (ctx: DocContext, incident: Incident) 
     ctx,
     "Este dossiê reúne os documentos exigidos pela " + RESOLUCAO_REF + " para a instrução do procedimento de transferência " +
     "cautelar: (1) Relatório Circunstanciado, (2) Notificação Formal ao Estudante e Família, (3) Ata de Deliberação do " +
-    "Conselho de Escola e (4) Declaração de Transferência, quando deliberada. A transferência cautelar somente poderá ser " +
-    "adotada em caráter excepcional e protetivo, vedada sua utilização como punição automática ou mecanismo de exclusão " +
-    "(Art. 13, §§ 1º e 2º)."
+    "Conselho de Escola, (4) Comunicação Formal da Decisão Final e (5) Declaração de Transferência, quando deliberada. A " +
+    "transferência cautelar somente poderá ser adotada em caráter excepcional e protetivo, vedada sua utilização como " +
+    "punição automática ou mecanismo de exclusão (Art. 13, §§ 1º e 2º)."
   );
   writeLegalFooterNote(ctx);
 
@@ -598,6 +693,9 @@ const buildTransferenciaCautelarDossier = (ctx: DocContext, incident: Incident) 
 
   newPage(ctx);
   buildAtaConselho(ctx, incident);
+
+  newPage(ctx);
+  buildComunicacaoDecisaoFinal(ctx, incident);
 
   if (d?.decisaoConselho === 'transferencia_deliberada') {
     newPage(ctx);
@@ -628,6 +726,8 @@ const buildMedidaEducativaLegado = (ctx: DocContext, incident: Incident) => {
   }
 
   writeBoxedText(ctx, "RELATO DETALHADO DOS FATOS", incident.description, 50);
+
+  writeReferralsSection(ctx, incident);
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Assinatura do Aluno", "Assinatura do Responsável"]);
