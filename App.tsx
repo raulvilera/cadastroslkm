@@ -1029,12 +1029,11 @@ const App = () => {
   };
 
   // Props para a visão do professor — ocorrências filtradas pelo email
-  // allIncidents: TODAS as ocorrências da escola (gestão + professores), usado quando
-  // o filtro de status "Todos" estiver selecionado no Painel de Registros do professor.
+  // (apenas os registros do próprio professor logado; gestão e outros professores
+  // continuam ocultos, mesmo com o filtro "Todos os Status" selecionado)
   const professorProps = {
     ...commonProps,
     incidents: incidentsForProfessor,
-    allIncidents: incidents,
   };
 
   const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
