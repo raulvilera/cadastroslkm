@@ -45,42 +45,12 @@
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
   <script>
+    // Registro do Service Worker foi centralizado em index.tsx para evitar
+    // dois listeners de 'updatefound' concorrentes disparando reload() em
+    // momentos diferentes (causa de bundles/estado misto entre versões).
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-          .then(reg => {
-            console.log('[PWA] Service Worker registrado com sucesso!', reg);
-            console.log('[PWA] Escopo:', reg.scope);
-
-            // Verificar se já está ativo
-            if (reg.active) {
-              console.log('[PWA] Service Worker já está ativo');
-            }
-
-            // Forçar atualização e recarregar página quando novo SW assumir
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'activated') {
-                    console.log('[PWA] Novo Service Worker ativo — recarregando...');
-                    window.location.reload();
-                  }
-                });
-              }
-            });
-
-            reg.update();
-          })
-          .catch(err => {
-            console.error('[PWA] Falha ao registrar Service Worker:', err);
-          });
-      });
-
-      // Capturar evento de instalação (se aparecer)
       window.addEventListener('beforeinstallprompt', (e) => {
         console.log('[PWA] Banner de instalação disponível!');
-        // Não prevenir o comportamento padrão - deixar o Chrome mostrar o banner
       });
     } else {
       console.warn('[PWA] Service Workers não são suportados neste navegador');
