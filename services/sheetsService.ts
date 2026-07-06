@@ -130,3 +130,59 @@ export const saveToGoogleSheets = async (incident: Incident) => {
     return false;
   }
 };
+
+/**
+ * Avaliação do App por critérios (1 a 5 estrelas cada).
+ * Salva na aba AVALIACOESAPP da mesma planilha.
+ */
+export interface AppRatingPayload {
+  userEmail: string;
+  facilidadeUso: number;
+  velocidade: number;
+  design: number;
+  utilidade: number;
+  comentario?: string;
+}
+
+export const saveAppRatingToSheets = async (rating: AppRatingPayload) => {
+  try {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const media = (
+      (rating.facilidadeUso + rating.velocidade + rating.design + rating.utilidade) / 4
+    ).toFixed(1);
+
+    const values = [
+      dateStr,                                  // 1. Data
+      timeStr,                                  // 2. Hora
+      rating.userEmail || '---',                // 3. E-mail do professor
+      rating.facilidadeUso,                     // 4. Facilidade de Uso
+      rating.velocidade,                         // 5. Velocidade
+      rating.design,                             // 6. Design
+      rating.utilidade,                          // 7. Utilidade no dia a dia
+      media,                                     // 8. Média Geral
+      (rating.comentario || '').toUpperCase(),  // 9. Comentário
+    ];
+
+    const payload = {
+      sheetName: 'AVALIACOESAPP',
+      values: values,
+    };
+
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao enviar avaliação do app para o Google Sheets:', error);
+    return false;
+  }
+};
