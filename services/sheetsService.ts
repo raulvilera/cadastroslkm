@@ -2,9 +2,16 @@ import { Incident, Student } from '../types';
 import { normalizeClassName } from '../utils/formatters';
 
 /**
- * URL do seu Google Apps Script implantado como Web App.
+ * URL do script principal — Ocorrências e leitura de alunos.
  */
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIJ6aotlvx3dHjixi5OgwLOWQGhQ6TThEW1eBqsnUMEBNK1lrFoA1EVPUAYiSqJAGR/exec';
+
+/**
+ * URL do script DEDICADO para avaliações da plataforma.
+ * Após implantar o arquivo google-apps-script-avaliacoes.js no Google Apps Script,
+ * substitua o valor abaixo pela URL gerada (termina em /exec).
+ */
+const RATING_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_SCRIPT_DE_AVALIACOES';
 
 /**
  * Carrega a lista de alunos da planilha Google Sheets.
@@ -132,8 +139,12 @@ export const saveToGoogleSheets = async (incident: Incident) => {
 };
 
 /**
- * Envia uma avaliação de usuário para a planilha do Google Sheets.
- * Aba: AVALIAÇÃO DOS USUÁRIOS
+ * Envia uma avaliação de usuário para o script DEDICADO de avaliações.
+ * Script: google-apps-script-avaliacoes.js
+ * Aba:    AVALIAÇÃO DOS USUÁRIOS
+ *
+ * O payload é enviado para RATING_SCRIPT_URL (script separado).
+ * A nota, média e formatação das estrelas são feitas pelo próprio script.
  */
 export const saveRatingToGoogleSheets = async (ratingData: {
   userEmail: string;
@@ -143,40 +154,59 @@ export const saveRatingToGoogleSheets = async (ratingData: {
   desempenhoVelocidade: number;
   satisfacaoGeral: number;
   comentarios: string;
-}) => {
+}): Promise<boolean> => {
   try {
-    const now = new Date();
-    const formattedDateTime = now.toLocaleString('pt-BR');
+    // Verifica se a URL do script de avaliações foi configurada
+    if (!RATING_SCRIPT_URL || RATING_SCRIPT_URL === 'COLE_AQUI_A_URL_DO_SCRIPT_DE_AVALIACOES') {
+      console.warn('⚠️ URL do script de avaliações não configurada. Configure RATING_SCRIPT_URL em sheetsService.ts.');
+      // Fallback: envia pelo script principal enquanto o dedicado não está configurado
+      const fallbackPayload = {
+        sheetName: 'AVALIAÇÃO DOS USUÁRIOS',
+        values: [
+          new Date().toLocaleString('pt-BR'),
+          ratingData.userEmail.toLowerCase().trim(),
+          ratingData.userRole === 'gestor' ? 'GESTÃO' : 'PROFESSOR(A)',
+          ratingData.facilidadeUso,
+          ratingData.utilidadePedagogica,
+          ratingData.desempenhoVelocidade,
+          ratingData.satisfacaoGeral,
+          ((ratingData.facilidadeUso + ratingData.utilidadePedagogica + ratingData.desempenhoVelocidade + ratingData.satisfacaoGeral) / 4).toFixed(1) + '/5',
+          ratingData.comentarios.trim().toUpperCase() || 'SEM COMENTÁRIOS'
+        ]
+      };
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(fallbackPayload),
+      });
+      return true;
+    }
 
-    const values = [
-      formattedDateTime,
-      ratingData.userEmail.toLowerCase().trim(),
-      ratingData.userRole.toUpperCase(),
-      ratingData.facilidadeUso,
-      ratingData.utilidadePedagogica,
-      ratingData.desempenhoVelocidade,
-      ratingData.satisfacaoGeral,
-      ratingData.comentarios.trim().toUpperCase() || 'SEM COMENTÁRIOS'
-    ];
-
+    // Envia para o script dedicado de avaliações
     const payload = {
-      sheetName: 'AVALIAÇÃO DOS USUÁRIOS',
-      values: values
+      userEmail:            ratingData.userEmail,
+      userRole:             ratingData.userRole,
+      facilidadeUso:        ratingData.facilidadeUso,
+      utilidadePedagogica:  ratingData.utilidadePedagogica,
+      desempenhoVelocidade: ratingData.desempenhoVelocidade,
+      satisfacaoGeral:      ratingData.satisfacaoGeral,
+      comentarios:          ratingData.comentarios,
     };
 
-    await fetch(GOOGLE_SCRIPT_URL, {
+    await fetch(RATING_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       cache: 'no-cache',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
 
+    console.log('✅ Avaliação enviada para o script dedicado.');
     return true;
   } catch (error) {
-    console.error('Erro ao salvar avaliação no Google Sheets:', error);
+    console.error('❌ Erro ao salvar avaliação:', error);
     return false;
   }
 };

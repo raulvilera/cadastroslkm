@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guia — Script de Avaliações LKM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0b1b3d;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .container { max-width: 820px; margin: 0 auto; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #93c5fd;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 36px;
+    }
+    .card {
+      background: #0f2550;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #14b8a6, #3b82f6);
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.9rem;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .step-title {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+    p { font-size: 0.82rem; color: #94a3b8; line-height: 1.7; margin-bottom: 10px; }
+    code {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      color: #7dd3fc;
+    }
+    pre {
+      background: #05112a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: #7dd3fc;
+      overflow-x: auto;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+    .highlight { color: #34d399; font-weight: bold; }
+    .warn { color: #fbbf24; font-weight: bold; }
+    .info-box {
+      background: rgba(59,130,246,0.1);
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.8rem;
+      color: #93c5fd;
+      line-height: 1.6;
+    }
+    .ok-box {
+      background: rgba(20,184,166,0.1);
+      border-left: 3px solid #14b8a6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.8rem;
+      color: #5eead4;
+      line-height: 1.6;
+    }
+    .warn-box {
+      background: rgba(251,191,36,0.08);
+      border-left: 3px solid #fbbf24;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.8rem;
+      color: #fde68a;
+      line-height: 1.6;
+    }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .table-crit {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.78rem;
+    }
+    .table-crit th {
+      background: rgba(255,255,255,0.06);
+      color: #93c5fd;
+      text-align: left;
+      padding: 8px 10px;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+    }
+    .table-crit td {
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 7px 10px;
+      color: #cbd5e1;
+    }
+    .tag {
+      display: inline-block;
+      background: rgba(99,102,241,0.15);
+      color: #a5b4fc;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .footer {
+      text-align: center;
+      color: #334155;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>⭐ Script de Avaliações da Plataforma</h1>
+  <p class="subtitle">Portal Lydia Kitz Moreira — Guia de Implantação</p>
+
+  <!-- O que é -->
+  <div class="card">
+    <div class="step-title">📋 O que foi criado</div>
+    <p>
+      Um <strong>Google Apps Script dedicado</strong> exclusivamente para receber e registrar as
+      avaliações dos usuários (gestores e professores) na aba
+      <code>AVALIAÇÃO DOS USUÁRIOS</code> da planilha.
+    </p>
+    <div class="ok-box">
+      ✅ <strong>Arquivo criado:</strong> <code>google-apps-script-avaliacoes.js</code> — na pasta do projeto
+    </div>
+
+    <table class="table-crit">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Critério</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Facilidade de Uso (Usabilidade)</td><td><span class="tag">1–5 ⭐</span></td></tr>
+        <tr><td>2</td><td>Utilidade Pedagógica</td><td><span class="tag">1–5 ⭐</span></td></tr>
+        <tr><td>3</td><td>Desempenho e Velocidade</td><td><span class="tag">1–5 ⭐</span></td></tr>
+        <tr><td>4</td><td>Satisfação Geral</td><td><span class="tag">1–5 ⭐</span></td></tr>
+        <tr><td>5</td><td>Média Geral (calculada automaticamente)</td><td><span class="tag">0.0–5.0</span></td></tr>
+        <tr><td>6</td><td>Comentários / Sugestões</td><td><span class="tag">Texto livre</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Passo 1 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">1</span> Abrir o Google Apps Script</div>
+    <p>Acesse: <a href="https://script.google.com" target="_blank">https://script.google.com</a></p>
+    <p>Clique em <code>+ Novo projeto</code> para criar um projeto em branco.</p>
+    <div class="info-box">
+      💡 Crie este projeto <strong>separado</strong> do script principal das ocorrências.
+      Isso deixa cada funcionalidade independente e mais fácil de manter.
+    </div>
+  </div>
+
+  <!-- Passo 2 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">2</span> Colar o código</div>
+    <p>
+      No editor que abrir, <strong>apague todo o conteúdo existente</strong> e cole
+      o conteúdo completo do arquivo:
+    </p>
+    <div class="ok-box">
+      📄 <strong>Arquivo a copiar:</strong> <code>google-apps-script-avaliacoes.js</code>
+      (está na pasta do projeto)
+    </div>
+    <p>Após colar, renomeie o projeto para algo como: <code>LKM — Avaliações da Plataforma</code></p>
+  </div>
+
+  <!-- Passo 3 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">3</span> Implantar como Web App</div>
+    <p>No menu superior, clique em: <code>Implantar</code> → <code>Nova implantação</code></p>
+    <p>Configure assim:</p>
+    <pre>Tipo de implantação : App da Web
+Executar como       : Eu mesmo (sua conta Google)
+Quem tem acesso     : Qualquer pessoa</pre>
+    <p>Clique em <span class="highlight">Implantar</span> e autorize as permissões solicitadas.</p>
+    <div class="warn-box">
+      ⚠️ Na primeira vez, o Google pedirá autorização. Clique em <strong>"Avançado"</strong>
+      → <strong>"Acessar LKM — Avaliações"</strong> → <strong>"Permitir"</strong>.
+    </div>
+  </div>
+
+  <!-- Passo 4 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">4</span> Copiar a URL gerada</div>
+    <p>Após a implantação, uma URL será exibida no formato:</p>
+    <pre>https://script.google.com/macros/s/<span class="highlight">XXXXXXXXXXXXXXX</span>/exec</pre>
+    <p><strong>Copie essa URL.</strong></p>
+  </div>
+
+  <!-- Passo 5 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">5</span> Colar no código da plataforma</div>
+    <p>Abra o arquivo:</p>
+    <pre>services/sheetsService.ts</pre>
+    <p>Localize a linha:</p>
+    <pre>const RATING_SCRIPT_URL = '<span class="warn">COLE_AQUI_A_URL_DO_SCRIPT_DE_AVALIACOES</span>';</pre>
+    <p>Substitua pelo valor copiado no passo 4:</p>
+    <pre>const RATING_SCRIPT_URL = '<span class="highlight">https://script.google.com/macros/s/XXXXXXX/exec</span>';</pre>
+    <div class="ok-box">
+      ✅ Pronto! A plataforma passará a enviar avaliações diretamente para este script dedicado.
+    </div>
+  </div>
+
+  <!-- Passo 6 -->
+  <div class="card">
+    <div class="step-title"><span class="step-badge">6</span> Publicar no GitHub e Vercel</div>
+    <p>Após alterar o <code>sheetsService.ts</code>, o código precisa ser publicado.</p>
+    <p>Execute no terminal (dentro da pasta do projeto):</p>
+    <pre>git add services/sheetsService.ts
+git commit -m "feat: URL do script dedicado de avaliacoes configurada"
+git push</pre>
+    <p>A Vercel fará o redeploy automático em 1–2 minutos.</p>
+  </div>
+
+  <!-- Como a planilha ficará -->
+  <div class="card">
+    <div class="step-title">📊 Como a planilha ficará</div>
+    <p>O script cria automaticamente a aba <code>AVALIAÇÃO DOS USUÁRIOS</code> com:</p>
+    <table class="table-crit">
+      <thead>
+        <tr>
+          <th>Coluna</th>
+          <th>Conteúdo</th>
+          <th>Exemplo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>A</td><td>Data/Hora</td><td>05/07/2026 21:30:00</td></tr>
+        <tr><td>B</td><td>E-mail do Usuário</td><td>professor@escola.sp.gov.br</td></tr>
+        <tr><td>C</td><td>Perfil (Cargo)</td><td>PROFESSOR(A)</td></tr>
+        <tr><td>D</td><td>Facilidade de Uso ⭐</td><td>★★★★★ (5/5)</td></tr>
+        <tr><td>E</td><td>Utilidade Pedagógica ⭐</td><td>★★★★☆ (4/5)</td></tr>
+        <tr><td>F</td><td>Desempenho e Velocidade ⭐</td><td>★★★★★ (5/5)</td></tr>
+        <tr><td>G</td><td>Satisfação Geral ⭐</td><td>★★★★★ (5/5)</td></tr>
+        <tr><td>H</td><td>Média Geral ⭐</td><td>4.8/5 (verde)</td></tr>
+        <tr><td>I</td><td>Comentários / Sugestões</td><td>ÓTIMA PLATAFORMA!</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      💡 A coluna de <strong>Média</strong> é colorida automaticamente:
+      🟢 Verde ≥ 4.0 | 🟡 Amarelo ≥ 3.0 | 🔴 Vermelho &lt; 3.0
+    </div>
+  </div>
+
+  <div class="footer">Portal Lydia Kitz Moreira · Script de Avaliações v1.0 · EE Lydia Kitz Moreira</div>
+</div>
+</body>
+</html>
