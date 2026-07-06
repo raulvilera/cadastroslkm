@@ -130,3 +130,53 @@ export const saveToGoogleSheets = async (incident: Incident) => {
     return false;
   }
 };
+
+/**
+ * Envia uma avaliação de usuário para a planilha do Google Sheets.
+ * Aba: AVALIAÇÃO DOS USUÁRIOS
+ */
+export const saveRatingToGoogleSheets = async (ratingData: {
+  userEmail: string;
+  userRole: string;
+  facilidadeUso: number;
+  utilidadePedagogica: number;
+  desempenhoVelocidade: number;
+  satisfacaoGeral: number;
+  comentarios: string;
+}) => {
+  try {
+    const now = new Date();
+    const formattedDateTime = now.toLocaleString('pt-BR');
+
+    const values = [
+      formattedDateTime,
+      ratingData.userEmail.toLowerCase().trim(),
+      ratingData.userRole.toUpperCase(),
+      ratingData.facilidadeUso,
+      ratingData.utilidadePedagogica,
+      ratingData.desempenhoVelocidade,
+      ratingData.satisfacaoGeral,
+      ratingData.comentarios.trim().toUpperCase() || 'SEM COMENTÁRIOS'
+    ];
+
+    const payload = {
+      sheetName: 'AVALIAÇÃO DOS USUÁRIOS',
+      values: values
+    };
+
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar avaliação no Google Sheets:', error);
+    return false;
+  }
+};

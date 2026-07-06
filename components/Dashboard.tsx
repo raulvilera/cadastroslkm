@@ -83,9 +83,10 @@ interface DashboardProps {
   onLoadArchivedIncidents?: (filters?: { studentName?: string; classRoom?: string }) => Promise<Incident[]>;
   onToggleView?: () => void;
   viewMode?: 'gestor' | 'professor';
+  onOpenRating?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode, onOpenRating }) => {
   const [classRoom, setClassRoom] = useState('');
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
@@ -733,6 +734,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
+            </button>
+          )}
+          {onOpenRating && (
+            <button
+              onClick={onOpenRating}
+              className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-blue-950 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
+              title="Avaliar a Plataforma"
+            >
+              ⭐ Avaliar App
             </button>
           )}
           <button onClick={onLogout} className="bg-white hover:bg-red-50 text-[#002b5c] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95">Sair</button>

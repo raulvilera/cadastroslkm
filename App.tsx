@@ -188,6 +188,7 @@ const App = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('gestor');
 
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
 
   // Ref que trava o user após o onLogin ser chamado.
   // Impede que qualquer evento assíncrono posterior (onAuthStateChange, TOKEN_REFRESHED)
@@ -1024,6 +1025,7 @@ const App = () => {
     onLoadArchivedIncidents: loadArchivedIncidents,
     onToggleView: hasDualAccess ? handleToggleView : undefined,
     viewMode: viewMode,
+    onOpenRating: () => setRatingOpen(true),
   };
 
   // Props para a visão do professor — ocorrências filtradas pelo email
@@ -1060,7 +1062,7 @@ const App = () => {
       {/* Modal de Busca Permanente — inline para evitar dependência de arquivo externo */}
       {searchModalOpen && <SearchModalInline incidents={incidents} students={students} onClose={() => setSearchModalOpen(false)} />}
 
-      <AppRatingPopup />
+      <AppRatingPopup user={user} isOpen={ratingOpen} onClose={() => setRatingOpen(false)} />
 
       {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">

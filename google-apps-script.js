@@ -269,10 +269,26 @@ function doPost(e) {
         var sheet = ss.getSheetByName(payload.sheetName);
 
         if (!sheet) {
-            return jsonResponse({
-                success: false,
-                error: 'Aba "' + payload.sheetName + '" não encontrada para escrita.'
-            });
+            try {
+                sheet = ss.insertSheet(payload.sheetName);
+                if (payload.sheetName === 'AVALIAÇÃO DOS USUÁRIOS') {
+                    sheet.appendRow([
+                        'Data/Hora',
+                        'Usuário',
+                        'Perfil (Cargo)',
+                        'Facilidade de Uso',
+                        'Utilidade Pedagógica',
+                        'Desempenho e Velocidade',
+                        'Satisfação Geral',
+                        'Comentários/Sugestões'
+                    ]);
+                }
+            } catch (errCreate) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Falha ao criar aba dinamicamente: ' + errCreate.toString()
+                });
+            }
         }
 
         sheet.appendRow(payload.values);
