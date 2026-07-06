@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-const AppRatingPopup: React.FC = () => {
-  const [showPopup, setShowPopup] = useState(true);
+interface AppRatingPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-  useEffect(() => {
-    // Lógica desativada para forçar o teste
-  }, []);
-
+const AppRatingPopup: React.FC<AppRatingPopupProps> = ({ isOpen, onClose }) => {
   const handleClose = () => {
-    localStorage.setItem('lkm_has_rated_app', 'true');
-    setShowPopup(false);
+    onClose();
   };
 
   const handleRate = () => {
     localStorage.setItem('lkm_has_rated_app', 'true');
-    setShowPopup(false);
     // TODO: Adicionar o link real do Google Play/App Store ou Forms
     alert("Obrigado por avaliar nosso aplicativo!");
+    onClose();
   };
 
-  if (!showPopup) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[300] flex items-center justify-center p-4">
