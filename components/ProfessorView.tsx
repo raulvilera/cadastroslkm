@@ -7,9 +7,6 @@ import { normalizeClassName } from '../utils/formatters';
 interface ProfessorViewProps {
   user: User;
   incidents: Incident[];
-  // Todas as ocorrências da escola (registradas pela gestão + por todos os professores).
-  // Usado quando o filtro de status "Todos os Status" estiver selecionado.
-  allIncidents?: Incident[];
   students: Student[];
   classes: string[];
   onSave: (incident: Incident | Incident[]) => void;
@@ -56,7 +53,7 @@ const IconStar = () => (
 );
 
 const ProfessorView: React.FC<ProfessorViewProps> = ({
-  user, incidents, allIncidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode, onOpenRating
+  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode, onOpenRating
 }) => {
   // ── Altura dinâmica do header fixo ───────────────────────────────────────
   const headerRef = useRef<HTMLElement>(null);
@@ -411,16 +408,14 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   };
 
   const filteredHistory = useMemo(() => {
+    if (!incidents) return [];
     const term = searchTerm.toLowerCase();
     const filterStatus = statusFilter.toLowerCase();
 
-    // Quando "Todos os Status" está selecionado, mostra TODAS as ocorrências da
-    // escola (registradas pela gestão e por qualquer professor). Para os demais
-    // filtros de status, mantém a lista restrita aos próprios registros do professor.
-    const baseList = filterStatus === 'todos' ? (allIncidents || incidents) : incidents;
-    if (!baseList) return [];
-
-    return baseList.filter(i => {
+    // A área do professor mostra SOMENTE as ocorrências registradas pelo próprio
+    // professor logado — nunca as da gestão nem as de outros professores,
+    // independentemente do filtro de status selecionado.
+    return incidents.filter(i => {
       const matchSearch = (i.studentName || '').toLowerCase().includes(term) ||
         (i.classRoom || '').toLowerCase().includes(term) ||
         (i.professorName || '').toLowerCase().includes(term);
@@ -437,7 +432,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
       return matchSearch && matchStatus;
     }).sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'pt-BR'));
-  }, [incidents, allIncidents, searchTerm, statusFilter]);
+  }, [incidents, searchTerm, statusFilter]);
 
   // Sempre baseado nos próprios registros do professor (independente do filtro de status
   // exibido no painel), para não contar devolutivas de ocorrências de outros professores.
