@@ -180,6 +180,9 @@ const App = () => {
   const [view, setView] = useState<View>('login');
   const [user, setUser] = useState<User | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  // Total real de ocorrências da escola (gestão + professores), obtido via consulta
+  // de contagem (sem baixar os registros) — usado no card "Total de Ocorrências".
+  const [totalIncidentsCount, setTotalIncidentsCount] = useState<number>(0);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -611,7 +614,10 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (user) loadCloudIncidents();
+    if (user) {
+      loadCloudIncidents();
+      loadTotalIncidentsCount();
+    }
   }, [user]);
 
   // Mapeia um registro bruto do Supabase para o tipo Incident
@@ -647,9 +653,10 @@ const App = () => {
   const loadCloudIncidents = async () => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
-      // ── Filtro de 30 dias: apenas registros recentes são carregados na inicialização.
-      // Os registros anteriores permanecem intactos na nuvem e podem ser consultados
-      // a qualquer momento pelo Histórico Permanente por Aluno.
+      // ── Filtro de 30 dias: apenas registros recentes são carregados na tabela,
+      // para manter o Painel de Registros rápido. O TOTAL real de ocorrências
+      // (independente da janela de 30 dias) é buscado separadamente por
+      // loadTotalIncidentsCount(), via consulta leve de contagem.
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const cutoffISO = thirtyDaysAgo.toISOString();
@@ -670,6 +677,24 @@ const App = () => {
         console.log(`✅ [LOAD] ${mapped.length} registros dos últimos 30 dias carregados.`);
       }
     } catch (e) { console.warn("Sincronização offline."); }
+  };
+
+  // Busca APENAS a contagem total de ocorrências da escola (gestão + professores),
+  // sem baixar os dados de cada registro — consulta leve, usada só para exibir
+  // o número real no card "Total de Ocorrências" do Painel da Gestão.
+  const loadTotalIncidentsCount = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { count, error } = await supabase
+        .from('incidents')
+        .select('*', { count: 'exact', head: true })
+        .eq('escola', 'lkm');
+
+      if (!error && typeof count === 'number') {
+        setTotalIncidentsCount(count);
+        console.log(`🔢 [COUNT] Total real de ocorrências na escola: ${count}`);
+      }
+    } catch (e) { console.warn("Erro ao buscar total de ocorrências:", e); }
   };
 
   // Busca o histórico COMPLETO de um aluno específico (todos os registros, sem limite de data)
@@ -790,6 +815,8 @@ const App = () => {
     const updatedList = [...items, ...incidents];
     setIncidents(updatedList);
     localStorage.setItem('lkm_incidents_cache', JSON.stringify(updatedList));
+    // Atualiza otimisticamente o total real de ocorrências também
+    setTotalIncidentsCount(prev => prev + items.length);
 
     let hasError = false;
 
@@ -880,6 +907,8 @@ const App = () => {
     const filtered = incidents.filter(i => i.id !== id);
     setIncidents(filtered);
     localStorage.setItem('lkm_incidents_cache', JSON.stringify(filtered));
+    // Atualiza otimisticamente o total real de ocorrências também
+    setTotalIncidentsCount(prev => Math.max(0, prev - 1));
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -891,6 +920,7 @@ const App = () => {
           // Rollback em caso de erro de permissão ou rede
           setIncidents(previousIncidents);
           localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
+          setTotalIncidentsCount(prev => prev + 1);
 
           if (error.message.includes('permission denied')) {
             alert("ERRO DE PERMISSÃO: O banco de dados não permitiu a exclusão. Verifique se você é o autor ou se tem nível de Gestor.");
@@ -904,6 +934,7 @@ const App = () => {
         console.error('❌ [DELETE] Erro inesperado:', err);
         setIncidents(previousIncidents);
         localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
+        setTotalIncidentsCount(prev => prev + 1);
         alert("Erro de conexão ao tentar excluir. O registro foi restaurado.");
       }
     }
@@ -1013,6 +1044,8 @@ const App = () => {
   const commonProps = {
     user: user!,
     incidents: incidents,           // Gestão sempre recebe todos
+    // Total real de ocorrências da escola (contagem no banco, sem limite de 30 dias)
+    totalIncidentsCount: totalIncidentsCount,
     students: students,
     classes: classes,
     onSave: handleSaveIncident,
