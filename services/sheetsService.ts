@@ -11,7 +11,7 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIJ6aotlvx3d
  * Após implantar o arquivo google-apps-script-avaliacoes.js no Google Apps Script,
  * substitua o valor abaixo pela URL gerada (termina em /exec).
  */
-const RATING_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_SCRIPT_DE_AVALIACOES';
+const RATING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpikGx909rRAu8jxz7ucZzWQdB9AlHNwdQS9UOfp5Is9VJUTGaUVreAmTZDH_69Xsr/exec';
 
 /**
  * Carrega a lista de alunos da planilha Google Sheets.
