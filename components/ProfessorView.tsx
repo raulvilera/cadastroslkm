@@ -17,6 +17,7 @@ interface ProfessorViewProps {
   onSyncStudents?: () => void;
   onToggleView?: () => void;
   viewMode?: 'gestor' | 'professor';
+  onOpenRating?: () => void;
 }
 
 const LISTA_IRREGULARIDADES = [
@@ -45,8 +46,14 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconStar = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  </svg>
+);
+
 const ProfessorView: React.FC<ProfessorViewProps> = ({
-  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode
+  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode, onOpenRating
 }) => {
   // ── Altura dinâmica do header fixo ───────────────────────────────────────
   const headerRef = useRef<HTMLElement>(null);
@@ -475,6 +482,15 @@ const sortClasses = (classList: string[]): string[] => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               Ver como Gestão
+            </button>
+          )}
+          {onOpenRating && (
+            <button
+              onClick={onOpenRating}
+              className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+              title="Avaliar App"
+            >
+              <IconStar /> Avaliar App
             </button>
           )}
           <button onClick={onLogout} className="bg-white text-[#002b5c] px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase hover:bg-gray-100 transition-all shadow-md whitespace-nowrap">Sair</button>
