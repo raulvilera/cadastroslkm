@@ -7,6 +7,9 @@ import { normalizeClassName } from '../utils/formatters';
 interface ProfessorViewProps {
   user: User;
   incidents: Incident[];
+  // Todas as ocorrências da escola (registradas pela gestão + por todos os professores).
+  // Usado quando o filtro de status "Todos os Status" estiver selecionado.
+  allIncidents?: Incident[];
   students: Student[];
   classes: string[];
   onSave: (incident: Incident | Incident[]) => void;
@@ -53,7 +56,7 @@ const IconStar = () => (
 );
 
 const ProfessorView: React.FC<ProfessorViewProps> = ({
-  user, incidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode, onOpenRating
+  user, incidents, allIncidents, students, classes, onSave, onDelete, onUpdateIncident, onLogout, onToggleView, viewMode, onOpenRating
 }) => {
   // ── Altura dinâmica do header fixo ───────────────────────────────────────
   const headerRef = useRef<HTMLElement>(null);
@@ -93,6 +96,7 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   const [registerDate, setRegisterDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null);
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
   const [editDescription, setEditDescription] = useState('');
@@ -407,16 +411,37 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
   };
 
   const filteredHistory = useMemo(() => {
-    if (!incidents) return [];
     const term = searchTerm.toLowerCase();
-    return incidents.filter(i =>
-      (i.studentName || '').toLowerCase().includes(term) ||
-      (i.classRoom || '').toLowerCase().includes(term) ||
-      (i.professorName || '').toLowerCase().includes(term)
-    ).sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'pt-BR'));
-  }, [incidents, searchTerm]);
+    const filterStatus = statusFilter.toLowerCase();
 
-  const unreadCount = filteredHistory.filter(isUnreadFeedback).length;
+    // Quando "Todos os Status" está selecionado, mostra TODAS as ocorrências da
+    // escola (registradas pela gestão e por qualquer professor). Para os demais
+    // filtros de status, mantém a lista restrita aos próprios registros do professor.
+    const baseList = filterStatus === 'todos' ? (allIncidents || incidents) : incidents;
+    if (!baseList) return [];
+
+    return baseList.filter(i => {
+      const matchSearch = (i.studentName || '').toLowerCase().includes(term) ||
+        (i.classRoom || '').toLowerCase().includes(term) ||
+        (i.professorName || '').toLowerCase().includes(term);
+
+      let matchStatus = true;
+      if (filterStatus !== 'todos') {
+        const incStatus = (i.status || 'Pendente').toLowerCase();
+        if (filterStatus === 'visualizada') {
+          matchStatus = incStatus === 'visualizada' || !!i.lastViewedAt;
+        } else {
+          matchStatus = incStatus === filterStatus;
+        }
+      }
+
+      return matchSearch && matchStatus;
+    }).sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'pt-BR'));
+  }, [incidents, allIncidents, searchTerm, statusFilter]);
+
+  // Sempre baseado nos próprios registros do professor (independente do filtro de status
+  // exibido no painel), para não contar devolutivas de ocorrências de outros professores.
+  const unreadCount = (incidents || []).filter(isUnreadFeedback).length;
 
   // Labels dos encaminhamentos para tabela (múltiplos)
   const referralLabels = (inc: Incident): string[] => {
@@ -755,6 +780,18 @@ const sortClasses = (classList: string[]): string[] => {
               <p className="text-blue-200/60 text-[9px] font-bold uppercase mt-0.5 text-center md:text-left whitespace-nowrap">Visualize, baixe o PDF ou edite seus registros</p>
             </div>
             <div className="flex items-center gap-3 w-full md:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-[10px] font-black uppercase outline-none focus:bg-white focus:text-black text-white shadow-inner cursor-pointer"
+                title="Filtrar por status"
+              >
+                <option value="todos" className="bg-white text-black font-black">Todos os Status</option>
+                <option value="Visualizada" className="bg-white text-black font-black">Visualizadas</option>
+                <option value="Pendente" className="bg-white text-black font-black">Pendentes</option>
+                <option value="Em andamento" className="bg-white text-black font-black">Em Andamento</option>
+                <option value="Resolvida" className="bg-white text-black font-black">Resolvidas</option>
+              </select>
               <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Filtrar histórico..." className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:bg-white focus:text-black w-full md:w-64 text-white placeholder:text-white/40 shadow-inner" />
             </div>
           </div>
