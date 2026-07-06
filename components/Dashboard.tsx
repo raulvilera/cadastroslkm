@@ -71,6 +71,9 @@ import { getProfessorNameFromEmail } from '../professorsData';
 interface DashboardProps {
   user: User;
   incidents: Incident[];
+  // Total real de ocorrências da escola (contagem no banco, sem limite de 30 dias
+  // aplicado à lista carregada na tabela). Usado no card "Total de Ocorrências".
+  totalIncidentsCount?: number;
   students: Student[];
   classes: string[];
   onSave: (incident: Incident) => void;
@@ -85,7 +88,7 @@ interface DashboardProps {
   viewMode?: 'gestor' | 'professor';
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCount, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode }) => {
   const [classRoom, setClassRoom] = useState('');
   const [studentName, setStudentName] = useState('');
   const [professorName, setProfessorName] = useState('');
@@ -624,6 +627,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
     });
   }, [incidents, searchTerm, statusFilter]);
 
+  // Quando "Todos os Status" está selecionado e não há busca ativa, mostra o TOTAL
+  // real de ocorrências da escola (contagem no banco, sem limite de 30 dias).
+  // Caso contrário (filtro de status específico ou busca), mostra a contagem dos
+  // registros atualmente carregados que batem com o filtro/busca.
+  const displayedTotalCount = (statusFilter.toLowerCase() === 'todos' && !searchTerm.trim() && typeof totalIncidentsCount === 'number')
+    ? totalIncidentsCount
+    : history.length;
+
   // Lógica de Estatísticas
   const stats = useMemo(() => {
     const classCount: Record<string, number> = {};
@@ -1067,7 +1078,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, students, classe
                       <span className="text-[9px] font-black text-blue-200/70 uppercase tracking-[0.25em] leading-none mb-1.5 drop-shadow-sm">Total de Ocorrências</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-white text-2xl font-black leading-none tracking-tighter drop-shadow-lg">
-                          {history.length < 10 ? `0${history.length}` : history.length}
+                          {displayedTotalCount < 10 ? `0${displayedTotalCount}` : displayedTotalCount}
                         </span>
                         <span className="text-blue-400 text-[10px] font-bold">REGISTROS</span>
                       </div>
