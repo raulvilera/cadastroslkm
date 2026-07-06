@@ -57,7 +57,22 @@ interface DocContext {
   brasaoData: ImgData | null;
   lkmData: ImgData | null;
   y: number;
+  /** Fator de encolhimento aplicado a fontes e espaçamentos para o
+   *  documento caber em uma única página, independentemente do volume
+   *  de texto (descrição, encaminhamentos, etc). 1 = tamanho normal. */
+  scale: number;
 }
+
+/** Piso mínimo de escala — abaixo disso o texto ficaria ilegível, então
+ *  preferimos permitir uma 2ª página (via ensureSpace) a comprometer a nitidez. */
+const MIN_SCALE = 0.55;
+
+/** Tamanho de fonte já com o fator de encolhimento do documento aplicado,
+ *  nunca abaixo de 5.5pt (piso de legibilidade). */
+const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale, 5.5);
+
+/** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
+const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
@@ -76,7 +91,59 @@ const createBaseDoc = async (): Promise<DocContext> => {
     console.error("Erro ao carregar logos:", err);
   }
 
-  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0 };
+  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0, scale: 1 };
+};
+
+/**
+ * Mede quanta altura vertical um documento ocuparia com um dado fator de
+ * escala, desenhando-o em um PDF descartável com página "infinita" (assim
+ * a paginação automática não interfere na medição).
+ */
+const measureContentHeight = (
+  buildFn: (ctx: DocContext, incident: Incident) => void,
+  incident: Incident,
+  startY: number,
+  pageWidth: number,
+  contentWidth: number,
+  scale: number
+): number => {
+  const scratchCtx: DocContext = {
+    doc: new jsPDF(),
+    pageWidth,
+    pageHeight: 100000, // "infinita" — evita quebra de página durante a medição
+    contentWidth,
+    brasaoData: null,
+    lkmData: null,
+    y: startY,
+    scale,
+  };
+  buildFn(scratchCtx, incident);
+  return scratchCtx.y;
+};
+
+/**
+ * Encontra o menor fator de encolhimento (>= MIN_SCALE) que faz o documento
+ * caber inteiro em uma única página. Se nem no piso de legibilidade couber,
+ * retorna o piso mesmo assim (o ensureSpace() atua como rede de segurança).
+ */
+const fitScaleForDocument = (
+  buildFn: (ctx: DocContext, incident: Incident) => void,
+  incident: Incident,
+  startY: number,
+  pageWidth: number,
+  pageHeight: number,
+  contentWidth: number
+): number => {
+  const available = pageHeight - 22;
+
+  const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
+  if (heightAtFullSize <= available) return 1;
+
+  for (let scale = 0.97; scale >= MIN_SCALE; scale -= 0.03) {
+    const height = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, scale);
+    if (height <= available) return Math.round(scale * 100) / 100;
+  }
+  return MIN_SCALE;
 };
 
 const drawPageFrame = (ctx: DocContext) => {
@@ -130,139 +197,141 @@ const ensureSpace = (ctx: DocContext, neededHeight: number) => {
 };
 
 const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
-  ensureSpace(ctx, subtitle ? 20 : 14);
+  ensureSpace(ctx, subtitle ? sp(ctx, 20) : sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(13.5);
+  ctx.doc.setFontSize(fs(ctx, 13.5));
   ctx.doc.setTextColor(0, 84, 166);
   const lines = ctx.doc.splitTextToSize(title, ctx.contentWidth);
   ctx.doc.text(lines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
-  ctx.y += lines.length * 6 + 1;
+  ctx.y += lines.length * sp(ctx, 6) + sp(ctx, 1);
   if (subtitle) {
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(8.5);
+    ctx.doc.setFontSize(fs(ctx, 8.5));
     ctx.doc.setTextColor(90, 90, 90);
     const subLines = ctx.doc.splitTextToSize(subtitle, ctx.contentWidth);
     ctx.doc.text(subLines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
-    ctx.y += subLines.length * 4 + 2;
+    ctx.y += subLines.length * sp(ctx, 4) + sp(ctx, 2);
   }
-  ctx.y += 8;
+  ctx.y += sp(ctx, 8);
 };
 
 const writeSectionTitle = (ctx: DocContext, text: string) => {
-  ensureSpace(ctx, 14);
+  ensureSpace(ctx, sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(10.5);
+  ctx.doc.setFontSize(fs(ctx, 10.5));
   ctx.doc.setTextColor(0, 43, 92);
   ctx.doc.text(text, MARGIN, ctx.y);
-  ctx.y += 3.5;
+  ctx.y += sp(ctx, 3.5);
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += 6;
+  ctx.y += sp(ctx, 6);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(9.3);
+  ctx.doc.setFontSize(fs(ctx, 9.3));
   ctx.doc.setTextColor(0, 0, 0);
   const text = `${label}: `;
   const valueText = (value && value.trim()) ? value.trim() : "NÃO INFORMADO";
   const full = text + valueText;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * 5 + 1);
+  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 1));
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * 5 + 1.5;
+  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 1.5);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(9.3);
+  ctx.doc.setFontSize(fs(ctx, 9.3));
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * 5 + 2);
+  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 2));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * 5 + 3;
+  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 3);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(9.3);
+  ctx.doc.setFontSize(fs(ctx, 9.3));
   ctx.doc.setTextColor(0, 0, 0);
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * 5 + 1.5);
+  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * 5 + 2;
+  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 2);
 };
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
   ctx.doc.setFont("helvetica", opts.bold ? "bold" : "normal");
-  ctx.doc.setFontSize(opts.size || 9.5);
+  ctx.doc.setFontSize(fs(ctx, opts.size || 9.5));
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * 5 + 3);
+  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 3));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * 5 + 5;
+  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 5);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
   writeSectionTitle(ctx, label);
+  ctx.doc.setFont("helvetica", "normal");
+  ctx.doc.setFontSize(fs(ctx, 9.3));
+  ctx.doc.setTextColor(0, 0, 0);
+  // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
+  // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
-  const boxHeight = Math.max(minHeight, lines.length * 5 + 10);
-  ensureSpace(ctx, boxHeight + 4);
+  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, 5) + sp(ctx, 10));
+  ensureSpace(ctx, boxHeight + sp(ctx, 4));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
-  ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(9.3);
-  ctx.doc.setTextColor(0, 0, 0);
-  ctx.doc.text(lines, MARGIN + 4, ctx.y + 7, { maxWidth: ctx.contentWidth - 8 });
-  ctx.y += boxHeight + 8;
+  ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 7), { maxWidth: ctx.contentWidth - 8 });
+  ctx.y += boxHeight + sp(ctx, 8);
 };
 
 const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
-  ensureSpace(ctx, 32);
-  ctx.y += 12;
+  ensureSpace(ctx, sp(ctx, 32));
+  ctx.y += sp(ctx, 12);
   ctx.doc.setDrawColor(0, 0, 0);
   ctx.doc.setLineWidth(0.3);
   if (labels.length === 1) {
     ctx.doc.line((ctx.pageWidth / 2) - 45, ctx.y, (ctx.pageWidth / 2) + 45, ctx.y);
-    ctx.y += 5;
+    ctx.y += sp(ctx, 5);
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(8.5);
+    ctx.doc.setFontSize(fs(ctx, 8.5));
     ctx.doc.text(labels[0], ctx.pageWidth / 2, ctx.y, { align: 'center' });
   } else {
     const lineSize = 75;
     ctx.doc.line(MARGIN, ctx.y, MARGIN + lineSize, ctx.y);
     ctx.doc.line(ctx.pageWidth - MARGIN - lineSize, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-    ctx.y += 5;
+    ctx.y += sp(ctx, 5);
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(8.5);
+    ctx.doc.setFontSize(fs(ctx, 8.5));
     ctx.doc.text(labels[0], MARGIN + (lineSize / 2), ctx.y, { align: 'center' });
     ctx.doc.text(labels[1], ctx.pageWidth - MARGIN - (lineSize / 2), ctx.y, { align: 'center' });
   }
-  ctx.y += 10;
+  ctx.y += sp(ctx, 10);
 };
 
 const writeLegalFooterNote = (ctx: DocContext, extra?: string) => {
-  ensureSpace(ctx, 16);
-  ctx.y += 4;
+  ensureSpace(ctx, sp(ctx, 16));
+  ctx.y += sp(ctx, 4);
   ctx.doc.setDrawColor(200, 200, 200);
   ctx.doc.setLineWidth(0.2);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += 4;
+  ctx.y += sp(ctx, 4);
   ctx.doc.setFont("helvetica", "italic");
-  ctx.doc.setFontSize(7);
+  ctx.doc.setFontSize(fs(ctx, 7));
   ctx.doc.setTextColor(110, 110, 110);
   const base = `Documento elaborado em conformidade com a ${RESOLUCAO_REF}, em complemento ao DOC - Documento Orientador para a Convivência - Protocolo 179.`;
   const text = extra ? `${base} ${extra}` : base;
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * 3.4 + 2;
+  ctx.y += lines.length * sp(ctx, 3.4) + sp(ctx, 2);
 };
 
 const identificationBlock = (ctx: DocContext, incident: Incident) => {
@@ -271,7 +340,7 @@ const identificationBlock = (ctx: DocContext, incident: Incident) => {
   writeLabelValue(ctx, "RA", incident.ra);
   writeLabelValue(ctx, "Data do registro", incident.registerDate || incident.date);
   writeLabelValue(ctx, "Responsável pelo registro (Direção/Gestão)", incident.professorName);
-  ctx.y += 2;
+  ctx.y += sp(ctx, 2);
 };
 
 // Art. 9º, § 1º — o registro deve conter "síntese da análise inicial e
@@ -305,7 +374,7 @@ const writeReferralsSection = (ctx: DocContext, incident: Incident) => {
       writeChecklistItem(ctx, true, text);
     });
   }
-  ctx.y += 2;
+  ctx.y += sp(ctx, 2);
 };
 
 // ════════════════════════════════════════════════════════════════════════
@@ -671,35 +740,45 @@ const buildDeclaracaoTransferencia = (ctx: DocContext, incident: Incident) => {
 const buildTransferenciaCautelarDossier = (ctx: DocContext, incident: Incident) => {
   const d = incident.measureData?.transferenciaCautelar;
 
+  // Cada peça do dossiê é ajustada para caber em UMA página sua,
+  // independentemente do volume de texto informado.
+  const fitAndRun = (fn: (c: DocContext, inc: Incident) => void) => {
+    ctx.scale = fitScaleForDocument(fn, incident, ctx.y, ctx.pageWidth, ctx.pageHeight, ctx.contentWidth);
+    fn(ctx, incident);
+  };
+
   // Capa do dossiê
-  writeDocTitle(ctx, "DOSSIÊ DE TRANSFERÊNCIA CAUTELAR", RESOLUCAO_REF + " — Art. 13 a 22");
-  identificationBlock(ctx, incident);
-  writeLabelValue(ctx, "Etapa atual do procedimento (Art. 14)", d?.etapaAtual ? `Etapa ${d.etapaAtual} de 5` : "NÃO INFORMADO");
-  writeParagraph(
-    ctx,
-    "Este dossiê reúne os documentos exigidos pela " + RESOLUCAO_REF + " para a instrução do procedimento de transferência " +
-    "cautelar: (1) Relatório Circunstanciado, (2) Notificação Formal ao Estudante e Família, (3) Ata de Deliberação do " +
-    "Conselho de Escola, (4) Comunicação Formal da Decisão Final e (5) Declaração de Transferência, quando deliberada. A " +
-    "transferência cautelar somente poderá ser adotada em caráter excepcional e protetivo, vedada sua utilização como " +
-    "punição automática ou mecanismo de exclusão (Art. 13, §§ 1º e 2º)."
-  );
-  writeLegalFooterNote(ctx);
+  const buildCapa = (c: DocContext, inc: Incident) => {
+    writeDocTitle(c, "DOSSIÊ DE TRANSFERÊNCIA CAUTELAR", RESOLUCAO_REF + " — Art. 13 a 22");
+    identificationBlock(c, inc);
+    writeLabelValue(c, "Etapa atual do procedimento (Art. 14)", d?.etapaAtual ? `Etapa ${d.etapaAtual} de 5` : "NÃO INFORMADO");
+    writeParagraph(
+      c,
+      "Este dossiê reúne os documentos exigidos pela " + RESOLUCAO_REF + " para a instrução do procedimento de transferência " +
+      "cautelar: (1) Relatório Circunstanciado, (2) Notificação Formal ao Estudante e Família, (3) Ata de Deliberação do " +
+      "Conselho de Escola, (4) Comunicação Formal da Decisão Final e (5) Declaração de Transferência, quando deliberada. A " +
+      "transferência cautelar somente poderá ser adotada em caráter excepcional e protetivo, vedada sua utilização como " +
+      "punição automática ou mecanismo de exclusão (Art. 13, §§ 1º e 2º)."
+    );
+    writeLegalFooterNote(c);
+  };
+  fitAndRun(buildCapa);
 
   newPage(ctx);
-  buildRelatorioCircunstanciado(ctx, incident);
+  fitAndRun(buildRelatorioCircunstanciado);
 
   newPage(ctx);
-  buildNotificacaoFamilia(ctx, incident);
+  fitAndRun(buildNotificacaoFamilia);
 
   newPage(ctx);
-  buildAtaConselho(ctx, incident);
+  fitAndRun(buildAtaConselho);
 
   newPage(ctx);
-  buildComunicacaoDecisaoFinal(ctx, incident);
+  fitAndRun(buildComunicacaoDecisaoFinal);
 
   if (d?.decisaoConselho === 'transferencia_deliberada') {
     newPage(ctx);
-    buildDeclaracaoTransferencia(ctx, incident);
+    fitAndRun(buildDeclaracaoTransferencia);
   }
 };
 
@@ -740,29 +819,40 @@ const buildMedidaEducativaLegado = (ctx: DocContext, incident: Incident) => {
 const buildDoc = async (incident: Incident): Promise<jsPDF> => {
   const ctx = await createBaseDoc();
   drawPageFrame(ctx);
-  ctx.y = drawHeaderBlock(ctx) + 10;
+  const startY = drawHeaderBlock(ctx) + 10;
+  ctx.y = startY;
 
+  // Dossiê cuida da própria paginação/ajuste internamente (múltiplos
+  // documentos, cada um ajustado à sua própria página).
+  if (incident.category === 'TRANSFERÊNCIA CAUTELAR') {
+    buildTransferenciaCautelarDossier(ctx, incident);
+    return ctx.doc;
+  }
+
+  // Demais categorias: documento único — ajusta a escala para caber
+  // inteiro em uma única página, independentemente do volume de texto.
+  let builder: (c: DocContext, inc: Incident) => void;
   switch (incident.category) {
     case 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)':
-      buildEncaminhamentoPedagogico(ctx, incident);
+      builder = buildEncaminhamentoPedagogico;
       break;
     case 'AFASTAMENTO PREVENTIVO TEMPORÁRIO':
-      buildAfastamentoPreventivo(ctx, incident);
-      break;
-    case 'TRANSFERÊNCIA CAUTELAR':
-      buildTransferenciaCautelarDossier(ctx, incident);
+      builder = buildAfastamentoPreventivo;
       break;
     case 'MEDIDA EDUCATIVA':
-      buildMedidaEducativaLegado(ctx, incident);
+      builder = buildMedidaEducativaLegado;
       break;
     case 'OCORRÊNCIA PEDAGÓGICA':
-      buildOcorrenciaGenerica(ctx, incident, "REGISTRO DE OCORRÊNCIA PEDAGÓGICA");
+      builder = (c, inc) => buildOcorrenciaGenerica(c, inc, "REGISTRO DE OCORRÊNCIA PEDAGÓGICA");
       break;
     case 'OCORRÊNCIA DISCIPLINAR':
     default:
-      buildOcorrenciaGenerica(ctx, incident, "REGISTRO DE OCORRÊNCIA DISCIPLINAR");
+      builder = (c, inc) => buildOcorrenciaGenerica(c, inc, "REGISTRO DE OCORRÊNCIA DISCIPLINAR");
       break;
   }
+
+  ctx.scale = fitScaleForDocument(builder, incident, startY, ctx.pageWidth, ctx.pageHeight, ctx.contentWidth);
+  builder(ctx, incident);
 
   return ctx.doc;
 };
