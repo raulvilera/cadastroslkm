@@ -5,6 +5,7 @@ interface AppRatingPopupProps {
   isOpen: boolean;
   onClose: () => void;
   userEmail?: string;
+  onRated?: () => void;
 }
 
 interface Criterio {
@@ -42,7 +43,7 @@ const StarRow: React.FC<{ value: number; onChange: (v: number) => void }> = ({ v
   </div>
 );
 
-const AppRatingPopup: React.FC<AppRatingPopupProps> = ({ isOpen, onClose, userEmail }) => {
+const AppRatingPopup: React.FC<AppRatingPopupProps> = ({ isOpen, onClose, userEmail, onRated }) => {
   const [ratings, setRatings] = useState<Record<Criterio['key'], number>>({
     facilidadeUso: 0,
     velocidade: 0,
@@ -83,6 +84,7 @@ const AppRatingPopup: React.FC<AppRatingPopupProps> = ({ isOpen, onClose, userEm
       });
       localStorage.setItem('lkm_has_rated_app', 'true');
       setSubmitted(true);
+      onRated?.();
     } catch (err) {
       console.error('Erro ao enviar avaliação:', err);
     } finally {
