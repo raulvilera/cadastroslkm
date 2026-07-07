@@ -1601,4 +1601,375 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       placeholder="(CARREGARÁ APENAS INICIAIS CORRESPONDENTES)"
                       className="w-full h-16 pl-14 pr-6 bg-gray-50 border-2 border-gray-100 rounded-3xl text-sm font-black outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all text-black uppercase tracking-wider"
                     />
-                    <svg className="w-6 h-6 absolute left-5 top-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" fill=
+                    <svg className="w-6 h-6 absolute left-5 top-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Resultados da Busca (Alunos) */}
+                {permanentSearchTerm && !selectedStudentForHistory && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                    {filteredStudents.length > 0 ? filteredStudents.map((s, idx) => (
+                      <button
+                        key={s.ra}
+                        onClick={() => fetchStudentHistory(s)}
+                        className={`flex flex-col items-start p-4 ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-orange-50 border border-gray-100 hover:border-orange-200 rounded-2xl transition-all group`}
+                      >
+                        <span className="text-[11px] font-black text-[#002b5c] group-hover:text-orange-600 transition-colors">{s.nome}</span>
+                        <div className="flex gap-3 mt-1">
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">Turma: {s.turma}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">RA: {s.ra}</span>
+                        </div>
+                      </button>
+                    )) : (
+                      <div className="col-span-full py-10 text-center">
+                        <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum aluno encontrado com estas iniciais</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Histórico do Aluno Selecionado */}
+                {selectedStudentForHistory && (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="p-6 bg-orange-50 border border-orange-100 rounded-[32px] flex flex-col md:flex-row justify-between items-center gap-4">
+                      <div>
+                        <h4 className="text-orange-800 font-black text-xs uppercase tracking-wider">{selectedStudentForHistory.nome}</h4>
+                        <p className="text-orange-600/60 text-[9px] font-bold uppercase">RA: {selectedStudentForHistory.ra} | TURMA: {selectedStudentForHistory.turma}</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedStudentForHistory(null)}
+                        className="text-[9px] font-black text-orange-600 uppercase hover:underline"
+                      >
+                        Trocar Aluno
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Histórico Acadêmico/Disciplinar</h5>
+                      {isLoadingHistory ? (
+                        <div className="py-20 flex flex-col items-center justify-center">
+                          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : studentHistory.length > 0 ? (
+                        <div className="space-y-4">
+                          {studentHistory.map(inc => (
+                            <div key={inc.id} className="p-6 bg-white border border-gray-100 rounded-[28px] shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[10px] font-black text-gray-500">{inc.date}</span>
+                                  <StatusBadge status={inc.status} size="small" />
+                                </div>
+                                <span className="px-3 py-1 bg-gray-100 rounded-lg text-[8px] font-black text-gray-500 uppercase">{inc.category}</span>
+                              </div>
+                              <p className="text-[10px] font-bold text-gray-600 uppercase italic line-clamp-3">{inc.description}</p>
+                              <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
+                                <span className="text-[8px] font-bold text-gray-400 uppercase">PROF: {inc.professorName}</span>
+                                <div className="flex gap-2">
+                                  <button onClick={() => generateIncidentPDF(inc, 'view')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                                  <button onClick={() => generateIncidentPDF(inc, 'download')} className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-14 text-center bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
+                          <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum registro encontrado para este aluno</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
+              <button
+                onClick={() => {
+                  setShowPermanentSearch(false);
+                  setPermanentSearchTerm('');
+                  setSelectedStudentForHistory(null);
+                }}
+                className="px-12 py-4 bg-[#002b5c] text-white font-black text-[10px] uppercase rounded-full hover:shadow-xl transition-all active:scale-95"
+              >
+                Fechar Histórico
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Arquivo Histórico (registros anteriores a 30 dias) ─────────── */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
+            <div className="bg-gradient-to-r from-purple-900 to-purple-700 p-6 text-center shrink-0 border-b-4 border-purple-400">
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">🗄️ Arquivo Histórico</h3>
+              <p className="text-purple-300 text-[9px] font-bold mt-1 uppercase">Registros anteriores a 30 dias — dados preservados na nuvem</p>
+            </div>
+
+            <div className="p-6 border-b border-gray-100 bg-purple-50/50 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Nome do Aluno</label>
+                  <input
+                    type="text"
+                    value={archiveSearchName}
+                    onChange={e => setArchiveSearchName(e.target.value)}
+                    placeholder="Ex: JOÃO DA SILVA..."
+                    className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all uppercase text-black"
+                    onKeyDown={e => e.key === 'Enter' && handleArchiveSearch()}
+                  />
+                </div>
+                <div className="w-full sm:w-44 space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Turma</label>
+                  <select
+                    value={archiveSearchClass}
+                    onChange={e => setArchiveSearchClass(e.target.value)}
+                    className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all text-black cursor-pointer"
+                  >
+                    <option value="">Todas as turmas</option>
+                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={handleArchiveSearch}
+                  disabled={isLoadingArchive || (!archiveSearchName.trim() && !archiveSearchClass.trim())}
+                  className="h-11 px-8 bg-purple-600 text-white font-black text-[10px] uppercase rounded-2xl hover:bg-purple-700 transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0"
+                >
+                  {isLoadingArchive ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+              <p className="text-[8px] font-bold text-purple-500 uppercase mt-2 ml-1">
+                ℹ️ Informe ao menos o nome do aluno ou a turma para pesquisar. Máx. 200 registros por consulta.
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+              {isLoadingArchive ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultando arquivo histórico...</p>
+                </div>
+              ) : archiveSearched && archivedIncidents.length === 0 ? (
+                <div className="py-20 text-center bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
+                  <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum registro histórico encontrado</p>
+                  <p className="text-gray-300 text-[9px] mt-1">Tente outro nome ou turma</p>
+                </div>
+              ) : !archiveSearched ? (
+                <div className="py-20 text-center">
+                  <div className="text-6xl mb-4">🗄️</div>
+                  <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.2em]">Use os filtros acima para consultar</p>
+                  <p className="text-gray-300 text-[9px] mt-2">Todos os registros antigos estão preservados na nuvem</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest ml-2">{archivedIncidents.length} registro(s) encontrado(s)</p>
+                  {archivedIncidents.map(inc => (
+                    <div key={inc.id} className="p-5 bg-white border border-purple-100 rounded-[28px] shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-[11px] font-black text-purple-700 uppercase">{inc.studentName}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">{inc.classRoom}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{inc.date}</span>
+                          <StatusBadge status={inc.status} size="small" />
+                        </div>
+                        <span className="px-3 py-1 bg-purple-50 rounded-lg text-[8px] font-black text-purple-500 uppercase">{inc.category}</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-600 uppercase italic line-clamp-3">{inc.description}</p>
+                      <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase">PROF: {inc.professorName}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => generateIncidentPDF(inc, 'view')}
+                            title="Visualizar documento"
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => generateIncidentPDF(inc, 'download')}
+                            title="Baixar documento"
+                            className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
+              <button
+                onClick={() => { setShowArchiveModal(false); setArchivedIncidents([]); setArchiveSearchName(''); setArchiveSearchClass(''); setArchiveSearched(false); }}
+                className="px-12 py-4 bg-purple-700 text-white font-black text-[10px] uppercase rounded-full hover:bg-purple-800 hover:shadow-xl transition-all active:scale-95"
+              >
+                Fechar Arquivo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Gerenciamento de Professores */}
+      {showProfessorsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in shadow-2xl">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
+            <div className="bg-[#002b5c] p-6 text-center shrink-0 border-b-4 border-teal-500">
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Gerenciar Professores Autorizados</h3>
+              <p className="text-teal-400 text-[9px] font-bold mt-1 uppercase">Controle de Acesso à Plataforma</p>
+            </div>
+
+            <div className="p-8 flex-1 overflow-y-auto custom-scrollbar flex flex-col lg:flex-row gap-8">
+              {/* Formulário lateral */}
+              <div className="lg:w-1/3 space-y-6 shrink-0">
+                <form onSubmit={handleAddProfessor} className="p-6 bg-gray-50 rounded-[32px] border border-gray-100 space-y-4">
+                  <h4 className="text-[10px] font-black text-[#002b5c] uppercase text-center mb-2">Novo Professor</h4>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-2">E-mail</label>
+                    <input
+                      required
+                      type="email"
+                      value={newProfEmail}
+                      onChange={e => setNewProfEmail(e.target.value)}
+                      placeholder="exemplo@prof.educacao.sp.gov.br"
+                      className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-teal-500 transition-all text-black"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-2">Nome Completo</label>
+                    <input
+                      required
+                      type="text"
+                      value={newProfNome}
+                      onChange={e => setNewProfNome(e.target.value)}
+                      placeholder="NOME DO PROFESSOR"
+                      className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-teal-500 transition-all uppercase text-black"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isManagingProfs}
+                    className="w-full py-4 bg-teal-500 text-white font-black text-[10px] uppercase rounded-2xl hover:bg-teal-600 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                  >
+                    {isManagingProfs ? 'Salvando...' : 'Adicionar Professor'}
+                  </button>
+                  {tempPasswordToShow && (
+                    <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl mt-4 animate-fade-in shadow-sm">
+                      <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 text-center">Senha temporária gerada:</p>
+                      <span className="text-2xl font-black text-amber-800 tracking-widest block text-center mt-2">{tempPasswordToShow}</span>
+                      <p className="text-[8px] font-bold text-amber-500 uppercase mt-3 leading-relaxed text-center">
+                        ⚠️ Anote e repasse ao professor para o primeiro acesso.
+                      </p>
+                    </div>
+                  )}
+                </form>
+
+                <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                  <p className="text-[8px] font-bold text-orange-700 uppercase leading-relaxed">
+                    ⚠️ Somente professores cadastrados nesta lista poderão criar contas ou fazer login no portal.
+                  </p>
+                </div>
+              </div>
+
+              {/* Lista Principal */}
+              <div className="flex-1 min-h-[400px] flex flex-col">
+                <div className="flex justify-between items-center mb-4 px-2">
+                  <p className="text-[10px] font-black text-gray-400 uppercase">{professorsList.length} Professores Cadastrados</p>
+                </div>
+                <div className="flex-1 bg-gray-50 rounded-[32px] border border-gray-100 overflow-hidden flex flex-col">
+                  <div className="overflow-y-auto custom-scrollbar flex-1">
+                    <table className="w-full text-left text-[10px]">
+                      <thead className="bg-[#f8fafc] border-b text-black sticky top-0">
+                        <tr>
+                          <th className="p-4 font-black uppercase tracking-widest">Professor</th>
+                          <th className="p-4 font-black uppercase tracking-widest text-center">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {professorsList.map(prof => (
+                          <tr key={prof.email} className="hover:bg-blue-50/40 transition-all">
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className="font-black text-[#002b5c] uppercase">{prof.nome}</span>
+                                <span className="text-[9px] font-bold text-gray-400 tracking-tight">{prof.email}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleRemoveProfessor(prof.email)}
+                                className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
+              <button
+                onClick={() => { setShowProfessorsModal(false); setTempPasswordToShow(''); }}
+                className="px-12 py-4 bg-[#002b5c] text-white font-black text-[10px] uppercase rounded-full hover:shadow-xl transition-all active:scale-95"
+              >
+                Fechar Painel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast Dashboard ─────────────────────────────────────────────── */}
+      {dgToast && (
+        <div className={`fixed top-5 right-5 z-[9999] flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl max-w-sm transition-all animate-fade-in
+          ${dgToast.type === 'success' ? 'bg-emerald-600 text-white' :
+            dgToast.type === 'error'   ? 'bg-red-600 text-white' :
+            dgToast.type === 'warning' ? 'bg-orange-500 text-white' :
+                                         'bg-[#1e3a8a] text-white'}`}>
+          <span className="text-lg leading-none">
+            {dgToast.type === 'success' ? '✅' : dgToast.type === 'error' ? '❌' : dgToast.type === 'warning' ? '⚠️' : 'ℹ️'}
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wide leading-snug">{dgToast.msg}</span>
+          <button onClick={() => setDgToast(null)} className="ml-auto text-white/60 hover:text-white text-xs font-black">✕</button>
+        </div>
+      )}
+
+      {/* ── Confirm Dashboard ────────────────────────────────────────────── */}
+      {dgConfirm && (
+        <div className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <p className="text-center text-sm font-bold text-gray-800 uppercase tracking-wide">{dgConfirm.msg}</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { dgConfirm.onOk(); setDgConfirm(null); }} className="flex-1 py-3 bg-red-600 text-white font-black text-[10px] uppercase rounded-xl hover:bg-red-700 transition-all">Confirmar</button>
+              <button onClick={() => setDgConfirm(null)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-black text-[10px] uppercase rounded-xl hover:bg-gray-200 transition-all">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
+    </div>
+  );
+};
+
+export default Dashboard;
