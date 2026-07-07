@@ -898,7 +898,8 @@ const sortClasses = (classList: string[]): string[] => {
             </div>
 
             {/* ── TABELA DESKTOP (≥ sm) ────────────────────────────────── */}
-            <table className="hidden sm:table w-full border-collapse border border-gray-300">
+            <div className="hidden sm:block overflow-x-auto custom-scrollbar">
+            <table className="w-full min-w-[1300px] border-collapse border border-gray-300">
               <thead className="sticky top-0 bg-[#f8fafc] z-20">
                 <tr className="bg-[#1e3a8a] text-white">
                   <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-center w-[100px]">DATA</th>
@@ -911,7 +912,7 @@ const sortClasses = (classList: string[]): string[] => {
                   <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-left">ENCAMINHAMENTO</th>
                   <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-left">DESCRIÇÃO</th>
                   <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-center w-[110px]">STATUS</th>
-                  <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-center w-[110px]">AÇÕES</th>
+                  <th className="border border-gray-300 px-3 py-3 text-[9px] font-black uppercase text-center w-[150px]">AÇÕES</th>
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -988,6 +989,7 @@ const sortClasses = (classList: string[]): string[] => {
                 )}
               </tbody>
             </table>
+            </div>
           <div className="bg-[#f8fafc] px-8 py-3 border-t border-gray-300 flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-4">
               <span className="text-[9px] font-black text-gray-400 uppercase">Sistema de Ocorrências Escola LKM • v2026.1</span>
