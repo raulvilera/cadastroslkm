@@ -648,6 +648,10 @@ const App = () => {
     measureData: i.measure_data
       ? (typeof i.measure_data === 'string' ? JSON.parse(i.measure_data) : i.measure_data)
       : undefined,
+    // Triagem automática por histórico do aluno (coluna jsonb)
+    resolucao68: i.resolucao_68
+      ? (typeof i.resolucao_68 === 'string' ? JSON.parse(i.resolucao_68) : i.resolucao_68)
+      : undefined,
   });
 
   const loadCloudIncidents = async () => {
@@ -776,7 +780,8 @@ const App = () => {
           source: item.source,
           pdf_url: item.pdfUrl,
           author_email: item.authorEmail,
-          measure_data: item.measureData ? JSON.stringify(item.measureData) : null
+          measure_data: item.measureData ? JSON.stringify(item.measureData) : null,
+          resolucao_68: item.resolucao68 ? JSON.stringify(item.resolucao68) : null
         });
 
         if (!error) {
@@ -863,7 +868,8 @@ const App = () => {
             source: item.source,
             pdf_url: item.pdfUrl,
             author_email: item.authorEmail,
-            measure_data: item.measureData ? JSON.stringify(item.measureData) : null
+            measure_data: item.measureData ? JSON.stringify(item.measureData) : null,
+            resolucao_68: item.resolucao68 ? JSON.stringify(item.resolucao68) : null
           });
 
           if (error) {
