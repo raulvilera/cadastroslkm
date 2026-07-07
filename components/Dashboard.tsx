@@ -1,65 +1,4 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-
-// ── Dropdown customizado com lista colorida (azul/branco alternados) ─────────
-interface AlunoDropdownProps {
-  value: string;
-  onChange: (nome: string) => void;
-  alunos: { ra: string; nome: string }[];
-  disabled?: boolean;
-}
-const AlunoDropdown: React.FC<AlunoDropdownProps> = ({ value, onChange, alunos, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-  return (
-    <div ref={ref} className="relative w-full">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen(o => !o)}
-        className="w-full h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm disabled:opacity-50 cursor-pointer flex items-center justify-between gap-2"
-      >
-        <span className={value ? 'text-black uppercase' : 'text-gray-400'}>{value || 'Selecione o Aluno...'}</span>
-        <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute z-[200] w-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
-          <div
-            onClick={() => { onChange(''); setOpen(false); }}
-            className="px-5 py-2.5 text-xs font-bold text-gray-400 italic cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100"
-          >
-            Selecione o Aluno...
-          </div>
-          <div className="max-h-56 overflow-y-auto">
-            {alunos.map((s, idx) => (
-              <div
-                key={`${s.ra || 'sem-ra'}-${s.nome}-${idx}`}
-                onClick={() => { onChange(s.nome); setOpen(false); }}
-                className={`px-5 py-2.5 text-xs font-black uppercase cursor-pointer transition-colors
-                  ${value === s.nome
-                    ? 'bg-blue-600 text-white'
-                    : idx % 2 === 0
-                      ? 'bg-white text-gray-900 hover:bg-blue-100'
-                      : 'bg-blue-50 text-gray-900 hover:bg-blue-100'
-                  }`}
-              >
-                {s.nome}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 import type { Incident, User, Student, ManagementReferral } from '../types';
 import { generateIncidentPDF } from '../services/pdfService';
 import StatusBadge from './StatusBadge';
@@ -76,7 +15,7 @@ interface DashboardProps {
   totalIncidentsCount?: number;
   students: Student[];
   classes: string[];
-  onSave: (incident: Incident) => void;
+  onSave: (incident: Incident | Incident[]) => void;
   onDelete: (id: string) => void;
   onLogout: () => void;
   onOpenSearch: () => void;
@@ -90,10 +29,28 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCount, students, classes, onSave, onDelete, onLogout, onOpenSearch, onUpdateIncident, onSyncStudents, onLoadFullStudentHistory, onLoadArchivedIncidents, onToggleView, viewMode }) => {
   const [classRoom, setClassRoom] = useState('');
-  const [studentName, setStudentName] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [studentsInClass, setStudentsInClass] = useState<Student[]>([]);
   const [professorName, setProfessorName] = useState('');
   const [classification, setClassification] = useState('');
   const [description, setDescription] = useState('');
+
+  // ── Lista de alunos da turma selecionada (mesmo padrão da Área do Professor) ──
+  useEffect(() => {
+    if (!classRoom || students.length === 0) {
+      setStudentsInClass([]);
+      return;
+    }
+    const normClass = normalizeClassName(classRoom);
+    const filtered = students
+      .filter(s => normalizeClassName(s.turma) === normClass)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    setStudentsInClass(filtered);
+  }, [classRoom, students]);
+
+  const toggleStudent = (nome: string) => {
+    setSelectedStudents(prev => prev.includes(nome) ? prev.filter(s => s !== nome) : [...prev, nome]);
+  };
 
   // Nome automático do gestor
   useEffect(() => {
@@ -225,11 +182,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [isLoadingArchive, setIsLoadingArchive] = useState(false);
   const [archiveSearched, setArchiveSearched] = useState(false);
 
-  const ra = useMemo(() => {
-    const s = students.find(st => st.nome === studentName && st.turma === classRoom);
-    return s ? s.ra : '---';
-  }, [studentName, classRoom, students]);
-
   const fetchStudentHistory = async (student: Student) => {
     setIsLoadingHistory(true);
     setSelectedStudentForHistory(student);
@@ -321,9 +273,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName || !description || !classRoom || !classification || !professorName) {
-      dgShowToast("Preencha todos os campos obrigatórios.", "warning"); return;
-      return;
+    if (selectedStudents.length === 0 || !description || !classRoom || !classification || !professorName) {
+      dgShowToast("Preencha todos os campos obrigatórios e selecione ao menos um aluno.", "warning"); return;
     }
 
     setIsSaving(true);
@@ -381,33 +332,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       };
     }
 
-    const newInc: Incident = {
-      id: uniqueId,
-      classRoom,
-      studentName: studentName.toUpperCase(),
-      professorName: professorName.toUpperCase(),
-      ra,
-      date: formattedDate,
-      time: timeStr,
-      registerDate: formattedDate,
-      returnDate: classification === 'MEDIDA EDUCATIVA' && returnDate ? returnDate.split('-').reverse().join('/') : undefined,
-      discipline: 'N/A',
-      irregularities: '',
-      description: description.toUpperCase(),
-      severity: 'Média',
-      status: 'Pendente',
-      category: classification,
-      source: 'gestao',
-      authorEmail: user.email,
-      measureData,
-    };
+    const newIncidents: Incident[] = selectedStudents.map((nome, index) => {
+      const studentData = students.find(s => s.nome === nome && normalizeClassName(s.turma) === normalizeClassName(classRoom));
+      const ra = studentData ? studentData.ra : '---';
+      return {
+        id: index === 0 ? uniqueId : crypto.randomUUID(),
+        classRoom,
+        studentName: nome.toUpperCase(),
+        professorName: professorName.toUpperCase(),
+        ra,
+        date: formattedDate,
+        time: timeStr,
+        registerDate: formattedDate,
+        returnDate: classification === 'MEDIDA EDUCATIVA' && returnDate ? returnDate.split('-').reverse().join('/') : undefined,
+        discipline: 'N/A',
+        irregularities: '',
+        description: description.toUpperCase(),
+        severity: 'Média',
+        status: 'Pendente',
+        category: classification,
+        source: 'gestao',
+        authorEmail: user.email,
+        measureData,
+      } as Incident;
+    });
 
-    onSave(newInc);
-    setStudentName('');
-    setDescription('');
-    setReturnDate('');
-    resetMeasureFields();
-    setIsSaving(false);
+    try {
+      onSave(newIncidents);
+      dgShowToast(`${newIncidents.length} registro(s) gravado(s) com sucesso!`, 'success');
+      setSelectedStudents([]);
+      setDescription('');
+      setReturnDate('');
+      resetMeasureFields();
+    } catch (err) {
+      dgShowToast('Erro ao gravar os registros.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openUpdateModal = (inc: Incident) => {
@@ -808,13 +769,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               <div className="p-6 sm:p-10 bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
                 <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
                   <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
-                    <div className="flex flex-col gap-2 w-full lg:w-48">
+                    <div className="flex flex-col gap-2 w-full lg:w-64">
                       <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">TURMA / SÉRIE</label>
                       <select
                         value={classRoom}
                         onChange={e => {
                           setClassRoom(e.target.value);
-                          setStudentName('');
+                          setSelectedStudents([]);
+                          setStudentsInClass([]);
                           setSelectedStudentForHistory(null); // ← FIX: limpa aluno do histórico
                           setStudentHistory([]);              // ← FIX: limpa ocorrências carregadas
                         }}
@@ -824,29 +786,52 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         {classes.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
-                    <div className="flex flex-col gap-2 w-full lg:flex-1">
-                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">NOME DO ALUNO</label>
-                      <AlunoDropdown
-                        value={studentName}
-                        onChange={setStudentName}
-                        alunos={(() => {
-                          const filtered = students.filter(s => normalizeClassName(s.turma) === normalizeClassName(classRoom));
-                          const seen = new Set<string>();
-                          return filtered.filter(s => {
-                            const k = `${(s.ra || '').toLowerCase()}|${(s.nome || '').toUpperCase()}`;
-                            if (seen.has(k)) return false;
-                            seen.add(k);
-                            return true;
-                          });
-                        })()}
-                        disabled={!classRoom}
-                      />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">SELECIONE OS ALUNOS</label>
+                      <span className="text-[9px] font-black bg-white/10 text-white px-3 py-1 rounded-full uppercase">{selectedStudents.length} Selecionado(s)</span>
                     </div>
-                    <div className="flex flex-col gap-2 w-full lg:w-64">
-                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">REGISTRO DO ALUNO (RA)</label>
-                      <div className="h-12 sm:h-14 flex items-center px-6 bg-white/20 rounded-2xl font-black text-white text-xs border border-white/20 shadow-inner backdrop-blur-sm w-full">
-                        {ra}
-                      </div>
+                    <div className="w-full h-[360px] overflow-y-auto bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner">
+                      {classRoom ? studentsInClass.map((a, idx) => {
+                        const selected = selectedStudents.includes(a.nome);
+                        return (
+                          <label key={a.ra || idx} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer relative group
+                            ${selected
+                              ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_8px_20px_rgba(0,0,0,0.4)] scale-[1.02] z-10'
+                              : 'bg-gradient-to-br from-blue-900/40 to-black border-white/10 text-white/70 hover:from-blue-800/60 hover:to-black/80 hover:border-white/30'}`}>
+                            <input type="checkbox" checked={selected} onChange={() => toggleStudent(a.nome)} className="hidden" />
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-400 border-blue-400' : 'bg-transparent border-white/20 group-hover:border-white/40'}`}>
+                              {selected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
+                            </div>
+                            <span className="text-[10px] font-black uppercase truncate tracking-wide">{a.nome}</span>
+                            {selected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+                          </label>
+                        );
+                      }) : (
+                        <div className="col-span-full h-full flex flex-col items-center justify-center text-white/20 gap-4">
+                          <svg className="w-12 h-12 opacity-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                          <p className="text-[10px] font-black uppercase italic tracking-[0.2em]">Selecione uma turma para carregar os alunos</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-black/40 rounded-2xl p-4 border border-white/10 shadow-inner">
+                    <h3 className="text-yellow-400 font-black text-[9px] uppercase tracking-widest mb-3">CONFERÊNCIA DE NOMES E RAs</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {selectedStudents.length > 0 ? [...selectedStudents].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((name, i) => {
+                        const student = students.find(s => s.nome === name && normalizeClassName(s.turma) === normalizeClassName(classRoom));
+                        return (
+                          <div key={i} className="flex justify-between items-center bg-white/10 px-3 py-2 rounded-lg border border-white/5">
+                            <span className="text-[9px] font-bold text-white uppercase truncate mr-2">{name}</span>
+                            <span className="bg-yellow-400 text-blue-900 px-2 py-0.5 rounded text-[10px] font-black shadow-sm font-mono">{student?.ra}</span>
+                          </div>
+                        );
+                      }) : (
+                        <div className="col-span-full py-2 text-center text-white/20 text-[9px] font-black uppercase italic">Nenhum aluno selecionado</div>
+                      )}
                     </div>
                   </div>
 
