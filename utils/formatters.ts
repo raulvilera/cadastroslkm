@@ -24,23 +24,24 @@ export const normalizeClassName = (raw: string): string => {
         .replace(/\s+/g, " ")
         .trim();
 
-    // Regex robusta: captura número, tipo e letra
-    const match = s.match(/^(\d+)\s*(ANO|SERIE|EM)?\s*([A-Z])?$/);
+    // Regex robusta: captura número, tipo, sufixo ADM (opcional) e letra
+    const match = s.match(/^(\d+)\s*(ANO|SERIE|EM)?\s*(ADM)?\s*([A-Z])?$/);
 
     if (match) {
         const num = match[1];
         let type = match[2] || (parseInt(num) <= 3 ? 'SERIE' : 'ANO');
         if (type === 'EM') type = 'SERIE';
-        const letter = match[3] || '';
+        const adm = match[3] ? ' ADM' : '';
+        const letter = match[4] || '';
 
-        // Regra: 1-3 SERIE -> Xª SÉRIE Y
+        // Regra: 1-3 SERIE -> Xª SÉRIE [ADM] Y
         if (num === '1' || num === '2' || num === '3') {
-            return `${num}ª SÉRIE ${letter}`.trim().toUpperCase();
+            return `${num}ª SÉRIE${adm} ${letter}`.trim().toUpperCase();
         }
         // Regra: 6-9 ANO -> XºANO Y
-        return `${num}ºANO ${letter}`.trim().toUpperCase();
+        return `${num}ºANO${adm} ${letter}`.trim().toUpperCase();
     }
 
-    // Fallback: Retorna o original limpo
-    return raw.trim();
+    // Fallback: Retorna o texto já limpo (não o "raw" original) para manter consistência
+    return s;
 };
