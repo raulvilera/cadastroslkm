@@ -10,8 +10,17 @@ export interface ProfessorData {
 export const EXCLUSIVE_MANAGEMENT_EMAILS = [
     'cadastroslkm@gmail.com',
     'erineidearagao@prof.educacao.sp.gov.br',
+    'erineidearagao@professor.educacao.sp.gov.br',
     'patriciag@prof.educacao.sp.gov.br',
-    'regianecurti@prof.educacao.sp.gov.br'
+    'patriciag@professor.educacao.sp.gov.br',
+    'regianecurti@prof.educacao.sp.gov.br',
+    'alinecardoso@professor.educacao.sp.gov.br',
+    'anaosouza@professor.educacao.sp.gov.br',
+    'anaosouza@prof.educacao.sp.gov.br',
+    'deyseoliveira@professor.educacao.sp.gov.br',
+    'deyseoliveira@prof.educacao.sp.gov.br',
+    'michelepinhio@professor.educacao.sp.gov.br',
+    'michelepinhio@prof.educacao.sp.gov.br'
 ];
 
 export const PROFESSORS_DB: ProfessorData[] = [
@@ -30,6 +39,10 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'regianecurti@prof.educacao.sp.gov.br',            nome: 'REGIANE CURTI DE SOUZA OLIVEIRA - GESTÃO',role: 'gestor' },
     { email: 'michellemoraes@prof.educacao.sp.gov.br',          nome: 'MICHELLE DE MORAES ANDRADE',     role: 'professor' },
     { email: 'anaosouza@prof.educacao.sp.gov.br',               nome: 'ANA SOUZA - GESTÃO',                      role: 'gestor' },
+    { email: 'anaosouza@professor.educacao.sp.gov.br',          nome: 'ANA SOUZA - GESTÃO',                      role: 'gestor' },
+    { email: 'alinecardoso@professor.educacao.sp.gov.br',       nome: 'ALINE CARDOSO - GESTÃO',                  role: 'gestor' },
+    { email: 'patriciag@professor.educacao.sp.gov.br',          nome: 'PATRÍCIA GOMES ROCHA RIBEIRO - GESTÃO',   role: 'gestor' },
+    { email: 'erineidearagao@professor.educacao.sp.gov.br',     nome: 'ERINEIDE LEITE ARAGÃO NERY - GESTÃO',     role: 'gestor' },
 
     // ── Professores LKM ───────────────────────────────────────────────────────
     { email: 'luth@professor.educacao.sp.gov.br',               nome: 'ALEX LUTH PEREIRA MARANHÃO' },
@@ -66,8 +79,8 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'daniellopesbarbosa@prof.educacao.sp.gov.br',      nome: 'DANIEL LOPES BARBOSA' },
     { email: 'danielaflima@professor.educacao.sp.gov.br',       nome: 'DANIELA FERREIRA LIMA' },
     { email: 'danielaflima@prof.educacao.sp.gov.br',            nome: 'DANIELA FERREIRA LIMA' },
-    { email: 'deyseoliveira@professor.educacao.sp.gov.br',      nome: 'DEYSE DE MIRANDA OLIVEIRA' },
-    { email: 'deyseoliveira@prof.educacao.sp.gov.br',           nome: 'DEYSE DE MIRANDA OLIVEIRA' },
+    { email: 'deyseoliveira@professor.educacao.sp.gov.br',      nome: 'DEYSE DE MIRANDA OLIVEIRA - GESTÃO',      role: 'gestor' },
+    { email: 'deyseoliveira@prof.educacao.sp.gov.br',           nome: 'DEYSE DE MIRANDA OLIVEIRA - GESTÃO',      role: 'gestor' },
     { email: 'ediane@professor.educacao.sp.gov.br',             nome: 'EDIANE VIEIRA DA SILVA' },
     { email: 'ediane@prof.educacao.sp.gov.br',                  nome: 'EDIANE VIEIRA DA SILVA' },
     { email: 'edileusa@professor.educacao.sp.gov.br',           nome: 'EDILEUSA NUNES PEREIRA' },
@@ -134,8 +147,8 @@ export const PROFESSORS_DB: ProfessorData[] = [
     { email: 'marinafrancisco@prof.educacao.sp.gov.br',         nome: 'MARINA DA CONCEIÇÃO FRANCISCO SILVA' },
     { email: 'mauriciobsantos@professor.educacao.sp.gov.br',    nome: 'MAURÍCIO DE BARROS SANTOS' },
     { email: 'mauriciobsantos@prof.educacao.sp.gov.br',         nome: 'MAURÍCIO DE BARROS SANTOS' },
-    { email: 'michelepinhio@professor.educacao.sp.gov.br',      nome: 'MICHELE DE PINHO MORAES' },
-    { email: 'michelepinhio@prof.educacao.sp.gov.br',           nome: 'MICHELE DE PINHO MORAES' },
+    { email: 'michelepinhio@professor.educacao.sp.gov.br',      nome: 'MICHELE DE PINHO MORAES - GESTÃO',        role: 'gestor' },
+    { email: 'michelepinhio@prof.educacao.sp.gov.br',           nome: 'MICHELE DE PINHO MORAES - GESTÃO',        role: 'gestor' },
     { email: 'moisesbarros@professor.educacao.sp.gov.br',       nome: 'MOISÉS ANTÔNIO DE BARROS' },
     { email: 'moisesbarros@prof.educacao.sp.gov.br',            nome: 'MOISÉS ANTÔNIO DE BARROS' },
     { email: 'michellemio@professor.educacao.sp.gov.br',       nome: 'MICHELLE MARTINS MIO' },
