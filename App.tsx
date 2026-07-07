@@ -59,11 +59,20 @@ class ProfessorErrorBoundary extends React.Component<
 const GESTAO_EMAILS_HARDCODED = [
   'cadastroslkm@gmail.com',
   'erineidearagao@prof.educacao.sp.gov.br',
+  'erineidearagao@professor.educacao.sp.gov.br',
   'patriciag@prof.educacao.sp.gov.br',
+  'patriciag@professor.educacao.sp.gov.br',
   'regianecurti@prof.educacao.sp.gov.br',
   'deizylaura@prof.educacao.sp.gov.br',
   'aline.gestao@prof.educacao.sp.gov.br',
   'gestao@escola.com',
+  'alinecardoso@professor.educacao.sp.gov.br',
+  'anaosouza@professor.educacao.sp.gov.br',
+  'anaosouza@prof.educacao.sp.gov.br',
+  'deyseoliveira@professor.educacao.sp.gov.br',
+  'deyseoliveira@prof.educacao.sp.gov.br',
+  'michelepinhio@professor.educacao.sp.gov.br',
+  'michelepinhio@prof.educacao.sp.gov.br',
 ];
 
 // E-mails com acesso duplo (gestor + professor)
