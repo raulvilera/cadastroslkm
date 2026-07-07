@@ -101,6 +101,28 @@ export interface MeasureData {
   transferenciaCautelar?: TransferenciaCautelarData;
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// Triagem automática — gerada ao receber o registro do professor, com base
+// no histórico de ocorrências do aluno, já enquadrada na Resolução SEDUC
+// nº 68/2026. É uma SUGESTÃO de apoio à decisão: a gestão sempre confirma,
+// ajusta ou substitui o enquadramento antes de formalizar a medida.
+// ════════════════════════════════════════════════════════════════════════
+export interface Resolucao68Sugestao {
+  nivelSugerido:
+    | 'OCORRÊNCIA PEDAGÓGICA'
+    | 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)'
+    | 'AFASTAMENTO PREVENTIVO TEMPORÁRIO'
+    | 'TRANSFERÊNCIA CAUTELAR';
+  reiterado: boolean;
+  qtdOcorrenciasAnteriores: number;
+  qtdEncaminhamentosPedagogicosAnteriores: number;
+  qtdAfastamentosPreventivosAnteriores: number;
+  jaTeveTransferenciaCautelar: boolean;
+  justificativa: string;
+  alertaGestao?: string; // recomendação de avaliação de medida mais grave (nunca aplicada automaticamente)
+  geradoEm: string; // ISO timestamp
+}
+
 export interface Incident {
   id: string;
   professorName?: string;
@@ -140,6 +162,9 @@ export interface Incident {
 
   // ── Dados estruturados conforme Resolução SEDUC nº 68/2026 ────────────
   measureData?: MeasureData;
+
+  // ── Triagem automática por histórico (Resolução SEDUC nº 68/2026) ─────
+  resolucao68?: Resolucao68Sugestao;
 }
 
 export type View = 'login' | 'dashboard';
