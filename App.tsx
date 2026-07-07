@@ -9,7 +9,7 @@ import { Incident, User, Student } from './types';
 
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { STUDENTS_DB } from './studentsData';
-import { saveToGoogleSheets, loadStudentsFromSheets } from './services/sheetsService';
+import { saveToGoogleSheets, loadStudentsFromSheets, checkIfUserHasRatedApp } from './services/sheetsService';
 import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
 
 // ── Error Boundary para capturar crashes do ProfessorView ────────────────────
@@ -201,6 +201,24 @@ const App = () => {
 
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [showRatingPopup, setShowRatingPopup] = useState(false);
+  // true assim que soubermos (via Sheets) que este e-mail já avaliou o app.
+  // Começa "true" (oculto) para não piscar o botão antes da checagem terminar.
+  const [hasRatedApp, setHasRatedApp] = useState(true);
+
+  // Verifica no Sheets (pela aba AVALIACOESAPP) se este e-mail já avaliou o app.
+  // Assim o botão "Avaliar App" some para quem já respondeu, mesmo em outro
+  // navegador/aparelho (o localStorage antigo só valia no mesmo dispositivo).
+  useEffect(() => {
+    let cancelled = false;
+    if (user?.email) {
+      checkIfUserHasRatedApp(user.email).then((rated) => {
+        if (!cancelled) setHasRatedApp(rated);
+      });
+    } else {
+      setHasRatedApp(true); // sem usuário logado, mantém oculto
+    }
+    return () => { cancelled = true; };
+  }, [user?.email]);
 
   // Ref que trava o user após o onLogin ser chamado.
   // Impede que qualquer evento assíncrono posterior (onAuthStateChange, TOKEN_REFRESHED)
@@ -1073,7 +1091,7 @@ const App = () => {
     onLoadArchivedIncidents: loadArchivedIncidents,
     onToggleView: hasDualAccess ? handleToggleView : undefined,
     viewMode: viewMode,
-    onOpenRating: () => setShowRatingPopup(true),
+    onOpenRating: hasRatedApp ? undefined : () => setShowRatingPopup(true),
   };
 
   // Props para a visão do professor — ocorrências filtradas pelo email
@@ -1112,7 +1130,12 @@ const App = () => {
       {/* Modal de Busca Permanente — inline para evitar dependência de arquivo externo */}
       {searchModalOpen && <SearchModalInline incidents={incidents} students={students} onClose={() => setSearchModalOpen(false)} />}
 
-      <AppRatingPopup isOpen={showRatingPopup} onClose={() => setShowRatingPopup(false)} userEmail={user?.email} />
+      <AppRatingPopup
+        isOpen={showRatingPopup}
+        onClose={() => setShowRatingPopup(false)}
+        userEmail={user?.email}
+        onRated={() => setHasRatedApp(true)}
+      />
 
       {/* Marcador de Versão e Depuração Administrativa */}
       <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
