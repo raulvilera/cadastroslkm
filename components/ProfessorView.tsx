@@ -148,6 +148,19 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
     }
   }, [classes]);
 
+  // ── Total de alunos únicos em toda a escola (deduplicado por RA/nome) ──────
+  const schoolStudentsCount = useMemo(() => {
+    const seen = new Set<string>();
+    let count = 0;
+    for (const s of students) {
+      const key = `${(s.ra || '').toLowerCase()}|${(s.nome || '').toUpperCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      count++;
+    }
+    return count;
+  }, [students]);
+
   const canActOnIncident = (inc: Incident) => {
     if (user.role === 'gestor') return true;
     // Registro com email: apenas o autor pode editar/excluir
@@ -581,9 +594,21 @@ const sortClasses = (classList: string[]): string[] => {
               </div>
 
               <div className="space-y-1">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-[10px] font-black text-white uppercase tracking-widest">SELECIONE OS ALUNOS</label>
-                  <span className="text-[9px] font-black bg-white/10 text-white px-3 py-1 rounded-full uppercase">{selectedStudents.length} Selecionado(s)</span>
+                <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="text-[10px] font-black text-white uppercase tracking-widest">SELECIONE OS ALUNOS</label>
+                    {classRoom && (
+                      <span className="text-[9px] font-black bg-blue-500/30 text-blue-200 px-3 py-1 rounded-full uppercase border border-blue-400/30">
+                        {studentsInClass.length} aluno{studentsInClass.length !== 1 ? 's' : ''} na turma
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-black bg-white/10 text-white px-3 py-1 rounded-full uppercase">{selectedStudents.length} Selecionado(s)</span>
+                    <span className="text-[9px] font-black bg-amber-400/20 text-amber-300 px-3 py-1 rounded-full uppercase border border-amber-400/30">
+                      {schoolStudentsCount} aluno{schoolStudentsCount !== 1 ? 's' : ''} na escola
+                    </span>
+                  </div>
                 </div>
                 <div className="w-full h-[450px] overflow-y-auto bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner via-blue-900/10">
                   {classRoom ? studentsInClass.map((a, idx) => {
