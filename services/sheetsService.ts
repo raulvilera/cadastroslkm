@@ -179,6 +179,24 @@ export interface AppRatingPayload {
   comentario?: string;
 }
 
+/**
+ * Verifica no backend (Apps Script) se este e-mail de professor
+ * já enviou uma avaliação do app. Usa JSONP, assim como as demais
+ * leituras (evita bloqueio de CORS).
+ */
+export const checkIfUserHasRatedApp = async (email?: string): Promise<boolean> => {
+  if (!email) return false;
+  try {
+    const url = `${GOOGLE_SCRIPT_URL}?action=checkRating&email=${encodeURIComponent(email)}`;
+    const data = await jsonpRequest(url);
+    return !!(data && data.success && data.hasRated);
+  } catch (err) {
+    console.error('Erro ao verificar se o professor já avaliou o app:', err);
+    // Em caso de falha na verificação, não bloqueia o botão (fail-open)
+    return false;
+  }
+};
+
 export const saveAppRatingToSheets = async (rating: AppRatingPayload) => {
   try {
     const now = new Date();
