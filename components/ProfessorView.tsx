@@ -3,6 +3,7 @@ import type { Incident, User, Student, ProfessorReferral } from '../types';
 import StatusBadge from './StatusBadge';
 import { getProfessorNameFromEmail } from '../professorsData';
 import { normalizeClassName } from '../utils/formatters';
+import { analisarHistoricoResolucao68, severidadeSugerida } from '../services/resolucao68Service';
 
 interface ProfessorViewProps {
   user: User;
@@ -311,19 +312,38 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
 
     const newIncidents: Incident[] = selectedStudents.map((nome, index) => {
       const studentData = students.find(s => s.nome === nome && s.turma === classRoom);
+      const ra = studentData ? studentData.ra : '---';
+
+      // ── Triagem automática: verifica o histórico de ocorrências do aluno
+      // e já devolve o registro enquadrado na Resolução SEDUC nº 68/2026 ──
+      const sugestao = analisarHistoricoResolucao68(incidents, { nome, ra, turma: classRoom });
+
+      // Só pré-preenche measureData quando a sugestão é Encaminhamento Pedagógico
+      // (as demais medidas exigem avaliação humana e ficam a cargo da gestão)
+      const measureData: Incident['measureData'] =
+        sugestao.nivelSugerido === 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)'
+          ? {
+              encaminhamentoPedagogico: {
+                atividades: ['atividades_curriculares'],
+                profissionalResponsavel: professorName.toUpperCase(),
+                reiterado: sugestao.reiterado,
+              },
+            }
+          : undefined;
+
       return {
         id: crypto.randomUUID(),
         date: formattedDate,
         professorName: professorName.toUpperCase(),
         classRoom,
         studentName: nome.toUpperCase(),
-        ra: studentData ? studentData.ra : '---',
+        ra,
         discipline: (discipline || 'N/A').toUpperCase(),
         irregularities: selectedIrregularities.length > 0 ? selectedIrregularities.join(', ') : 'NENHUMA',
         description: (description || profReferrals.find(r => r.type === 'orientacao_individual')?.description || '').toUpperCase(),
         time: timeStr,
-        category: 'OCORRÊNCIA',
-        severity: 'Média',
+        category: sugestao.nivelSugerido,
+        severity: severidadeSugerida(sugestao),
         status: 'Pendente',
         source: 'professor',
         authorEmail: user.email,
@@ -331,12 +351,23 @@ const ProfessorView: React.FC<ProfessorViewProps> = ({
         // Legado: manter campo antigo para compatibilidade
         referralType: profReferrals.length > 0 ? profReferrals[0].type : undefined,
         referralDescription: profReferrals.find(r => r.type === 'orientacao_individual')?.description,
+        measureData,
+        resolucao68: sugestao,
       } as Incident;
     });
 
     try {
       onSave(newIncidents);
-      pvShowToast(`${newIncidents.length} registro(s) gravado(s) com sucesso!`, 'success');
+      const comAlerta = newIncidents.filter(i => i.resolucao68?.alertaGestao);
+      if (comAlerta.length > 0) {
+        pvShowToast(
+          `${newIncidents.length} registro(s) gravado(s). ${comAlerta.length} aluno(s) com histórico reiterado — a gestão foi sinalizada conforme Resolução SEDUC nº 68/2026.`,
+          'warning',
+          7000
+        );
+      } else {
+        pvShowToast(`${newIncidents.length} registro(s) gravado(s) com sucesso!`, 'success');
+      }
       setSelectedStudents([]);
       setDescription('');
       setSelectedIrregularities([]);
@@ -824,6 +855,13 @@ const sortClasses = (classList: string[]): string[] => {
                     {inc.irregularities && inc.irregularities !== 'NENHUMA' && (
                       <p className="text-[9px] font-bold text-red-600 uppercase">{inc.irregularities}</p>
                     )}
+                    {/* Enquadramento — Resolução SEDUC nº 68/2026 */}
+                    {inc.resolucao68 && (
+                      <div className={`text-[8px] font-bold px-2 py-1 rounded-lg ${inc.resolucao68.alertaGestao ? 'bg-red-100 text-red-700' : inc.resolucao68.reiterado ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>
+                        {inc.category} · {inc.resolucao68.qtdOcorrenciasAnteriores} ocorrência(s) anterior(es)
+                        {inc.resolucao68.alertaGestao && <span className="block normal-case">⚠ Sinalizado à gestão</span>}
+                      </div>
+                    )}
                     {/* Linha 4: encaminhamento */}
                     {referralLabels(inc).length > 0 && (
                       <div className="flex flex-wrap gap-1">
@@ -889,7 +927,14 @@ const sortClasses = (classList: string[]): string[] => {
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-[9px] font-black text-gray-800 uppercase truncate max-w-[150px]">{inc.professorName}</td>
                     <td className="border border-gray-300 px-3 py-2 text-[9px] font-black text-center text-blue-900 uppercase bg-blue-50/20">{inc.classRoom}</td>
-                    <td className="border border-gray-300 px-3 py-2 text-[9px] font-black text-gray-900 uppercase">{inc.studentName}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-[9px] font-black text-gray-900 uppercase">
+                      {inc.studentName}
+                      {inc.resolucao68 && (
+                        <span className={`block mt-0.5 text-[7px] font-bold normal-case px-1.5 py-0.5 rounded ${inc.resolucao68.alertaGestao ? 'bg-red-100 text-red-700' : inc.resolucao68.reiterado ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>
+                          {inc.resolucao68.qtdOcorrenciasAnteriores} ocorrência(s) ant. {inc.resolucao68.alertaGestao ? '· ⚠ gestão sinalizada' : ''}
+                        </span>
+                      )}
+                    </td>
                     <td className="border border-gray-300 px-3 py-2 text-[9px] font-bold text-center text-blue-700 font-mono tracking-tighter">{inc.ra}</td>
                     <td className="border border-gray-300 px-3 py-2 text-[9px] font-bold text-gray-600 uppercase italic truncate max-w-[120px]">{inc.discipline || '---'}</td>
                     <td className="border border-gray-300 px-3 py-2 text-[9px] font-bold text-red-600 uppercase max-w-[180px] truncate">{inc.irregularities || '---'}</td>
