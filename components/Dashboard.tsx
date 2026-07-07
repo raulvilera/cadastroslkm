@@ -1164,6 +1164,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${inc.category === 'MEDIDA EDUCATIVA' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{inc.category}</span>
                         <span className="text-[9px] font-bold text-gray-500 uppercase">{inc.professorName}</span>
                       </div>
+                      {inc.resolucao68?.alertaGestao && (
+                        <div className="p-2 bg-red-50 border-l-2 border-red-500 text-red-700 font-black text-[8px] uppercase">
+                          ⚠ Resolução 68: {inc.resolucao68.qtdOcorrenciasAnteriores} ocorrência(s) anterior(es) — avaliar medida
+                        </div>
+                      )}
                       <p className="text-[9px] text-gray-600 italic leading-snug">{inc.description}</p>
                       {inc.managementFeedback && (
                         <div className="p-2 bg-teal-50 border-l-2 border-teal-500 text-teal-800 font-bold text-[8px]">DEVOLUTIVA: {inc.managementFeedback}</div>
@@ -1220,6 +1225,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                           <div className="flex flex-col">
                             <span className="font-black text-[#002b5c] uppercase">{inc.studentName}</span>
                             <span className="text-[8px] font-bold text-gray-400">RA: {inc.ra}</span>
+                            {inc.resolucao68?.alertaGestao && (
+                              <span className="mt-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[7px] font-black uppercase w-fit">
+                                ⚠ {inc.resolucao68.qtdOcorrenciasAnteriores} ocorr. ant. — avaliar medida
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="p-4 font-bold text-blue-600">{inc.classRoom}</td>
@@ -1439,6 +1449,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
             </div>
 
             <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+
+              {/* ── Triagem automática — Resolução SEDUC nº 68/2026 ─────── */}
+              {isUpdatingStatus.resolucao68 && (
+                <div className={`rounded-2xl p-4 border-2 space-y-1 ${isUpdatingStatus.resolucao68.alertaGestao ? 'bg-red-50 border-red-300' : isUpdatingStatus.resolucao68.reiterado ? 'bg-orange-50 border-orange-300' : 'bg-sky-50 border-sky-200'}`}>
+                  <p className={`text-[9px] font-black uppercase tracking-widest ${isUpdatingStatus.resolucao68.alertaGestao ? 'text-red-700' : isUpdatingStatus.resolucao68.reiterado ? 'text-orange-700' : 'text-sky-700'}`}>
+                    Triagem automática · Resolução SEDUC nº 68/2026
+                  </p>
+                  <p className="text-[10px] font-bold text-gray-700">{isUpdatingStatus.resolucao68.justificativa}</p>
+                  {isUpdatingStatus.resolucao68.alertaGestao && (
+                    <p className="text-[10px] font-black text-red-700">⚠ {isUpdatingStatus.resolucao68.alertaGestao}</p>
+                  )}
+                  <p className="text-[8px] text-gray-500 uppercase font-bold">
+                    Sugestão de apoio à decisão — a gestão deve confirmar, ajustar ou registrar a medida definitiva em "Nova Ocorrência".
+                  </p>
+                </div>
+              )}
 
               {/* Status */}
               <div className="space-y-2">
