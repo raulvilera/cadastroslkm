@@ -7,21 +7,56 @@ import { normalizeClassName } from '../utils/formatters';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDCvttoBq03jYdUL3VEGNBSBfsEs3dbERJ96zjCxXetK7vQriheJOkPStzSRIpptsw/exec';
 
 /**
+ * Carrega dados da URL do Apps Script via JSONP.
+ * JSONP contorna bloqueio de CORS porque a resposta é carregada
+ * como uma tag <script>, não como uma requisição fetch/XHR.
+ */
+const jsonpRequest = (url: string, timeoutMs = 15000): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const callbackName = `__jsonp_cb_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const script = document.createElement('script');
+    let settled = false;
+
+    const cleanup = () => {
+      delete (window as any)[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timer);
+    };
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('JSONP: tempo limite excedido ao contatar o Google Apps Script.'));
+    }, timeoutMs);
+
+    (window as any)[callbackName] = (data: any) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('JSONP: falha ao carregar o script do Google Apps Script.'));
+    };
+
+    const separator = url.includes('?') ? '&' : '?';
+    script.src = `${url}${separator}callback=${callbackName}`;
+    document.body.appendChild(script);
+  });
+};
+
+/**
  * Carrega a lista de alunos da planilha Google Sheets.
  * Aba: BANCODEDADOSGERAL
  */
 export const loadStudentsFromSheets = async (): Promise<Student[]> => {
   try {
-    const response = await fetch(`${GOOGLE_SCRIPT_URL}?sheetName=BANCODEDADOSGERAL`, {
-      method: 'GET',
-      cache: 'no-cache',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro HTTP: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await jsonpRequest(`${GOOGLE_SCRIPT_URL}?sheetName=BANCODEDADOSGERAL`);
 
     if (data.success && Array.isArray(data.students)) {
       console.log(`✅ Google Sheets: Carregados ${data.students.length} alunos`);
