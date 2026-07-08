@@ -793,7 +793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                           setSelectedStudentForHistory(null); // ← FIX: limpa aluno do histórico
                           setStudentHistory([]);              // ← FIX: limpa ocorrências carregadas
                         }}
-                        className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
+                        className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-white bg-green-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
                         <option value="">Selecione...</option>
                         {classes.map(t => <option key={t} value={t}>{t}</option>)}
