@@ -818,7 +818,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         </span>
                       </div>
                     </div>
-                    <div className="w-full h-[360px] overflow-y-auto bg-green-900 border-2 border-white rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner">
+                    <div className="w-full h-[550px] overflow-y-auto bg-green-900 border-2 border-white rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner">
                       {classRoom ? studentsInClass.map((a, idx) => {
                         const selected = selectedStudents.includes(a.nome);
                         return (
