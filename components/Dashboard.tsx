@@ -793,7 +793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                           setSelectedStudentForHistory(null); // ← FIX: limpa aluno do histórico
                           setStudentHistory([]);              // ← FIX: limpa ocorrências carregadas
                         }}
-                        className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-white bg-green-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
+                        className="h-12 sm:h-14 border-2 border-white rounded-2xl px-5 text-base text-center font-bold !text-white bg-green-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
                         <option value="" className="text-black bg-white">Selecione...</option>
                         {classes.map(t => <option key={t} value={t} className="text-black bg-white">{t}</option>)}
@@ -818,7 +818,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         </span>
                       </div>
                     </div>
-                    <div className="w-full h-[360px] overflow-y-auto bg-green-900 border border-white/10 rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner">
+                    <div className="w-full h-[360px] overflow-y-auto bg-green-900 border-2 border-white rounded-2xl p-6 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-inner">
                       {classRoom ? studentsInClass.map((a, idx) => {
                         const selected = selectedStudents.includes(a.nome);
                         return (
