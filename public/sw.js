@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lkm-gestao-v19';
+const CACHE_NAME = 'lkm-gestao-v20';
 // index.html e JS/CSS nunca são cacheados — sempre buscados da rede
 const ASSETS_TO_CACHE = [
     '/manifest.json',
