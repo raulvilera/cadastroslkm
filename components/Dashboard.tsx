@@ -10,8 +10,8 @@ import { getProfessorNameFromEmail } from '../professorsData';
 interface DashboardProps {
   user: User;
   incidents: Incident[];
-  // Total real de ocorrências da escola (contagem no banco, sem limite de 30 dias
-  // aplicado à lista carregada na tabela). Usado no card "Total de Ocorrências".
+  // Total real de ocorrÃªncias da escola (contagem no banco, sem limite de 30 dias
+  // aplicado Ã  lista carregada na tabela). Usado no card "Total de OcorrÃªncias".
   totalIncidentsCount?: number;
   students: Student[];
   classes: string[];
@@ -35,7 +35,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [classification, setClassification] = useState('');
   const [description, setDescription] = useState('');
 
-  // ── Lista de alunos da turma selecionada (mesmo padrão da Área do Professor) ──
+  // â”€â”€ Lista de alunos da turma selecionada (mesmo padrÃ£o da Ãrea do Professor) â”€â”€
   useEffect(() => {
     if (!classRoom || students.length === 0) {
       setStudentsInClass([]);
@@ -52,7 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     setSelectedStudents(prev => prev.includes(nome) ? prev.filter(s => s !== nome) : [...prev, nome]);
   };
 
-  // ── Total de alunos únicos em toda a escola (deduplicado por RA/nome) ──────
+  // â”€â”€ Total de alunos Ãºnicos em toda a escola (deduplicado por RA/nome) â”€â”€â”€â”€â”€â”€
   const schoolStudentsCount = useMemo(() => {
     const seen = new Set<string>();
     let count = 0;
@@ -65,12 +65,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     return count;
   }, [students]);
 
-  // Nome automático do gestor
+  // Nome automÃ¡tico do gestor
   useEffect(() => {
     if (user?.email) setProfessorName(getProfessorNameFromEmail(user.email));
   }, [user?.email]);
 
-  // Header fixo — altura dinâmica
+  // Header fixo â€” altura dinÃ¢mica
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(60);
   useEffect(() => {
@@ -81,7 +81,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     return () => ro.disconnect();
   }, []);
 
-  // ── Toast e Confirm internos ──────────────────────────────────────────────
+  // â”€â”€ Toast e Confirm internos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [dgToast, setDgToast] = useState<{ msg: string; type: 'success'|'error'|'info'|'warning'; id: number }|null>(null);
   const dgShowToast = (msg: string, type: 'success'|'error'|'info'|'warning' = 'info', dur = 4000) => {
     const id = Date.now(); setDgToast({ msg, type, id });
@@ -96,14 +96,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
-  // ── Resolução SEDUC nº 68/2026 — Encaminhamento Pedagógico (Estudo Dirigido) ──
+  // â”€â”€ ResoluÃ§Ã£o SEDUC nÂº 68/2026 â€” Encaminhamento PedagÃ³gico (Estudo Dirigido) â”€â”€
   const [epAtividades, setEpAtividades] = useState<string[]>([]);
   const [epEspaco, setEpEspaco] = useState('');
   const [epProfissional, setEpProfissional] = useState('');
   const [epDuracaoDias, setEpDuracaoDias] = useState('');
   const [epReiterado, setEpReiterado] = useState(false);
 
-  // ── Resolução SEDUC nº 68/2026 — Afastamento Preventivo Temporário (Art. 11/12) ──
+  // â”€â”€ ResoluÃ§Ã£o SEDUC nÂº 68/2026 â€” Afastamento Preventivo TemporÃ¡rio (Art. 11/12) â”€â”€
   const [apHipotese, setApHipotese] = useState<'I' | 'II' | 'III' | ''>('');
   const [apDataInicio, setApDataInicio] = useState('');
   const [apPrazoDias, setApPrazoDias] = useState('5');
@@ -114,7 +114,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [apOportunidadeManifestacao, setApOportunidadeManifestacao] = useState(false);
   const [apPlanoContinuidade, setApPlanoContinuidade] = useState('');
 
-  // ── Resolução SEDUC nº 68/2026 — Transferência Cautelar (Art. 13 a 22) ──────────
+  // â”€â”€ ResoluÃ§Ã£o SEDUC nÂº 68/2026 â€” TransferÃªncia Cautelar (Art. 13 a 22) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [tcEtapaAtual, setTcEtapaAtual] = useState<1 | 2 | 3 | 4 | 5>(2);
   const [tcAnaliseRisco, setTcAnaliseRisco] = useState('');
   const [tcMedidasAnteriores, setTcMedidasAnteriores] = useState('');
@@ -147,16 +147,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [newStatus, setNewStatus] = useState<Incident['status']>('Pendente');
   const [feedback, setFeedback] = useState('');
 
-  // ── Estados dos Encaminhamentos da Gestão ───────────────────────────────
-  // Cada item da lista pode ser marcado e ter uma descrição associada
+  // â”€â”€ Estados dos Encaminhamentos da GestÃ£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Cada item da lista pode ser marcado e ter uma descriÃ§Ã£o associada
   const LISTA_ENCAMINHAMENTOS_GESTAO: { label: string; popUp: boolean }[] = [
-    { label: 'Orientação individual com o estudante',                      popUp: true },
-    { label: 'Mediação de conflito realizada pela equipe gestora/POC',     popUp: true },
-    { label: 'Necessidade de acompanhamento e diálogo em casa sobre o ocorrido', popUp: true },
-    { label: 'Convocação dos responsáveis para uma reunião presencial',    popUp: true },
-    { label: 'Recorrência / medidas educativas',                           popUp: true },
-    { label: 'Orientação ao professor',                                    popUp: true },
-    { label: 'Encaminhamento à Rede Protetiva',                            popUp: true },
+    { label: 'OrientaÃ§Ã£o individual com o estudante',                      popUp: true },
+    { label: 'MediaÃ§Ã£o de conflito realizada pela equipe gestora/POC',     popUp: true },
+    { label: 'Necessidade de acompanhamento e diÃ¡logo em casa sobre o ocorrido', popUp: true },
+    { label: 'ConvocaÃ§Ã£o dos responsÃ¡veis para uma reuniÃ£o presencial',    popUp: true },
+    { label: 'RecorrÃªncia / medidas educativas',                           popUp: true },
+    { label: 'OrientaÃ§Ã£o ao professor',                                    popUp: true },
+    { label: 'Encaminhamento Ã  Rede Protetiva',                            popUp: true },
     { label: 'Busca ativa',                                                popUp: true },
     { label: 'Outros',                                                     popUp: true },
   ];
@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const [mgmtReferralDescriptions, setMgmtReferralDescriptions] = useState<Record<string, string>>({});
   const [showMgmtReferralModal, setShowMgmtReferralModal] = useState<string | null>(null); // nome do encaminhamento aberto
   const [mgmtReferralModalText, setMgmtReferralModalText] = useState('');
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [activeTab, setActiveTab] = useState<'registros' | 'estatisticas'>('registros');
 
   // Estados para Gerenciamento de Professores
@@ -180,14 +180,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   };
 
-  // Estados para Busca no Histórico Permanente
+  // Estados para Busca no HistÃ³rico Permanente
   const [showPermanentSearch, setShowPermanentSearch] = useState(false);
   const [permanentSearchTerm, setPermanentSearchTerm] = useState('');
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
   const [studentHistory, setStudentHistory] = useState<Incident[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Estados para o Arquivo Histórico (registros anteriores a 30 dias)
+  // Estados para o Arquivo HistÃ³rico (registros anteriores a 30 dias)
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archiveSearchName, setArchiveSearchName] = useState('');
   const [archiveSearchClass, setArchiveSearchClass] = useState('');
@@ -199,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     setIsLoadingHistory(true);
     setSelectedStudentForHistory(student);
     try {
-      // Usa a prop especializada que busca o histórico COMPLETO do aluno (sem filtro de data)
+      // Usa a prop especializada que busca o histÃ³rico COMPLETO do aluno (sem filtro de data)
       if (onLoadFullStudentHistory) {
         const data = await onLoadFullStudentHistory(student.ra);
         setStudentHistory(data);
@@ -240,7 +240,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         }
       }
     } catch (e) {
-      console.error("Erro ao buscar histórico:", e);
+      console.error("Erro ao buscar histÃ³rico:", e);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -257,7 +257,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       });
       setArchivedIncidents(results);
     } catch (e) {
-      console.error("Erro ao buscar arquivo histórico:", e);
+      console.error("Erro ao buscar arquivo histÃ³rico:", e);
     } finally {
       setIsLoadingArchive(false);
     }
@@ -287,7 +287,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedStudents.length === 0 || !description || !classRoom || !classification || !professorName) {
-      dgShowToast("Preencha todos os campos obrigatórios e selecione ao menos um aluno.", "warning"); return;
+      dgShowToast("Preencha todos os campos obrigatÃ³rios e selecione ao menos um aluno.", "warning"); return;
     }
 
     setIsSaving(true);
@@ -296,9 +296,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     const formattedDate = registerDate.split('-').reverse().join('/');
     const uniqueId = crypto.randomUUID();
 
-    // Monta measureData conforme a medida selecionada (Resolução SEDUC nº 68/2026)
+    // Monta measureData conforme a medida selecionada (ResoluÃ§Ã£o SEDUC nÂº 68/2026)
     let measureData: Incident['measureData'] = undefined;
-    if (classification === 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)') {
+    if (classification === 'ENCAMINHAMENTO PEDAGÃ“GICO (ESTUDO DIRIGIDO)') {
       measureData = {
         encaminhamentoPedagogico: {
           atividades: epAtividades as any,
@@ -308,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
           reiterado: epReiterado,
         }
       };
-    } else if (classification === 'AFASTAMENTO PREVENTIVO TEMPORÁRIO') {
+    } else if (classification === 'AFASTAMENTO PREVENTIVO TEMPORÃRIO') {
       measureData = {
         afastamentoPreventivo: {
           hipotese: (apHipotese || 'I') as 'I' | 'II' | 'III',
@@ -323,7 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
           oportunidadeManifestacaoAssegurada: apOportunidadeManifestacao,
         }
       };
-    } else if (classification === 'TRANSFERÊNCIA CAUTELAR') {
+    } else if (classification === 'TRANSFERÃŠNCIA CAUTELAR') {
       measureData = {
         transferenciaCautelar: {
           etapaAtual: tcEtapaAtual,
@@ -361,7 +361,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         discipline: 'N/A',
         irregularities: '',
         description: description.toUpperCase(),
-        severity: 'Média',
+        severity: 'MÃ©dia',
         status: 'Pendente',
         category: classification,
         source: 'gestao',
@@ -388,7 +388,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     setIsUpdatingStatus(inc);
     setNewStatus(inc.status);
     setFeedback(inc.managementFeedback || '');
-    // Pré-preencher encaminhamentos se já existirem
+    // PrÃ©-preencher encaminhamentos se jÃ¡ existirem
     if (inc.managementReferrals && inc.managementReferrals.length > 0) {
       setSelectedMgmtReferrals(inc.managementReferrals.map(r => r.type));
       const descs: Record<string, string> = {};
@@ -403,7 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   const handleUpdateStatus = () => {
     if (!isUpdatingStatus || !onUpdateIncident) return;
 
-    // Monta lista de encaminhamentos com descrições
+    // Monta lista de encaminhamentos com descriÃ§Ãµes
     const managementReferrals: ManagementReferral[] = selectedMgmtReferrals.map(type => ({
       type,
       description: (mgmtReferralDescriptions[type] || '').toUpperCase(),
@@ -422,14 +422,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     setIsUpdatingStatus(null);
   };
 
-  // Abre pop-up de descrição para um encaminhamento da gestão
+  // Abre pop-up de descriÃ§Ã£o para um encaminhamento da gestÃ£o
   const handleMgmtReferralClick = (tipo: string) => {
     if (selectedMgmtReferrals.includes(tipo)) {
-      // Já selecionado → abre para editar
+      // JÃ¡ selecionado â†’ abre para editar
       setMgmtReferralModalText(mgmtReferralDescriptions[tipo] || '');
       setShowMgmtReferralModal(tipo);
     } else {
-      // Novo → abre pop-up para descrever
+      // Novo â†’ abre pop-up para descrever
       setMgmtReferralModalText('');
       setShowMgmtReferralModal(tipo);
     }
@@ -489,14 +489,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       return;
     }
 
-    // 2. Garantir que está na tabela authorized_professors
+    // 2. Garantir que estÃ¡ na tabela authorized_professors
     const { error: insertError } = await supabase.from('authorized_professors').insert([
       { email: lowerEmail, nome, role: 'professor' }
     ]);
 
     if (insertError) {
       if (insertError.code === '23505') { // Code for unique violation in Postgres
-         dgShowToast("Erro: Este professor já foi adicionado.", "error"); 
+         dgShowToast("Erro: Este professor jÃ¡ foi adicionado.", "error"); 
       } else {
          dgShowToast("Erro ao autorizar professor (Banco de Dados): " + insertError.message, "error");
       }
@@ -504,7 +504,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       return;
     }
 
-    // 3. Enviar link de redefinição
+    // 3. Enviar link de redefiniÃ§Ã£o
     await supabase.auth.resetPasswordForEmail(lowerEmail, {
       redirectTo: `https://cadastroslkm.vercel.app/`,
     });
@@ -532,7 +532,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   };
 
   const handleCleanupDatabase = async () => {
-    dgAskConfirm("Esta ação removerá permanentemente alunos de turmas obsoletas. Deseja prosseguir?", async () => {
+    dgAskConfirm("Esta aÃ§Ã£o removerÃ¡ permanentemente alunos de turmas obsoletas. Deseja prosseguir?", async () => {
       setIsSaving(true);
     try {
       const { data: allStudents, error: fetchError } = await supabase
@@ -548,7 +548,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       });
 
       if (studentsToRemove.length === 0) {
-        dgShowToast("Nenhum dado obsoleto encontrado. O banco de dados já está limpo!", "info");
+        dgShowToast("Nenhum dado obsoleto encontrado. O banco de dados jÃ¡ estÃ¡ limpo!", "info");
         setIsSaving(false);
         return;
       }
@@ -568,7 +568,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
     } catch (error: any) {
       console.error("Erro na limpeza:", error);
-      dgShowToast("Erro ao realizar limpeza. Verifique as permissões.", "error");
+      dgShowToast("Erro ao realizar limpeza. Verifique as permissÃµes.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -591,7 +591,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       if (filterStatus === 'todos') {
         matchStatus = true;
       } else if (filterStatus === 'visualizada') {
-        // "Visualizada" deve incluir tanto status literal quanto a prop lastViewedAt originada da visualização do PDF
+        // "Visualizada" deve incluir tanto status literal quanto a prop lastViewedAt originada da visualizaÃ§Ã£o do PDF
         matchStatus = incStatus === 'visualizada' || !!i.lastViewedAt;
       } else {
         matchStatus = incStatus === filterStatus;
@@ -601,15 +601,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     });
   }, [incidents, searchTerm, statusFilter]);
 
-  // Quando "Todos os Status" está selecionado e não há busca ativa, mostra o TOTAL
-  // real de ocorrências da escola (contagem no banco, sem limite de 30 dias).
-  // Caso contrário (filtro de status específico ou busca), mostra a contagem dos
+  // Quando "Todos os Status" estÃ¡ selecionado e nÃ£o hÃ¡ busca ativa, mostra o TOTAL
+  // real de ocorrÃªncias da escola (contagem no banco, sem limite de 30 dias).
+  // Caso contrÃ¡rio (filtro de status especÃ­fico ou busca), mostra a contagem dos
   // registros atualmente carregados que batem com o filtro/busca.
   const displayedTotalCount = (statusFilter.toLowerCase() === 'todos' && !searchTerm.trim() && typeof totalIncidentsCount === 'number')
     ? totalIncidentsCount
     : history.length;
 
-  // Lógica de Estatísticas
+  // LÃ³gica de EstatÃ­sticas
   const stats = useMemo(() => {
     const classCount: Record<string, number> = {};
     const studentCount: Record<string, { count: number, turma: string }> = {};
@@ -641,7 +641,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         profCount[inc.professorName] = (profCount[inc.professorName] || 0) + 1;
       }
 
-      // Top Gestores (Apenas registros de gestão)
+      // Top Gestores (Apenas registros de gestÃ£o)
       if (inc.source === 'gestao' && inc.professorName) {
         managerCount[inc.professorName] = (managerCount[inc.professorName] || 0) + 1;
       }
@@ -670,29 +670,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
   }, [incidents]);
 
   const pedagogicalGuide: Record<string, string[]> = {
-    'OCORRÊNCIA DISCIPLINAR / PEDAGÓGICA (Nível I/II)': [
-      'Acolhimento e escuta dos envolvidos (Art. 7º, I)',
-      'Repactuação de compromisso e plano individual de acompanhamento (Art. 7º, III)',
-      'Mediação de conflitos e práticas restaurativas (Art. 7º, VI)',
-      'Articulação com a família ou responsáveis legais (Art. 7º, IV)'
+    'OCORRÃŠNCIA DISCIPLINAR / PEDAGÃ“GICA (NÃ­vel I/II)': [
+      'Acolhimento e escuta dos envolvidos (Art. 7Âº, I)',
+      'RepactuaÃ§Ã£o de compromisso e plano individual de acompanhamento (Art. 7Âº, III)',
+      'MediaÃ§Ã£o de conflitos e prÃ¡ticas restaurativas (Art. 7Âº, VI)',
+      'ArticulaÃ§Ã£o com a famÃ­lia ou responsÃ¡veis legais (Art. 7Âº, IV)'
     ],
-    'ENCAMINHAMENTO PEDAGÓGICO — ESTUDO DIRIGIDO (Art. 7º, IX)': [
-      'Retirada pontual da sala, sob supervisão da equipe gestora (Art. 7º, IX)',
-      'Leitura orientada e produção escrita reflexiva (Art. 8º, I e II)',
-      'Atividades curriculares orientadas e continuidade da aprendizagem (Art. 8º, III)',
-      'Vedada utilização como castigo ou segregação (Art. 7º, § 6º)'
+    'ENCAMINHAMENTO PEDAGÃ“GICO â€” ESTUDO DIRIGIDO (Art. 7Âº, IX)': [
+      'Retirada pontual da sala, sob supervisÃ£o da equipe gestora (Art. 7Âº, IX)',
+      'Leitura orientada e produÃ§Ã£o escrita reflexiva (Art. 8Âº, I e II)',
+      'Atividades curriculares orientadas e continuidade da aprendizagem (Art. 8Âº, III)',
+      'Vedada utilizaÃ§Ã£o como castigo ou segregaÃ§Ã£o (Art. 7Âº, Â§ 6Âº)'
     ],
-    'AFASTAMENTO PREVENTIVO TEMPORÁRIO (Nível III)': [
-      'Cabível apenas quando a permanência representar risco concreto (Art. 11)',
-      'Prazo inicial máximo de 5 dias letivos, prorrogável (Art. 11, §§ 5º a 7º)',
-      'Comunicação imediata à família, à URE e à rede protetiva (Art. 12)',
-      'Continuidade pedagógica obrigatória durante o período (Art. 11, § 3º)'
+    'AFASTAMENTO PREVENTIVO TEMPORÃRIO (NÃ­vel III)': [
+      'CabÃ­vel apenas quando a permanÃªncia representar risco concreto (Art. 11)',
+      'Prazo inicial mÃ¡ximo de 5 dias letivos, prorrogÃ¡vel (Art. 11, Â§Â§ 5Âº a 7Âº)',
+      'ComunicaÃ§Ã£o imediata Ã  famÃ­lia, Ã  URE e Ã  rede protetiva (Art. 12)',
+      'Continuidade pedagÃ³gica obrigatÃ³ria durante o perÃ­odo (Art. 11, Â§ 3Âº)'
     ],
-    'TRANSFERÊNCIA CAUTELAR (Nível III — excepcional)': [
-      'Exige relatório circunstanciado com 12 itens obrigatórios (Art. 15)',
-      'Apreciação e deliberação pelo Conselho de Escola (Art. 16)',
-      'Contraditório, ampla defesa e notificação formal (Art. 17)',
-      'Efetivação e acolhimento acompanhados pela URE (Art. 19 a 22)'
+    'TRANSFERÃŠNCIA CAUTELAR (NÃ­vel III â€” excepcional)': [
+      'Exige relatÃ³rio circunstanciado com 12 itens obrigatÃ³rios (Art. 15)',
+      'ApreciaÃ§Ã£o e deliberaÃ§Ã£o pelo Conselho de Escola (Art. 16)',
+      'ContraditÃ³rio, ampla defesa e notificaÃ§Ã£o formal (Art. 17)',
+      'EfetivaÃ§Ã£o e acolhimento acompanhados pela URE (Art. 19 a 22)'
     ]
   };
 
@@ -700,24 +700,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 font-sans pb-12 overflow-x-hidden" style={{ paddingTop: headerHeight }}>
       <header ref={headerRef} className="bg-gradient-to-r from-black to-blue-900 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row justify-between items-center border-b border-white/10 fixed top-0 left-0 right-0 z-[50] shadow-xl gap-2 sm:gap-0">
         <div className="flex flex-col items-center sm:items-start">
-          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃO LYDIA KITZ MOREIRA 2026</h1>
+          <h1 className="text-xs sm:text-sm font-black uppercase tracking-widest text-blue-400 text-center sm:text-left">GESTÃƒO LYDIA KITZ MOREIRA 2026</h1>
           <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase">Painel de Controle Administrativo</p>
         </div>
         <div className="flex gap-4 sm:gap-6 items-center flex-wrap justify-end">
           <div className="hidden md:flex flex-col items-end">
             <span className="text-[10px] font-black uppercase">{user.email}</span>
-            <span className="text-[8px] font-bold text-orange-500 uppercase">Nível: Administrador</span>
+            <span className="text-[8px] font-bold text-orange-500 uppercase">NÃ­vel: Administrador</span>
           </div>
           {onToggleView && (
             <button
               onClick={onToggleView}
               className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-              title={`Alternar para área ${viewMode === 'gestor' ? 'do professor' : 'da gestão'}`}
+              title={`Alternar para Ã¡rea ${viewMode === 'gestor' ? 'do professor' : 'da gestÃ£o'}`}
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
-              {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como Gestão'}
+              {viewMode === 'gestor' ? 'Ver como Professor' : 'Ver como GestÃ£o'}
             </button>
           )}
           <button onClick={onLogout} className="bg-white hover:bg-red-50 text-[#002b5c] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95">Sair</button>
@@ -744,30 +744,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
             <button
               onClick={() => { setShowArchiveModal(true); setArchiveSearched(false); setArchivedIncidents([]); }}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2"
-              title="Consultar registros históricos"
+              title="Consultar registros histÃ³ricos"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12" />
               </svg>
-              Arquivo Histórico
+              Arquivo HistÃ³rico
             </button>
           )}
         </div>
       </header>
 
-      {/* Navegação de Abas Principal */}
+      {/* NavegaÃ§Ã£o de Abas Principal */}
       <nav className="max-w-[1700px] mx-auto mt-6 px-4 sm:px-6 flex gap-4">
         <button
           onClick={() => setActiveTab('registros')}
           className={`flex-1 sm:flex-none px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all shadow-lg ${activeTab === 'registros' ? 'bg-teal-500 text-white border-b-4 border-teal-700' : 'bg-white/10 text-white/40 hover:bg-white/20'}`}
         >
-          📄 Registros e Lançamentos
+          ðŸ“„ Registros e LanÃ§amentos
         </button>
         <button
           onClick={() => setActiveTab('estatisticas')}
           className={`flex-1 sm:flex-none px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all shadow-lg ${activeTab === 'estatisticas' ? 'bg-orange-500 text-white border-b-4 border-orange-700 animate-pulse' : 'bg-white/10 text-white/40 hover:bg-white/20'}`}
         >
-          📊 Dashboard Analytics
+          ðŸ“Š Dashboard Analytics
         </button>
       </nav>
 
@@ -783,15 +783,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                 <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
                   <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
                     <div className="flex flex-col gap-2 w-full lg:w-64">
-                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">TURMA / SÉRIE</label>
+                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">TURMA / SÃ‰RIE</label>
                       <select
                         value={classRoom}
                         onChange={e => {
                           setClassRoom(e.target.value);
                           setSelectedStudents([]);
                           setStudentsInClass([]);
-                          setSelectedStudentForHistory(null); // ← FIX: limpa aluno do histórico
-                          setStudentHistory([]);              // ← FIX: limpa ocorrências carregadas
+                          setSelectedStudentForHistory(null); // â† FIX: limpa aluno do histÃ³rico
+                          setStudentHistory([]);              // â† FIX: limpa ocorrÃªncias carregadas
                         }}
                         className="h-12 sm:h-14 border-2 border-white rounded-2xl px-5 text-base text-center font-bold !text-white bg-green-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
@@ -825,7 +825,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                           <label key={a.ra || idx} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer relative group
                             ${selected
                               ? 'bg-gradient-to-br from-blue-600 via-blue-800 to-black border-blue-400 text-white shadow-[0_8px_20px_rgba(0,0,0,0.4)] scale-[1.02] z-10'
-                              : 'bg-gradient-to-br from-[#1a336b] to-black border-white/10 text-white/70 hover:from-blue-800 hover:to-black hover:border-white/30'}`}>
+                              : 'card-glow-idle bg-gradient-to-br from-[#1a336b] to-black border-white/10 text-white/70 hover:from-blue-800 hover:to-black hover:border-white/30'}`}
+                            style={!selected ? { animationDelay: `${-(idx % 4)}s` } : undefined}>
+
                             <input type="checkbox" checked={selected} onChange={() => toggleStudent(a.nome)} className="hidden" />
                             <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-400 border-blue-400' : 'bg-transparent border-white/20 group-hover:border-white/40'}`}>
                               {selected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
@@ -844,7 +846,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                   </div>
 
                   <div className="bg-black/40 rounded-2xl p-4 border border-white/10 shadow-inner">
-                    <h3 className="text-yellow-400 font-black text-[9px] uppercase tracking-widest mb-3">CONFERÊNCIA DE NOMES E RAs</h3>
+                    <h3 className="text-yellow-400 font-black text-[9px] uppercase tracking-widest mb-3">CONFERÃŠNCIA DE NOMES E RAs</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                       {selectedStudents.length > 0 ? [...selectedStudents].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((name, i) => {
                         const student = students.find(s => s.nome === name && normalizeClassName(s.turma) === normalizeClassName(classRoom));
@@ -862,7 +864,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
                   <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
                     <div className="flex flex-col gap-2 w-full lg:flex-1">
-                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">RESPONSÁVEL PELO REGISTRO</label>
+                      <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">RESPONSÃVEL PELO REGISTRO</label>
                       <input
                         type="text"
                         value={professorName}
@@ -879,13 +881,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         className="h-12 sm:h-14 border border-gray-200 rounded-2xl px-5 text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer w-full"
                       >
                         <option value="">Selecione...</option>
-                        <option value="OCORRÊNCIA DISCIPLINAR">OCORRÊNCIA DISCIPLINAR (Nível I/II)</option>
-                        <option value="OCORRÊNCIA PEDAGÓGICA">OCORRÊNCIA PEDAGÓGICA (Nível I/II)</option>
-                        <option value="ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)">ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO) — Art. 7º, IX</option>
-                        <option value="AFASTAMENTO PREVENTIVO TEMPORÁRIO">AFASTAMENTO PREVENTIVO TEMPORÁRIO — Art. 11/12 (Nível III)</option>
-                        <option value="TRANSFERÊNCIA CAUTELAR">TRANSFERÊNCIA CAUTELAR — Art. 13 a 22 (Nível III)</option>
+                        <option value="OCORRÃŠNCIA DISCIPLINAR">OCORRÃŠNCIA DISCIPLINAR (NÃ­vel I/II)</option>
+                        <option value="OCORRÃŠNCIA PEDAGÃ“GICA">OCORRÃŠNCIA PEDAGÃ“GICA (NÃ­vel I/II)</option>
+                        <option value="ENCAMINHAMENTO PEDAGÃ“GICO (ESTUDO DIRIGIDO)">ENCAMINHAMENTO PEDAGÃ“GICO (ESTUDO DIRIGIDO) â€” Art. 7Âº, IX</option>
+                        <option value="AFASTAMENTO PREVENTIVO TEMPORÃRIO">AFASTAMENTO PREVENTIVO TEMPORÃRIO â€” Art. 11/12 (NÃ­vel III)</option>
+                        <option value="TRANSFERÃŠNCIA CAUTELAR">TRANSFERÃŠNCIA CAUTELAR â€” Art. 13 a 22 (NÃ­vel III)</option>
                       </select>
-                      <p className="text-[8px] text-orange-300 font-bold uppercase ml-1">Conforme Resolução SEDUC nº 68/2026</p>
+                      <p className="text-[8px] text-orange-300 font-bold uppercase ml-1">Conforme ResoluÃ§Ã£o SEDUC nÂº 68/2026</p>
                     </div>
                   </div>
 
@@ -902,17 +904,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                     </div>
                   </div>
 
-                  {/* ════════ Resolução SEDUC nº 68/2026 — Campos por medida ════════ */}
+                  {/* â•â•â•â•â•â•â•â• ResoluÃ§Ã£o SEDUC nÂº 68/2026 â€” Campos por medida â•â•â•â•â•â•â•â• */}
 
-                  {classification === 'ENCAMINHAMENTO PEDAGÓGICO (ESTUDO DIRIGIDO)' && (
+                  {classification === 'ENCAMINHAMENTO PEDAGÃ“GICO (ESTUDO DIRIGIDO)' && (
                     <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
-                      <h3 className="text-[10px] font-black text-teal-300 uppercase tracking-widest">Estudo Dirigido — Art. 7º, IX e Art. 8º</h3>
+                      <h3 className="text-[10px] font-black text-teal-300 uppercase tracking-widest">Estudo Dirigido â€” Art. 7Âº, IX e Art. 8Âº</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
-                          { key: 'leitura_orientada', label: 'Leitura orientada e reflexão (Art. 8º, I)' },
-                          { key: 'producao_escrita_reflexiva', label: 'Produção escrita reflexiva (Art. 8º, II)' },
-                          { key: 'atividades_curriculares', label: 'Atividades curriculares orientadas (Art. 8º, III)' },
-                          { key: 'acompanhamento_profissional', label: 'Acompanhamento por profissional (Art. 8º, IV)' },
+                          { key: 'leitura_orientada', label: 'Leitura orientada e reflexÃ£o (Art. 8Âº, I)' },
+                          { key: 'producao_escrita_reflexiva', label: 'ProduÃ§Ã£o escrita reflexiva (Art. 8Âº, II)' },
+                          { key: 'atividades_curriculares', label: 'Atividades curriculares orientadas (Art. 8Âº, III)' },
+                          { key: 'acompanhamento_profissional', label: 'Acompanhamento por profissional (Art. 8Âº, IV)' },
                         ].map(opt => (
                           <label key={opt.key} className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                             <input
@@ -926,32 +928,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         ))}
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <input value={epEspaco} onChange={e => setEpEspaco(e.target.value)} placeholder="Espaço utilizado na unidade escolar" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
-                        <input value={epProfissional} onChange={e => setEpProfissional(e.target.value)} placeholder="Profissional responsável pela supervisão" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
-                        <input type="number" min={1} value={epDuracaoDias} onChange={e => setEpDuracaoDias(e.target.value)} placeholder="Duração (dias)" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input value={epEspaco} onChange={e => setEpEspaco(e.target.value)} placeholder="EspaÃ§o utilizado na unidade escolar" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input value={epProfissional} onChange={e => setEpProfissional(e.target.value)} placeholder="Profissional responsÃ¡vel pela supervisÃ£o" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input type="number" min={1} value={epDuracaoDias} onChange={e => setEpDuracaoDias(e.target.value)} placeholder="DuraÃ§Ã£o (dias)" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                       </div>
                       <label className="flex items-center gap-2 text-[10px] font-bold text-orange-300 uppercase cursor-pointer">
                         <input type="checkbox" checked={epReiterado} onChange={e => setEpReiterado(e.target.checked)} className="w-4 h-4 accent-orange-500" />
-                        Adoção reiterada (Art. 7º, § 5º) — exige comunicação à família e plano individual de acompanhamento
+                        AdoÃ§Ã£o reiterada (Art. 7Âº, Â§ 5Âº) â€” exige comunicaÃ§Ã£o Ã  famÃ­lia e plano individual de acompanhamento
                       </label>
                     </div>
                   )}
 
-                  {classification === 'AFASTAMENTO PREVENTIVO TEMPORÁRIO' && (
+                  {classification === 'AFASTAMENTO PREVENTIVO TEMPORÃRIO' && (
                     <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
-                      <h3 className="text-[10px] font-black text-orange-300 uppercase tracking-widest">Afastamento Preventivo Temporário — Art. 11 e 12</h3>
+                      <h3 className="text-[10px] font-black text-orange-300 uppercase tracking-widest">Afastamento Preventivo TemporÃ¡rio â€” Art. 11 e 12</h3>
                       <div className="flex flex-col gap-2">
-                        <label className="text-[9px] font-black text-white uppercase ml-1">Hipótese legal (Art. 11, § 1º)</label>
+                        <label className="text-[9px] font-black text-white uppercase ml-1">HipÃ³tese legal (Art. 11, Â§ 1Âº)</label>
                         <select value={apHipotese} onChange={e => setApHipotese(e.target.value as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
-                          <option value="">Selecione a hipótese...</option>
-                          <option value="I">I — Risco a terceiros (outros estudantes/profissionais)</option>
-                          <option value="II">II — Risco ao próprio estudante (retaliações, ameaças)</option>
-                          <option value="III">III — Recorrência grave / esgotamento de estratégias anteriores</option>
+                          <option value="">Selecione a hipÃ³tese...</option>
+                          <option value="I">I â€” Risco a terceiros (outros estudantes/profissionais)</option>
+                          <option value="II">II â€” Risco ao prÃ³prio estudante (retaliaÃ§Ãµes, ameaÃ§as)</option>
+                          <option value="III">III â€” RecorrÃªncia grave / esgotamento de estratÃ©gias anteriores</option>
                         </select>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black text-white uppercase ml-1">Data de início</label>
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Data de inÃ­cio</label>
                           <input type="date" value={apDataInicio} onChange={e => setApDataInicio(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -966,54 +968,54 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                           <input type="checkbox" checked={apComunicadoFamilia} onChange={e => setApComunicadoFamilia(e.target.checked)} className="w-4 h-4 accent-teal-500" />
-                          Comunicado à família/responsáveis
+                          Comunicado Ã  famÃ­lia/responsÃ¡veis
                         </label>
                         <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                           <input type="checkbox" checked={apComunicadoURE} onChange={e => setApComunicadoURE(e.target.checked)} className="w-4 h-4 accent-teal-500" />
-                          Comunicado à URE
+                          Comunicado Ã  URE
                         </label>
                         <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                           <input type="checkbox" checked={apComunicadoRedeProtetiva} onChange={e => setApComunicadoRedeProtetiva(e.target.checked)} className="w-4 h-4 accent-teal-500" />
-                          Comunicado à rede protetiva
+                          Comunicado Ã  rede protetiva
                         </label>
                         <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                           <input type="checkbox" checked={apOportunidadeManifestacao} onChange={e => setApOportunidadeManifestacao(e.target.checked)} className="w-4 h-4 accent-teal-500" />
-                          Oportunidade de manifestação assegurada (Art. 12, § 3º)
+                          Oportunidade de manifestaÃ§Ã£o assegurada (Art. 12, Â§ 3Âº)
                         </label>
                       </div>
-                      <textarea value={apPlanoContinuidade} onChange={e => setApPlanoContinuidade(e.target.value)} rows={2} placeholder="Plano de continuidade das atividades pedagógicas durante o afastamento (Art. 11, § 3º)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={apPlanoContinuidade} onChange={e => setApPlanoContinuidade(e.target.value)} rows={2} placeholder="Plano de continuidade das atividades pedagÃ³gicas durante o afastamento (Art. 11, Â§ 3Âº)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
                     </div>
                   )}
 
-                  {classification === 'TRANSFERÊNCIA CAUTELAR' && (
+                  {classification === 'TRANSFERÃŠNCIA CAUTELAR' && (
                     <div className="bg-white/10 rounded-3xl p-6 space-y-5 border border-white/20 animate-fade-in">
-                      <h3 className="text-[10px] font-black text-red-300 uppercase tracking-widest">Transferência Cautelar — Art. 13 a 22 (Relatório Circunstanciado + Ata)</h3>
+                      <h3 className="text-[10px] font-black text-red-300 uppercase tracking-widest">TransferÃªncia Cautelar â€” Art. 13 a 22 (RelatÃ³rio Circunstanciado + Ata)</h3>
                       <div className="flex flex-col gap-1">
                         <label className="text-[9px] font-black text-white uppercase ml-1">Etapa atual do procedimento (Art. 14)</label>
                         <select value={tcEtapaAtual} onChange={e => setTcEtapaAtual(Number(e.target.value) as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
-                          <option value={1}>Etapa 1 — Afastamento preventivo temporário</option>
-                          <option value={2}>Etapa 2 — Relatório circunstanciado</option>
-                          <option value={3}>Etapa 3 — Apreciação preliminar do Conselho de Escola</option>
-                          <option value={4}>Etapa 4 — Contraditório, ampla defesa e deliberação</option>
-                          <option value={5}>Etapa 5 — Efetivação e acompanhamento pela URE</option>
+                          <option value={1}>Etapa 1 â€” Afastamento preventivo temporÃ¡rio</option>
+                          <option value={2}>Etapa 2 â€” RelatÃ³rio circunstanciado</option>
+                          <option value={3}>Etapa 3 â€” ApreciaÃ§Ã£o preliminar do Conselho de Escola</option>
+                          <option value={4}>Etapa 4 â€” ContraditÃ³rio, ampla defesa e deliberaÃ§Ã£o</option>
+                          <option value={5}>Etapa 5 â€” EfetivaÃ§Ã£o e acompanhamento pela URE</option>
                         </select>
                       </div>
-                      <textarea value={tcAnaliseRisco} onChange={e => setTcAnaliseRisco(e.target.value)} rows={2} placeholder="Análise da situação atual de risco (Art. 15, IV)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
-                      <textarea value={tcMedidasAnteriores} onChange={e => setTcMedidasAnteriores(e.target.value)} rows={2} placeholder="Medidas pedagógicas/restaurativas/protetivas adotadas anteriormente (Art. 15, VI)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
-                      <textarea value={tcComunicacoesFamilia} onChange={e => setTcComunicacoesFamilia(e.target.value)} rows={2} placeholder="Comunicações já realizadas à família ou responsáveis legais (Art. 15, VII)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
-                      <textarea value={tcJustificativaTecnica} onChange={e => setTcJustificativaTecnica(e.target.value)} rows={3} placeholder="Justificativa técnica para a transferência cautelar (Art. 15, X)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcAnaliseRisco} onChange={e => setTcAnaliseRisco(e.target.value)} rows={2} placeholder="AnÃ¡lise da situaÃ§Ã£o atual de risco (Art. 15, IV)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcMedidasAnteriores} onChange={e => setTcMedidasAnteriores(e.target.value)} rows={2} placeholder="Medidas pedagÃ³gicas/restaurativas/protetivas adotadas anteriormente (Art. 15, VI)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcComunicacoesFamilia} onChange={e => setTcComunicacoesFamilia(e.target.value)} rows={2} placeholder="ComunicaÃ§Ãµes jÃ¡ realizadas Ã  famÃ­lia ou responsÃ¡veis legais (Art. 15, VII)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcJustificativaTecnica} onChange={e => setTcJustificativaTecnica(e.target.value)} rows={3} placeholder="Justificativa tÃ©cnica para a transferÃªncia cautelar (Art. 15, X)" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
 
                       <label className="flex items-center gap-2 text-[10px] font-bold text-white uppercase bg-white/10 rounded-xl px-4 py-3 cursor-pointer">
                         <input type="checkbox" checked={tcMatriculaJudicial} onChange={e => setTcMatriculaJudicial(e.target.checked)} className="w-4 h-4 accent-red-500" />
-                        Matrícula decorrente de decisão judicial (Capítulo VII)
+                        MatrÃ­cula decorrente de decisÃ£o judicial (CapÃ­tulo VII)
                       </label>
                       {tcMatriculaJudicial && (
-                        <input value={tcNumeroProcesso} onChange={e => setTcNumeroProcesso(e.target.value)} placeholder="Número do processo judicial" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
+                        <input value={tcNumeroProcesso} onChange={e => setTcNumeroProcesso(e.target.value)} placeholder="NÃºmero do processo judicial" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black text-white uppercase ml-1">Data da reunião do Conselho de Escola</label>
+                          <label className="text-[9px] font-black text-white uppercase ml-1">Data da reuniÃ£o do Conselho de Escola</label>
                           <input type="date" value={tcDataReuniaoConselho} onChange={e => setTcDataReuniaoConselho(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1022,22 +1024,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[9px] font-black text-white uppercase ml-1">Decisão do Conselho de Escola (Art. 16, § 3º)</label>
+                        <label className="text-[9px] font-black text-white uppercase ml-1">DecisÃ£o do Conselho de Escola (Art. 16, Â§ 3Âº)</label>
                         <select value={tcDecisaoConselho} onChange={e => setTcDecisaoConselho(e.target.value as any)} className="h-12 border border-gray-200 rounded-2xl px-4 text-[11px] font-bold !text-black bg-white outline-none w-full">
                           <option value="">Selecione...</option>
-                          <option value="retorno_atividades">I — Retorno às atividades presenciais, com plano de acompanhamento</option>
-                          <option value="manutencao_intensificacao_medidas">II — Manutenção/intensificação das medidas pedagógicas</option>
-                          <option value="articulacao_ure_rede_protetiva">III — Articulação com a URE e rede protetiva</option>
-                          <option value="transferencia_deliberada">IV — Transferência cautelar deliberada</option>
+                          <option value="retorno_atividades">I â€” Retorno Ã s atividades presenciais, com plano de acompanhamento</option>
+                          <option value="manutencao_intensificacao_medidas">II â€” ManutenÃ§Ã£o/intensificaÃ§Ã£o das medidas pedagÃ³gicas</option>
+                          <option value="articulacao_ure_rede_protetiva">III â€” ArticulaÃ§Ã£o com a URE e rede protetiva</option>
+                          <option value="transferencia_deliberada">IV â€” TransferÃªncia cautelar deliberada</option>
                         </select>
                       </div>
-                      <textarea value={tcFundamentacaoDecisao} onChange={e => setTcFundamentacaoDecisao(e.target.value)} rows={2} placeholder="Fundamentação da decisão do Conselho de Escola" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
+                      <textarea value={tcFundamentacaoDecisao} onChange={e => setTcFundamentacaoDecisao(e.target.value)} rows={2} placeholder="FundamentaÃ§Ã£o da decisÃ£o do Conselho de Escola" className="w-full p-4 border border-gray-200 rounded-2xl text-xs font-bold !text-black bg-white outline-none" />
 
                       {tcDecisaoConselho === 'transferencia_deliberada' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
                           <input value={tcUnidadeDestino} onChange={e => setTcUnidadeDestino(e.target.value)} placeholder="Unidade escolar de destino" className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-black text-white uppercase ml-1">Data de efetivação</label>
+                            <label className="text-[9px] font-black text-white uppercase ml-1">Data de efetivaÃ§Ã£o</label>
                             <input type="date" value={tcDataEfetivacao} onChange={e => setTcDataEfetivacao(e.target.value)} className="h-12 border border-gray-200 rounded-2xl px-4 text-xs font-bold !text-black bg-white outline-none w-full" />
                           </div>
                         </div>
@@ -1047,14 +1049,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-black text-white uppercase tracking-widest ml-1">
-                      {classification === 'TRANSFERÊNCIA CAUTELAR' ? 'CRONOLOGIA DOS FATOS (RELATÓRIO CIRCUNSTANCIADO)' : 'DESCRIÇÃO'}
+                      {classification === 'TRANSFERÃŠNCIA CAUTELAR' ? 'CRONOLOGIA DOS FATOS (RELATÃ“RIO CIRCUNSTANCIADO)' : 'DESCRIÃ‡ÃƒO'}
                     </label>
                     <textarea
                       rows={5}
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       className="w-full p-6 border border-gray-200 rounded-[28px] text-xs font-bold !text-black bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm uppercase placeholder:text-gray-300"
-                      placeholder="Relatório detalhado da ocorrência e medidas tomadas..."
+                      placeholder="RelatÃ³rio detalhado da ocorrÃªncia e medidas tomadas..."
                     ></textarea>
                   </div>
                   <div className="flex justify-center pt-4">
@@ -1079,14 +1081,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                     onClick={() => setShowPermanentSearch(true)}
                     className="text-[9px] text-teal-400 font-black uppercase text-center md:text-left hover:underline flex items-center gap-1 group"
                   >
-                    Ir para Histórico Permanente
+                    Ir para HistÃ³rico Permanente
                     <svg className="w-2.5 h-2.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
                 </div>
 
-                {/* Centro: Contador de Ocorrências (Destaque Gestão) */}
+                {/* Centro: Contador de OcorrÃªncias (Destaque GestÃ£o) */}
                 <div className="flex-1 flex justify-center order-first md:order-none z-10">
                   <div className="bg-white/5 backdrop-blur-xl border border-white/10 px-8 py-3 rounded-[24px] flex items-center gap-5 group hover:bg-white/10 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:scale-105 border-b-2 border-b-blue-500/50">
                     <div className="relative">
@@ -1094,7 +1096,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       <div className="relative w-3.5 h-3.5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)] border border-white/20"></div>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="text-[9px] font-black text-blue-200/70 uppercase tracking-[0.25em] leading-none mb-1.5 drop-shadow-sm">Total de Ocorrências</span>
+                      <span className="text-[9px] font-black text-blue-200/70 uppercase tracking-[0.25em] leading-none mb-1.5 drop-shadow-sm">Total de OcorrÃªncias</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-white text-2xl font-black leading-none tracking-tighter drop-shadow-lg">
                           {displayedTotalCount < 10 ? `0${displayedTotalCount}` : displayedTotalCount}
@@ -1133,7 +1135,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       type="text"
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="Filtrar histórico..."
+                      placeholder="Filtrar histÃ³rico..."
                       className="w-full pl-10 pr-6 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-[9px] sm:text-[10px] text-white outline-none focus:bg-white focus:text-black focus:ring-4 focus:ring-blue-500/20 transition-all shadow-inner font-bold"
                     />
                     <svg className="w-4 h-4 absolute left-3 top-3 text-white/40 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -1152,7 +1154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               <div className="bg-white rounded-b-[32px] overflow-hidden">
                 <div className="overflow-x-auto custom-scrollbar bg-gray-50/30">
 
-                {/* ── CARDS MOBILE (< sm) ───────────────────────────────── */}
+                {/* â”€â”€ CARDS MOBILE (< sm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <div className="sm:hidden flex flex-col gap-[12px] bg-gray-100/80 p-3">
                   {history.length > 0 ? history.map(inc => (
                     <div key={inc.id} className="p-4 space-y-2 rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.10)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)] transition-shadow border border-blue-100" style={{ background: 'linear-gradient(to bottom, #ffffff 60%, #dbeafe 100%)' }}>
@@ -1176,7 +1178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       </div>
                       {inc.resolucao68?.alertaGestao && (
                         <div className="p-2 bg-red-50 border-l-2 border-red-500 text-red-700 font-black text-[8px] uppercase">
-                          ⚠ Resolução 68: {inc.resolucao68.qtdOcorrenciasAnteriores} ocorrência(s) anterior(es) — avaliar medida
+                          âš  ResoluÃ§Ã£o 68: {inc.resolucao68.qtdOcorrenciasAnteriores} ocorrÃªncia(s) anterior(es) â€” avaliar medida
                         </div>
                       )}
                       <p className="text-[9px] text-gray-600 italic leading-snug">{inc.description}</p>
@@ -1206,7 +1208,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                   )}
                 </div>
 
-                {/* ── TABELA DESKTOP (≥ sm) ─────────────────────────────── */}
+                {/* â”€â”€ TABELA DESKTOP (â‰¥ sm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <table className="hidden sm:table w-full text-left text-[10px] min-w-[1200px]">
                   <thead className="bg-[#f8fafc] border-b text-black sticky top-0 z-10">
                     <tr>
@@ -1214,10 +1216,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       <th className="p-4 font-black uppercase">Status</th>
                       <th className="p-4 font-black uppercase">Aluno</th>
                       <th className="p-4 font-black uppercase">Turma</th>
-                      <th className="p-4 text-center font-black uppercase">Documento Ação</th>
+                      <th className="p-4 text-center font-black uppercase">Documento AÃ§Ã£o</th>
                       <th className="p-4 font-black uppercase">Tipo</th>
                       <th className="p-4 text-center font-black uppercase">Remover</th>
-                      <th className="p-4 font-black uppercase">Responsável</th>
+                      <th className="p-4 font-black uppercase">ResponsÃ¡vel</th>
                       <th className="p-4 font-black uppercase">Relato</th>
                     </tr>
                   </thead>
@@ -1237,7 +1239,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                             <span className="text-[8px] font-bold text-gray-400">RA: {inc.ra}</span>
                             {inc.resolucao68?.alertaGestao && (
                               <span className="mt-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[7px] font-black uppercase w-fit">
-                                ⚠ {inc.resolucao68.qtdOcorrenciasAnteriores} ocorr. ant. — avaliar medida
+                                âš  {inc.resolucao68.qtdOcorrenciasAnteriores} ocorr. ant. â€” avaliar medida
                               </span>
                             )}
                           </div>
@@ -1285,18 +1287,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
         {activeTab === 'estatisticas' && (
           <div className="animate-fade-in space-y-8 pb-10">
-            {/* Dashboard Estatístico */}
+            {/* Dashboard EstatÃ­stico */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Card Top Turmas */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
                 <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-500">
-                  <h3 className="text-white font-black text-xs uppercase tracking-widest">🏆 Turmas c/ mais Ocorrências</h3>
+                  <h3 className="text-white font-black text-xs uppercase tracking-widest">ðŸ† Turmas c/ mais OcorrÃªncias</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
                   {stats.topClasses.length > 0 ? stats.topClasses.map(([turma, count]: [string, number], _idx: number) => (
                     <div key={turma} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border-l-8 border-teal-500">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-[#002b5c]">{_idx + 1}º - {turma}</span>
+                        <span className="text-[11px] font-black text-[#002b5c]">{_idx + 1}Âº - {turma}</span>
                         <span className="text-[8px] font-bold text-gray-400 uppercase">Ambiente Escolar</span>
                       </div>
                       <span className="bg-teal-100 text-teal-600 px-4 py-2 rounded-xl font-black text-[12px]">{count}</span>
@@ -1310,7 +1312,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               {/* Card Top Alunos */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
                 <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-orange-500">
-                  <h3 className="text-white font-black text-xs uppercase tracking-widest">👤 Alunos em Foco</h3>
+                  <h3 className="text-white font-black text-xs uppercase tracking-widest">ðŸ‘¤ Alunos em Foco</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
                   {stats.topStudents.length > 0 ? stats.topStudents.map(([nome, data]: [string, {count: number, turma: string}], _idx: number) => (
@@ -1327,18 +1329,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                 </div>
               </div>
 
-              {/* Tipos de Ocorrência */}
+              {/* Tipos de OcorrÃªncia */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
                 <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-blue-500">
-                  <h3 className="text-white font-black text-xs uppercase tracking-widest">📝 Tipos mais Comuns</h3>
+                  <h3 className="text-white font-black text-xs uppercase tracking-widest">ðŸ“ Tipos mais Comuns</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
                   {stats.topTypes.length > 0 ? stats.topTypes.map(([type, count]) => {
                     const barColor = type.includes('DISCIPLINAR') ? 'bg-red-500' :
-                      type.includes('PEDAGÓGICA') ? 'bg-blue-500' :
+                      type.includes('PEDAGÃ“GICA') ? 'bg-blue-500' :
                         'bg-teal-500';
                     const textColor = type.includes('DISCIPLINAR') ? 'text-red-600' :
-                      type.includes('PEDAGÓGICA') ? 'text-blue-600' :
+                      type.includes('PEDAGÃ“GICA') ? 'text-blue-600' :
                         'text-teal-600';
 
                     return (
@@ -1362,23 +1364,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               </div>
             </div>
 
-            {/* Segunda Linha de Estatísticas: Professores e Gestores */}
+            {/* Segunda Linha de EstatÃ­sticas: Professores e Gestores */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Card Top Professores */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
                 <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-400">
-                  <h3 className="text-white font-black text-xs uppercase tracking-widest">👨‍🏫 Professores: Maior Volume</h3>
+                  <h3 className="text-white font-black text-xs uppercase tracking-widest">ðŸ‘¨â€ðŸ« Professores: Maior Volume</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
                   {stats.topProfs.length > 0 ? stats.topProfs.map(([nome, count], idx) => (
                     <div key={nome} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border-l-8 border-teal-400">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-[#002b5c] border-b border-gray-100 pb-1">{idx + 1}º - {nome}</span>
+                        <span className="text-[11px] font-black text-[#002b5c] border-b border-gray-100 pb-1">{idx + 1}Âº - {nome}</span>
                         <span className="text-[8px] font-bold text-gray-400 uppercase mt-1">Registros de Aula</span>
                       </div>
                       <div className="flex flex-col items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
                         <span className="text-teal-600 font-black text-[14px] leading-tight">{count}</span>
-                        <span className="text-[7px] font-black text-gray-400 uppercase">Ocorrências</span>
+                        <span className="text-[7px] font-black text-gray-400 uppercase">OcorrÃªncias</span>
                       </div>
                     </div>
                   )) : (
@@ -1393,41 +1395,41 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               {/* Card Top Gestores */}
               <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
                 <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-orange-400">
-                  <h3 className="text-white font-black text-xs uppercase tracking-widest">💼 Gestores: Maior Volume</h3>
+                  <h3 className="text-white font-black text-xs uppercase tracking-widest">ðŸ’¼ Gestores: Maior Volume</h3>
                 </div>
                 <div className="p-8 flex-1 flex flex-col gap-4">
                   {stats.topManagers.length > 0 ? stats.topManagers.map(([nome, count], idx) => (
                     <div key={nome} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border-l-8 border-orange-400">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-[#002b5c] border-b border-gray-100 pb-1">{idx + 1}º - {nome}</span>
+                        <span className="text-[11px] font-black text-[#002b5c] border-b border-gray-100 pb-1">{idx + 1}Âº - {nome}</span>
                         <span className="text-[8px] font-bold text-gray-400 uppercase mt-1">Registros Administrativos</span>
                       </div>
                       <div className="flex flex-col items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
                         <span className="text-orange-600 font-black text-[14px] leading-tight">{count}</span>
-                        <span className="text-[7px] font-black text-gray-400 uppercase">Ocorrências</span>
+                        <span className="text-[7px] font-black text-gray-400 uppercase">OcorrÃªncias</span>
                       </div>
                     </div>
                   )) : (
                     <div className="flex flex-col items-center justify-center py-10 opacity-30">
                       <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                      <p className="text-center text-gray-500 font-bold uppercase text-[9px] tracking-widest">Nenhum registro de gestão</p>
+                      <p className="text-center text-gray-500 font-bold uppercase text-[9px] tracking-widest">Nenhum registro de gestÃ£o</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Guia de Medidas Pedagógicas */}
+            {/* Guia de Medidas PedagÃ³gicas */}
             <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/10">
               <div className="bg-gradient-to-r from-black to-blue-900 p-8 text-center border-b-4 border-teal-500">
-                <h2 className="text-white font-black text-sm uppercase tracking-widest">📚 Guia Estratégico de Medidas Pedagógicas</h2>
-                <p className="text-teal-400 text-[10px] font-bold mt-2 uppercase">Ações sugeridas conforme o Regimento Escolar e tipo de ocorrência</p>
+                <h2 className="text-white font-black text-sm uppercase tracking-widest">ðŸ“š Guia EstratÃ©gico de Medidas PedagÃ³gicas</h2>
+                <p className="text-teal-400 text-[10px] font-bold mt-2 uppercase">AÃ§Ãµes sugeridas conforme o Regimento Escolar e tipo de ocorrÃªncia</p>
               </div>
               <div className="p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
                 {Object.entries(pedagogicalGuide).map(([type, measures]) => (
                   <div key={type} className="space-y-6">
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${type.includes('DISCIPLINAR') ? 'bg-red-500' : type.includes('PEDAGÓGICA') ? 'bg-blue-500' : 'bg-teal-500'} animate-pulse`}></div>
+                      <div className={`w-3 h-3 rounded-full ${type.includes('DISCIPLINAR') ? 'bg-red-500' : type.includes('PEDAGÃ“GICA') ? 'bg-blue-500' : 'bg-teal-500'} animate-pulse`}></div>
                       <h4 className="text-[12px] font-black text-[#002b5c] uppercase tracking-tighter">{type}</h4>
                     </div>
                     <ul className="space-y-4">
@@ -1442,61 +1444,61 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                 ))}
               </div>
               <div className="bg-gray-50 p-6 text-center border-t border-gray-100 italic text-[10px] font-bold text-gray-400 uppercase">
-                * Estas medidas são sugestões e devem ser validadas pela coordenação de acordo com a gravidade e reincidência do caso.
+                * Estas medidas sÃ£o sugestÃµes e devem ser validadas pela coordenaÃ§Ã£o de acordo com a gravidade e reincidÃªncia do caso.
               </div>
             </div>
           </div>
         )}
       </main>
 
-      {/* Modal de Atualização de Status e Devolutiva */}
+      {/* Modal de AtualizaÃ§Ã£o de Status e Devolutiva */}
       {isUpdatingStatus && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in shadow-2xl">
           <div className="bg-white w-full max-w-xl rounded-[32px] overflow-hidden flex flex-col border border-white/20 max-h-[92vh]">
             <div className="bg-gradient-to-r from-black to-blue-900 p-6 text-center border-b-4 border-teal-500 shrink-0">
-              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Sinalizar Estágio da Ocorrência</h3>
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Sinalizar EstÃ¡gio da OcorrÃªncia</h3>
               <p className="text-teal-400 text-[9px] font-bold mt-1 uppercase">{isUpdatingStatus.studentName}</p>
             </div>
 
             <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
 
-              {/* ── Triagem automática — Resolução SEDUC nº 68/2026 ─────── */}
+              {/* â”€â”€ Triagem automÃ¡tica â€” ResoluÃ§Ã£o SEDUC nÂº 68/2026 â”€â”€â”€â”€â”€â”€â”€ */}
               {isUpdatingStatus.resolucao68 && (
                 <div className={`rounded-2xl p-4 border-2 space-y-1 ${isUpdatingStatus.resolucao68.alertaGestao ? 'bg-red-50 border-red-300' : isUpdatingStatus.resolucao68.reiterado ? 'bg-orange-50 border-orange-300' : 'bg-sky-50 border-sky-200'}`}>
                   <p className={`text-[9px] font-black uppercase tracking-widest ${isUpdatingStatus.resolucao68.alertaGestao ? 'text-red-700' : isUpdatingStatus.resolucao68.reiterado ? 'text-orange-700' : 'text-sky-700'}`}>
-                    Triagem automática · Resolução SEDUC nº 68/2026
+                    Triagem automÃ¡tica Â· ResoluÃ§Ã£o SEDUC nÂº 68/2026
                   </p>
                   <p className="text-[10px] font-bold text-gray-700">{isUpdatingStatus.resolucao68.justificativa}</p>
                   {isUpdatingStatus.resolucao68.alertaGestao && (
-                    <p className="text-[10px] font-black text-red-700">⚠ {isUpdatingStatus.resolucao68.alertaGestao}</p>
+                    <p className="text-[10px] font-black text-red-700">âš  {isUpdatingStatus.resolucao68.alertaGestao}</p>
                   )}
                   <p className="text-[8px] text-gray-500 uppercase font-bold">
-                    Sugestão de apoio à decisão — a gestão deve confirmar, ajustar ou registrar a medida definitiva em "Nova Ocorrência".
+                    SugestÃ£o de apoio Ã  decisÃ£o â€” a gestÃ£o deve confirmar, ajustar ou registrar a medida definitiva em "Nova OcorrÃªncia".
                   </p>
                 </div>
               )}
 
               {/* Status */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Status da Ocorrência</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Status da OcorrÃªncia</label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as any)}
                   className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] font-black outline-none focus:ring-2 focus:ring-teal-500 transition-all text-black"
                 >
-                  <option value="Pendente">🟡 PENDENTE</option>
-                  <option value="Visualizada">🔵 VISUALIZADA</option>
-                  <option value="Em Andamento">🟠 EM ANDAMENTO</option>
-                  <option value="Resolvida">🟢 RESOLVIDA</option>
+                  <option value="Pendente">ðŸŸ¡ PENDENTE</option>
+                  <option value="Visualizada">ðŸ”µ VISUALIZADA</option>
+                  <option value="Em Andamento">ðŸŸ  EM ANDAMENTO</option>
+                  <option value="Resolvida">ðŸŸ¢ RESOLVIDA</option>
                 </select>
               </div>
 
-              {/* ── ENCAMINHAMENTOS DA GESTÃO ───────────────────────────── */}
+              {/* â”€â”€ ENCAMINHAMENTOS DA GESTÃƒO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">
-                  Encaminhamentos da Gestão
+                  Encaminhamentos da GestÃ£o
                 </label>
-                <p className="text-[9px] text-gray-400 ml-2 -mt-2">Clique em cada encaminhamento para descrever a intervenção realizada</p>
+                <p className="text-[9px] text-gray-400 ml-2 -mt-2">Clique em cada encaminhamento para descrever a intervenÃ§Ã£o realizada</p>
 
                 <div className="flex flex-col gap-2">
                   {LISTA_ENCAMINHAMENTOS_GESTAO.map(({ label: tipo, popUp }) => {
@@ -1513,7 +1515,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                               {marcado && <svg viewBox="0 0 12 12" fill="none" className="w-full h-full p-0.5"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </span>
                             {tipo}
-                            {popUp && <span className="ml-2 text-[8px] text-gray-400 normal-case font-normal">(descrição)</span>}
+                            {popUp && <span className="ml-2 text-[8px] text-gray-400 normal-case font-normal">(descriÃ§Ã£o)</span>}
                           </button>
                           {marcado && (
                             <div className="flex gap-1 shrink-0">
@@ -1529,7 +1531,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         </div>
                         {marcado && mgmtReferralDescriptions[tipo] && (
                           <div className="px-4 pb-3 -mt-1">
-                            <p className="text-[9px] font-black text-purple-500 uppercase tracking-wide mb-0.5">Descrição:</p>
+                            <p className="text-[9px] font-black text-purple-500 uppercase tracking-wide mb-0.5">DescriÃ§Ã£o:</p>
                             <p className="text-[10px] text-purple-800 bg-white rounded-lg border border-purple-200 px-3 py-2 leading-relaxed">{mgmtReferralDescriptions[tipo]}</p>
                           </div>
                         )}
@@ -1538,16 +1540,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                   })}
                 </div>
               </div>
-              {/* ── FIM ENCAMINHAMENTOS ─────────────────────────────────── */}
+              {/* â”€â”€ FIM ENCAMINHAMENTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 
               {/* Justificativa / Devolutiva */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">Observações Adicionais / Devolutiva</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-2">ObservaÃ§Ãµes Adicionais / Devolutiva</label>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   rows={3}
-                  placeholder="Observações adicionais sobre o encaminhamento..."
+                  placeholder="ObservaÃ§Ãµes adicionais sobre o encaminhamento..."
                   className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-teal-500 transition-all text-black uppercase"
                 ></textarea>
               </div>
@@ -1571,23 +1573,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         </div>
       )}
 
-      {/* ── POP-UP DESCRIÇÃO DO ENCAMINHAMENTO DA GESTÃO ─────────────────── */}
+      {/* â”€â”€ POP-UP DESCRIÃ‡ÃƒO DO ENCAMINHAMENTO DA GESTÃƒO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showMgmtReferralModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-purple-900 to-purple-700 p-6 text-white">
-              <h3 className="font-black text-xs uppercase tracking-widest">Encaminhamento Gestão</h3>
+              <h3 className="font-black text-xs uppercase tracking-widest">Encaminhamento GestÃ£o</h3>
               <p className="text-purple-200 text-[9px] font-bold mt-1 uppercase leading-relaxed">{showMgmtReferralModal}</p>
             </div>
             <div className="p-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Descrição da Intervenção Realizada</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">DescriÃ§Ã£o da IntervenÃ§Ã£o Realizada</label>
                 <textarea
                   rows={5}
                   value={mgmtReferralModalText}
                   onChange={e => setMgmtReferralModalText(e.target.value)}
                   className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="Descreva detalhadamente a intervenção realizada pela equipe gestora..."
+                  placeholder="Descreva detalhadamente a intervenÃ§Ã£o realizada pela equipe gestora..."
                   autoFocus
                 />
               </div>
@@ -1610,12 +1612,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         </div>
       )}
 
-      {/* Modal de Busca no Histórico Permanente */}
+      {/* Modal de Busca no HistÃ³rico Permanente */}
       {showPermanentSearch && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in shadow-2xl">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
             <div className="bg-[#002b5c] p-6 text-center shrink-0 border-b-4 border-orange-500">
-              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Busca Criteriosa no Histórico Permanente</h3>
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Busca Criteriosa no HistÃ³rico Permanente</h3>
               <p className="text-orange-400 text-[9px] font-bold mt-1 uppercase">Localizar Aluno e Registros</p>
             </div>
 
@@ -1634,7 +1636,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                         setSelectedStudentForHistory(null);
                         setStudentHistory([]);
                       }}
-                      placeholder="(CARREGARÁ APENAS INICIAIS CORRESPONDENTES)"
+                      placeholder="(CARREGARÃ APENAS INICIAIS CORRESPONDENTES)"
                       className="w-full h-16 pl-14 pr-6 bg-gray-50 border-2 border-gray-100 rounded-3xl text-sm font-black outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all text-black uppercase tracking-wider"
                     />
                     <svg className="w-6 h-6 absolute left-5 top-5 text-gray-300 group-focus-within:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1666,7 +1668,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                   </div>
                 )}
 
-                {/* Histórico do Aluno Selecionado */}
+                {/* HistÃ³rico do Aluno Selecionado */}
                 {selectedStudentForHistory && (
                   <div className="space-y-6 animate-fade-in">
                     <div className="p-6 bg-orange-50 border border-orange-100 rounded-[32px] flex flex-col md:flex-row justify-between items-center gap-4">
@@ -1683,7 +1685,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                     </div>
 
                     <div className="space-y-4">
-                      <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Histórico Acadêmico/Disciplinar</h5>
+                      <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">HistÃ³rico AcadÃªmico/Disciplinar</h5>
                       {isLoadingHistory ? (
                         <div className="py-20 flex flex-col items-center justify-center">
                           <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1730,20 +1732,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                 }}
                 className="px-12 py-4 bg-[#002b5c] text-white font-black text-[10px] uppercase rounded-full hover:shadow-xl transition-all active:scale-95"
               >
-                Fechar Histórico
+                Fechar HistÃ³rico
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Modal: Arquivo Histórico (registros anteriores a 30 dias) ─────────── */}
+      {/* â”€â”€ Modal: Arquivo HistÃ³rico (registros anteriores a 30 dias) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
             <div className="bg-gradient-to-r from-purple-900 to-purple-700 p-6 text-center shrink-0 border-b-4 border-purple-400">
-              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">🗄️ Arquivo Histórico</h3>
-              <p className="text-purple-300 text-[9px] font-bold mt-1 uppercase">Registros anteriores a 30 dias — dados preservados na nuvem</p>
+              <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">ðŸ—„ï¸ Arquivo HistÃ³rico</h3>
+              <p className="text-purple-300 text-[9px] font-bold mt-1 uppercase">Registros anteriores a 30 dias â€” dados preservados na nuvem</p>
             </div>
 
             <div className="p-6 border-b border-gray-100 bg-purple-50/50 shrink-0">
@@ -1754,7 +1756,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                     type="text"
                     value={archiveSearchName}
                     onChange={e => setArchiveSearchName(e.target.value)}
-                    placeholder="Ex: JOÃO DA SILVA..."
+                    placeholder="Ex: JOÃƒO DA SILVA..."
                     className="w-full h-11 px-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all uppercase text-black"
                     onKeyDown={e => e.key === 'Enter' && handleArchiveSearch()}
                   />
@@ -1779,7 +1781,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                 </button>
               </div>
               <p className="text-[8px] font-bold text-purple-500 uppercase mt-2 ml-1">
-                ℹ️ Informe ao menos o nome do aluno ou a turma para pesquisar. Máx. 200 registros por consulta.
+                â„¹ï¸ Informe ao menos o nome do aluno ou a turma para pesquisar. MÃ¡x. 200 registros por consulta.
               </p>
             </div>
 
@@ -1787,18 +1789,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
               {isLoadingArchive ? (
                 <div className="py-20 flex flex-col items-center justify-center">
                   <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultando arquivo histórico...</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultando arquivo histÃ³rico...</p>
                 </div>
               ) : archiveSearched && archivedIncidents.length === 0 ? (
                 <div className="py-20 text-center bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
-                  <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum registro histórico encontrado</p>
+                  <p className="text-gray-300 font-black uppercase text-[10px] tracking-[0.2em]">Nenhum registro histÃ³rico encontrado</p>
                   <p className="text-gray-300 text-[9px] mt-1">Tente outro nome ou turma</p>
                 </div>
               ) : !archiveSearched ? (
                 <div className="py-20 text-center">
-                  <div className="text-6xl mb-4">🗄️</div>
+                  <div className="text-6xl mb-4">ðŸ—„ï¸</div>
                   <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.2em]">Use os filtros acima para consultar</p>
-                  <p className="text-gray-300 text-[9px] mt-2">Todos os registros antigos estão preservados na nuvem</p>
+                  <p className="text-gray-300 text-[9px] mt-2">Todos os registros antigos estÃ£o preservados na nuvem</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1858,11 +1860,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] overflow-hidden flex flex-col border border-white/20">
             <div className="bg-[#002b5c] p-6 text-center shrink-0 border-b-4 border-teal-500">
               <h3 className="text-white font-black text-xs uppercase tracking-[0.2em]">Gerenciar Professores Autorizados</h3>
-              <p className="text-teal-400 text-[9px] font-bold mt-1 uppercase">Controle de Acesso à Plataforma</p>
+              <p className="text-teal-400 text-[9px] font-bold mt-1 uppercase">Controle de Acesso Ã  Plataforma</p>
             </div>
 
             <div className="p-8 flex-1 overflow-y-auto custom-scrollbar flex flex-col lg:flex-row gap-8">
-              {/* Formulário lateral */}
+              {/* FormulÃ¡rio lateral */}
               <div className="lg:w-1/3 space-y-6 shrink-0">
                 <form onSubmit={handleAddProfessor} className="p-6 bg-gray-50 rounded-[32px] border border-gray-100 space-y-4">
                   <h4 className="text-[10px] font-black text-[#002b5c] uppercase text-center mb-2">Novo Professor</h4>
@@ -1897,10 +1899,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                   </button>
                   {tempPasswordToShow && (
                     <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl mt-4 animate-fade-in shadow-sm">
-                      <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 text-center">Senha temporária gerada:</p>
+                      <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 text-center">Senha temporÃ¡ria gerada:</p>
                       <span className="text-2xl font-black text-amber-800 tracking-widest block text-center mt-2">{tempPasswordToShow}</span>
                       <p className="text-[8px] font-bold text-amber-500 uppercase mt-3 leading-relaxed text-center">
-                        ⚠️ Anote e repasse ao professor para o primeiro acesso.
+                        âš ï¸ Anote e repasse ao professor para o primeiro acesso.
                       </p>
                     </div>
                   )}
@@ -1908,7 +1910,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
 
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl">
                   <p className="text-[8px] font-bold text-orange-700 uppercase leading-relaxed">
-                    ⚠️ Somente professores cadastrados nesta lista poderão criar contas ou fazer login no portal.
+                    âš ï¸ Somente professores cadastrados nesta lista poderÃ£o criar contas ou fazer login no portal.
                   </p>
                 </div>
               </div>
@@ -1924,7 +1926,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                       <thead className="bg-[#f8fafc] border-b text-black sticky top-0">
                         <tr>
                           <th className="p-4 font-black uppercase tracking-widest">Professor</th>
-                          <th className="p-4 font-black uppercase tracking-widest text-center">Ação</th>
+                          <th className="p-4 font-black uppercase tracking-widest text-center">AÃ§Ã£o</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
@@ -1965,7 +1967,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
         </div>
       )}
 
-      {/* ── Toast Dashboard ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Toast Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {dgToast && (
         <div className={`fixed top-5 right-5 z-[9999] flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl max-w-sm transition-all animate-fade-in
           ${dgToast.type === 'success' ? 'bg-emerald-600 text-white' :
@@ -1973,14 +1975,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
             dgToast.type === 'warning' ? 'bg-orange-500 text-white' :
                                          'bg-[#1e3a8a] text-white'}`}>
           <span className="text-lg leading-none">
-            {dgToast.type === 'success' ? '✅' : dgToast.type === 'error' ? '❌' : dgToast.type === 'warning' ? '⚠️' : 'ℹ️'}
+            {dgToast.type === 'success' ? 'âœ…' : dgToast.type === 'error' ? 'âŒ' : dgToast.type === 'warning' ? 'âš ï¸' : 'â„¹ï¸'}
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wide leading-snug">{dgToast.msg}</span>
-          <button onClick={() => setDgToast(null)} className="ml-auto text-white/60 hover:text-white text-xs font-black">✕</button>
+          <button onClick={() => setDgToast(null)} className="ml-auto text-white/60 hover:text-white text-xs font-black">âœ•</button>
         </div>
       )}
 
-      {/* ── Confirm Dashboard ────────────────────────────────────────────── */}
+      {/* â”€â”€ Confirm Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {dgConfirm && (
         <div className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 space-y-6">
@@ -2003,7 +2005,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
       <style>{`
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes cardGlowPulse {
+          0%   { box-shadow: 7px -7px 16px -6px rgba(56,189,248,0.55), 0 0 0 1px rgba(56,189,248,0.08); }
+          25%  { box-shadow: 7px 7px 16px -6px rgba(56,189,248,0.55), 0 0 0 1px rgba(56,189,248,0.08); }
+          50%  { box-shadow: -7px 7px 16px -6px rgba(56,189,248,0.55), 0 0 0 1px rgba(56,189,248,0.08); }
+          75%  { box-shadow: -7px -7px 16px -6px rgba(56,189,248,0.55), 0 0 0 1px rgba(56,189,248,0.08); }
+          100% { box-shadow: 7px -7px 16px -6px rgba(56,189,248,0.55), 0 0 0 1px rgba(56,189,248,0.08); }
+        }
+        .card-glow-idle { animation: cardGlowPulse 4s ease-in-out infinite; }
       `}</style>
+
     </div>
   );
 };
