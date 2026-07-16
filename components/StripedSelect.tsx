@@ -9,6 +9,8 @@ interface StripedSelectProps {
   triggerClassName?: string;
   /** Tamanho da fonte usado no botão e nas opções da lista (ex: 'text-xs', 'text-sm', 'text-base'). */
   optionTextClassName?: string;
+  /** Centraliza o texto no botão fechado e nas opções da lista (em vez de alinhar à esquerda). */
+  centered?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ const StripedSelect: React.FC<StripedSelectProps> = ({
   placeholder = 'Selecione...',
   triggerClassName = 'w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400',
   optionTextClassName = 'text-xs',
+  centered = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
@@ -74,11 +77,11 @@ const StripedSelect: React.FC<StripedSelectProps> = ({
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(o => !o)}
-        className={`${triggerClassName} flex items-center justify-between gap-2 text-left`}
+        className={`${triggerClassName} relative flex items-center`}
       >
-        <span className="truncate">{value || placeholder}</span>
+        <span className={`truncate w-full pr-6 ${centered ? 'text-center' : 'text-left'}`}>{value || placeholder}</span>
         <svg
-          className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 shrink-0 absolute right-3 top-1/2 -translate-y-1/2 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -94,7 +97,7 @@ const StripedSelect: React.FC<StripedSelectProps> = ({
           <button
             type="button"
             onClick={() => handlePick('')}
-            className={`w-full text-left px-4 py-2.5 ${optionTextClassName} font-bold text-gray-500 bg-white hover:bg-blue-100 transition-colors border-b border-gray-100`}
+            className={`w-full ${centered ? 'text-center' : 'text-left'} px-4 py-2.5 ${optionTextClassName} font-bold text-gray-500 bg-white hover:bg-blue-100 transition-colors border-b border-gray-100`}
           >
             {placeholder}
           </button>
@@ -103,7 +106,7 @@ const StripedSelect: React.FC<StripedSelectProps> = ({
               key={opt}
               type="button"
               onClick={() => handlePick(opt)}
-              className={`w-full text-left px-4 py-2.5 ${optionTextClassName} font-bold transition-colors hover:bg-blue-200
+              className={`w-full ${centered ? 'text-center' : 'text-left'} px-4 py-2.5 ${optionTextClassName} font-bold transition-colors hover:bg-blue-200
                 ${opt === value ? 'ring-2 ring-inset ring-blue-500' : ''}
                 ${idx % 2 === 0 ? 'bg-white text-black' : 'bg-blue-100 text-black'}`}
             >
