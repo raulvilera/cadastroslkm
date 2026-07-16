@@ -592,6 +592,8 @@ const sortClasses = (classList: string[]): string[] => {
                     onChange={(v) => { setClassRoom(v); setSelectedStudents([]); setStudentsInClass([]); }}
                     options={sortClasses([...new Set(classes.map(t => normalizeClassName(t)))])}
                     placeholder="Selecione a turma..."
+                    triggerClassName="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-base font-bold text-black outline-none focus:ring-2 focus:ring-blue-400"
+                    optionTextClassName="text-base"
                   />
                 </div>
               </div>
