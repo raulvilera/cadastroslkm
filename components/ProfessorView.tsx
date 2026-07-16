@@ -4,6 +4,7 @@ import StatusBadge from './StatusBadge';
 import { getProfessorNameFromEmail } from '../professorsData';
 import { normalizeClassName } from '../utils/formatters';
 import { analisarHistoricoResolucao68, severidadeSugerida } from '../services/resolucao68Service';
+import StripedSelect from './StripedSelect';
 
 interface ProfessorViewProps {
   user: User;
@@ -586,10 +587,12 @@ const sortClasses = (classList: string[]): string[] => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-white uppercase tracking-widest">TURMA / SÉRIE</label>
-                  <select value={classRoom} onChange={e => { setClassRoom(e.target.value); setSelectedStudents([]); setStudentsInClass([]); }} className="w-full h-11 px-4 bg-white border border-gray-300 rounded-xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-400">
-                    <option value="">Selecione a turma...</option>
-                    {sortClasses([...new Set(classes.map(t => normalizeClassName(t)))]).map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <StripedSelect
+                    value={classRoom}
+                    onChange={(v) => { setClassRoom(v); setSelectedStudents([]); setStudentsInClass([]); }}
+                    options={sortClasses([...new Set(classes.map(t => normalizeClassName(t)))])}
+                    placeholder="Selecione a turma..."
+                  />
                 </div>
               </div>
 
