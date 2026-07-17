@@ -339,7 +339,8 @@ const identificationBlock = (ctx: DocContext, incident: Incident) => {
   writeLabelValue(ctx, "Turma", incident.classRoom);
   writeLabelValue(ctx, "RA", incident.ra);
   writeLabelValue(ctx, "Data do registro", incident.registerDate || incident.date);
-  writeLabelValue(ctx, "Responsável pelo registro (Direção/Gestão)", incident.professorName);
+  const registroPorLabel = incident.source === 'professor' ? 'Professor(a)' : 'Direção/Gestão';
+  writeLabelValue(ctx, `Responsável pelo registro (${registroPorLabel})`, incident.professorName);
   ctx.y += sp(ctx, 2);
 };
 
