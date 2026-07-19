@@ -404,6 +404,9 @@ const buildOcorrenciaGenerica = (ctx: DocContext, incident: Incident, title: str
   }
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
+  if (incident.time) {
+    writeParagraph(ctx, `Horário do registro: ${incident.time}.`);
+  }
   writeSignatureLines(ctx, ["Assinatura do Aluno", "Assinatura do Responsável"]);
   writeSignatureLines(ctx, ["Assinatura da Direção / Gestão"]);
   writeLegalFooterNote(ctx);
