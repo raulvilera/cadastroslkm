@@ -1,0 +1,1219 @@
+import React, { useState, useEffect, useRef } from 'react';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import ProfessorView from './components/ProfessorView';
+import ResetPassword from './components/ResetPassword';
+import AppRatingPopup from './components/AppRatingPopup';
+
+import { Incident, User, Student } from './types';
+
+import { supabase, isSupabaseConfigured } from './services/supabaseClient';
+import { STUDENTS_DB } from './studentsData';
+import { saveToGoogleSheets, loadStudentsFromSheets, checkIfUserHasRatedApp } from './services/sheetsService';
+import { isProfessorRegistered, getRoleFromLocalDB } from './professorsData';
+
+// ── Error Boundary para capturar crashes do ProfessorView ────────────────────
+class ProfessorErrorBoundary extends React.Component<
+  { children: React.ReactNode; onLogout: () => void },
+  { hasError: boolean; errorMsg: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, errorMsg: '' };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, errorMsg: error?.message || 'Erro desconhecido' };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error('❌ [ProfessorView] Erro capturado pelo ErrorBoundary:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-full flex flex-col items-center justify-center text-white p-8 text-center bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
+          <div className="bg-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-5xl mb-4">⚠️</div>
+            <h2 className="text-lg font-black uppercase tracking-wider mb-2">Erro na Área do Professor</h2>
+            <p className="text-blue-200 text-[10px] uppercase tracking-widest mb-2">Ocorreu um erro inesperado ao carregar a tela.</p>
+            <p className="text-red-300 text-[9px] font-mono mb-6 bg-black/30 rounded-lg px-3 py-2">{this.state.errorMsg}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => this.setState({ hasError: false, errorMsg: '' })}
+                className="flex-1 bg-teal-500 hover:bg-teal-600 text-white py-2.5 rounded-xl font-black text-xs uppercase transition-all"
+              >Tentar Novamente</button>
+              <button
+                onClick={this.props.onLogout}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-black text-xs uppercase transition-all"
+              >Sair</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ✅ Lista hardcoded de gestores — funciona mesmo se professorsData.ts
+// tiver problema de import ou build. Fonte de verdade absoluta.
+const GESTAO_EMAILS_HARDCODED = [
+  'cadastroslkm@gmail.com',
+  'erineidearagao@prof.educacao.sp.gov.br',
+  'erineidearagao@professor.educacao.sp.gov.br',
+  'patriciag@prof.educacao.sp.gov.br',
+  'patriciag@professor.educacao.sp.gov.br',
+  'regianecurti@prof.educacao.sp.gov.br',
+  'deizylaura@prof.educacao.sp.gov.br',
+  'aline.gestao@prof.educacao.sp.gov.br',
+  'gestao@escola.com',
+  'alinecardoso@professor.educacao.sp.gov.br',
+  'anaosouza@professor.educacao.sp.gov.br',
+  'anaosouza@prof.educacao.sp.gov.br',
+  'deyseoliveira@professor.educacao.sp.gov.br',
+  'deyseoliveira@prof.educacao.sp.gov.br',
+  'michelepinhio@professor.educacao.sp.gov.br',
+  'michelepinhio@prof.educacao.sp.gov.br',
+];
+
+// E-mails com acesso duplo (gestor + professor)
+const DUAL_ACCESS_EMAILS = [
+  'vilera@prof.educacao.sp.gov.br',
+  'raulvilera@gmail.com',
+];
+
+import { normalizeClassName } from './utils/formatters';
+
+type View = 'login' | 'dashboard' | 'resetPassword' | 'unauthorized';
+type ViewMode = 'gestor' | 'professor';
+
+// ─── SearchModal inline ────────────────────────────────────────────────────
+interface SearchModalInlineProps {
+  incidents: Incident[];
+  students: Student[];
+  onClose: () => void;
+}
+const SearchModalInline: React.FC<SearchModalInlineProps> = ({ incidents, students, onClose }) => {
+  const [query, setQuery] = React.useState('');
+  const results = React.useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return { incidents: [] as Incident[], students: [] as Student[] };
+    return {
+      incidents: incidents.filter(inc =>
+        inc.studentName?.toLowerCase().includes(q) || inc.ra?.toLowerCase().includes(q) ||
+        inc.classRoom?.toLowerCase().includes(q) || inc.description?.toLowerCase().includes(q) ||
+        inc.irregularities?.toLowerCase().includes(q) || inc.professorName?.toLowerCase().includes(q) ||
+        inc.authorEmail?.toLowerCase().includes(q) || inc.date?.includes(q)
+      ),
+      students: students.filter(s =>
+        s.nome?.toLowerCase().includes(q) || s.ra?.toLowerCase().includes(q) || s.turma?.toLowerCase().includes(q)
+      ),
+    };
+  }, [query, incidents, students]);
+  const total = results.incidents.length + results.students.length;
+  const statusColor: Record<string, string> = {
+    'Pendente': 'bg-yellow-100 text-yellow-800', 'Em Análise': 'bg-blue-100 text-blue-800',
+    'Em Andamento': 'bg-blue-100 text-blue-800', 'Resolvido': 'bg-green-100 text-green-800',
+    'Resolvida': 'bg-green-100 text-green-800', 'Visualizada': 'bg-gray-100 text-gray-600',
+  };
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="bg-gradient-to-r from-teal-600 to-blue-700 rounded-t-2xl px-6 py-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <div className="flex-1">
+            <h2 className="text-white font-black text-sm uppercase tracking-widest">Busca Permanente</h2>
+            <p className="text-teal-100/70 text-[9px] font-bold uppercase">Pesquise alunos, ocorrências, turmas ou professores</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="p-4 border-b border-gray-100">
+          <div className="relative">
+            <svg className="w-4 h-4 absolute left-3 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Nome do aluno, RA, turma, professor..." className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-[11px] font-bold outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all" />
+          </div>
+          {query.trim() && <p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">{total} resultado{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}</p>}
+        </div>
+        <div className="overflow-y-auto flex-1 p-4 space-y-4">
+          {!query.trim() && (<div className="text-center py-12 text-gray-400"><svg className="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg><p className="text-[10px] font-black uppercase tracking-widest">Digite para buscar</p></div>)}
+          {query.trim() && total === 0 && <div className="text-center py-12 text-gray-400"><p className="text-[10px] font-black uppercase tracking-widest">Nenhum resultado encontrado</p></div>}
+          {results.incidents.length > 0 && (
+            <div>
+              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Ocorrências ({results.incidents.length})</h3>
+              <div className="space-y-2">
+                {results.incidents.map(inc => (
+                  <div key={inc.id} className="border border-gray-100 rounded-xl p-3 hover:border-teal-200 hover:bg-teal-50/30 transition-all">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div>
+                        <p className="font-black text-[11px] text-gray-900">{inc.studentName}</p>
+                        <p className="text-[9px] text-gray-500 font-bold">{inc.classRoom} · {inc.date}{inc.time ? ` · ${inc.time}` : ''}</p>
+                        {inc.professorName && <p className="text-[9px] text-gray-400 font-bold">Prof: {inc.professorName}</p>}
+                      </div>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${statusColor[inc.status] || 'bg-gray-100 text-gray-600'}`}>{inc.status}</span>
+                    </div>
+                    {inc.description && <p className="text-[10px] text-gray-600 mt-1 line-clamp-2">{inc.description}</p>}
+                    {inc.irregularities && <p className="text-[9px] text-orange-600 font-bold mt-1">{inc.irregularities}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {results.students.length > 0 && (
+            <div>
+              <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Alunos ({results.students.length})</h3>
+              <div className="space-y-2">
+                {results.students.map((s, i) => (
+                  <div key={s.ra || i} className="border border-gray-100 rounded-xl p-3 hover:border-blue-200 hover:bg-blue-50/30 transition-all flex items-center justify-between">
+                    <div>
+                      <p className="font-black text-[11px] text-gray-900">{s.nome}</p>
+                      <p className="text-[9px] text-gray-500 font-bold">RA: {s.ra} · Turma: {s.turma}</p>
+                    </div>
+                    <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase">{s.turma}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="border-t border-gray-100 px-6 py-3 flex justify-end">
+          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all">Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+const App = () => {
+  const [view, setView] = useState<View>('login');
+  const [user, setUser] = useState<User | null>(null);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  // Total real de ocorrências da escola (gestão + professores), obtido via consulta
+  // de contagem (sem baixar os registros) — usado no card "Total de Ocorrências".
+  const [totalIncidentsCount, setTotalIncidentsCount] = useState<number>(0);
+  // Totais reais separados por origem do registro (source), também via consulta
+  // leve de contagem — usados nos pequenos círculos de Professores/Gestão.
+  const [professorIncidentsCount, setProfessorIncidentsCount] = useState<number>(0);
+  const [managementIncidentsCount, setManagementIncidentsCount] = useState<number>(0);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estado para controlar visualização (gestor/professor) para usuários com acesso dual
+  const [viewMode, setViewMode] = useState<ViewMode>('gestor');
+
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
+  // true assim que soubermos (via Sheets) que este e-mail já avaliou o app.
+  // Começa "true" (oculto) para não piscar o botão antes da checagem terminar.
+  const [hasRatedApp, setHasRatedApp] = useState(true);
+
+  // Verifica no Sheets (pela aba AVALIACOESAPP) se este e-mail já avaliou o app.
+  // Assim o botão "Avaliar App" some para quem já respondeu, mesmo em outro
+  // navegador/aparelho (o localStorage antigo só valia no mesmo dispositivo).
+  useEffect(() => {
+    let cancelled = false;
+    if (user?.email) {
+      checkIfUserHasRatedApp(user.email).then((rated) => {
+        if (!cancelled) setHasRatedApp(rated);
+      });
+    } else {
+      setHasRatedApp(true); // sem usuário logado, mantém oculto
+    }
+    return () => { cancelled = true; };
+  }, [user?.email]);
+
+  // Ref que trava o user após o onLogin ser chamado.
+  // Impede que qualquer evento assíncrono posterior (onAuthStateChange, TOKEN_REFRESHED)
+  // sobrescreva o role já definido corretamente pelo fluxo de login.
+  const lockedUserRef = React.useRef<User | null>(null);
+
+  // Flag que indica que o Login.tsx está processando — onAuthStateChange deve ignorar
+  // eventos SIGNED_IN durante esse período para não interferir com o fluxo de login.
+  const loginInProgressRef = React.useRef<boolean>(false);
+
+  useEffect(() => {
+    let authListener: any = null;
+
+    const initApp = async () => {
+      // 1. Carregar cache de incidentes — filtrando registros de outras escolas
+      const cached = localStorage.getItem('lkm_incidents_cache');
+      if (cached) {
+        const all = JSON.parse(cached) as any[];
+        // Remove qualquer registro que não seja da LKM (ex: dados do Fioravante que possam ter
+        // ficado em cache de sessões anteriores ao isolamento por escola)
+        const lkmOnly = all.filter((i: any) => !i.escola || i.escola === 'lkm');
+        if (lkmOnly.length !== all.length) {
+          console.warn(`🧹 [CACHE] ${all.length - lkmOnly.length} registro(s) de outra escola removido(s) do cache local.`);
+          localStorage.setItem('lkm_incidents_cache', JSON.stringify(lkmOnly));
+        }
+        setIncidents(lkmOnly);
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          // O link de recuperação pode chegar como hash (#) ou query string (?).
+          // Supabase v2 envia: ?token_hash=...&type=recovery
+          // Supabase v1 enviava: #access_token=...&type=recovery
+          const _hash = window.location.hash;
+          const _search = window.location.search;
+
+          let isDuringRecovery =
+            _hash.includes('type=recovery') ||
+            _hash.includes('access_token=') ||
+            _search.includes('type=recovery') ||
+            _search.includes('token_hash=');
+
+          if (isDuringRecovery) {
+            console.log('🔑 [APP] MODO RECUPERAÇÃO ATIVADO - Bloqueando redirecionamentos');
+            setView('resetPassword');
+          }
+
+            // Função auxiliar para buscar role com timeout e fallback
+            const fetchRoleSafe = async (email: string) => {
+              const normalizedEmail = email.toLowerCase().trim();
+
+              // ✅ PRIORIDADE MÁXIMA: E-mails de gestão exclusiva NUNCA consultam o banco.
+              if (GESTAO_EMAILS_HARDCODED.includes(normalizedEmail)) {
+                console.log('🛡️ [APP] Gestão Exclusiva — role fixo gestor:', normalizedEmail);
+                return 'gestor';
+              }
+
+              // ✅ E-mail com acesso dual sempre entra como gestor no contexto do App
+              if (DUAL_ACCESS_EMAILS.includes(normalizedEmail)) {
+                console.log('🔄 [APP] Acesso dual — role gestor:', normalizedEmail);
+                return 'gestor';
+              }
+
+              // CORREÇÃO DEFINITIVA: busca SEMPRE pelo email exato.
+              // Nunca adicionar variantes de domínio — isso causava vilera@professor
+              // retornar o role de vilera@prof (gestor) por colisão na query.
+              const query = supabase
+                .from('authorized_professors')
+                .select('role')
+                .eq('email', normalizedEmail)
+                .maybeSingle();
+
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('TIMEOUT_DB')), 4000)
+              );
+
+              try {
+                const result: any = await Promise.race([query, timeoutPromise]);
+                const dbRole = result.data?.role || null;
+                if (dbRole) return dbRole;
+                return getRoleFromLocalDB(normalizedEmail);
+              } catch (e) {
+                console.warn('⚠️ [APP] Fallback local ativado para:', normalizedEmail);
+                return getRoleFromLocalDB(normalizedEmail);
+              }
+            };
+
+          // 3. Monitor de autenticação
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`[APP] Auth Event: ${event}`);
+
+            if (event === 'PASSWORD_RECOVERY') {
+              isDuringRecovery = true;
+              setView('resetPassword');
+              return;
+            }
+
+            // Evita processamento desnecessário do evento inicial
+            if (event === 'INITIAL_SESSION') return;
+
+            // ✅ Se o Login.tsx está processando, ignorar eventos SIGNED_IN/TOKEN_REFRESHED
+            // para não interferir com o fluxo de login que já determina o role corretamente.
+            if (loginInProgressRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+              console.log('⏸️ [APP] onAuthStateChange ignorado — login em progresso');
+              return;
+            }
+
+            if (session?.user) {
+              if (isDuringRecovery) {
+                setView('resetPassword');
+                return;
+              }
+
+              const sessionEmail = session.user.email!.toLowerCase();
+
+              // ✅ TRAVA DEFINITIVA: se já existe um user definido (pelo onLogin ou
+              // por uma sessão anterior), não sobrescrever em nenhuma hipótese.
+              // O role correto já foi determinado — TOKEN_REFRESHED e SIGNED_IN
+              // não devem mudar isso.
+              if (lockedUserRef.current?.email === sessionEmail) {
+                console.log('🔒 [APP] onAuthStateChange bloqueado — user travado:', sessionEmail);
+                setView('dashboard');
+                return;
+              }
+
+              // Só chega aqui se não há user definido (ex: reload da página com sessão ativa)
+              // ✅ BLINDAGEM: gestão exclusiva define 'gestor' diretamente
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || DUAL_ACCESS_EMAILS.includes(sessionEmail)) {
+                console.log('🛡️ [APP] onAuthStateChange — role fixo gestor:', sessionEmail);
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                  return { email: sessionEmail, role: 'gestor' };
+                });
+                setView('dashboard');
+                return;
+              }
+
+              const role = await fetchRoleSafe(sessionEmail);
+
+              if (role) {
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                  return { email: sessionEmail, role: role as any };
+                });
+                setView('dashboard');
+              } else {
+                console.error('❌ [APP] Usuário não autorizado:', sessionEmail);
+                await supabase.auth.signOut();
+                setUser(null);
+                setView('login');
+              }
+            } else if (event === 'SIGNED_OUT') {
+              isDuringRecovery = false;
+              setUser(null);
+              setView('login');
+            }
+          });
+
+          authListener = subscription;
+
+          // 4. Verificação inicial da sessão
+          if (!isDuringRecovery) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const sessionEmail = session.user.email!.toLowerCase();
+
+              // ✅ Mesma blindagem: gestão exclusiva e dual access nunca consultam o banco
+              if (GESTAO_EMAILS_HARDCODED.includes(sessionEmail) || DUAL_ACCESS_EMAILS.includes(sessionEmail)) {
+                console.log('🛡️ [APP] getSession — role fixo gestor:', sessionEmail);
+                setUser(prev => {
+                  if (prev?.email === sessionEmail && prev?.role === 'gestor') return prev;
+                  return { email: sessionEmail, role: 'gestor' };
+                });
+                setView('dashboard');
+              } else {
+                const role = await fetchRoleSafe(sessionEmail);
+                if (role) {
+                  setUser(prev => {
+                    if (prev?.email === sessionEmail && prev?.role === role) return prev;
+                    return { email: sessionEmail, role: role as any };
+                  });
+                  setView('dashboard');
+                } else {
+                  setUser({ email: sessionEmail, role: 'professor' });
+                  setView('unauthorized');
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Erro ao inicializar auth:", e);
+        }
+      }
+
+      // 5. Iniciar sincronização de pendentes em background (não bloqueia o loading)
+      if (navigator.onLine) {
+        syncPendingRecords().catch(() => {});
+      }
+
+      setLoading(false);
+    };
+
+    const failsafeTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    initApp();
+
+    return () => {
+      if (authListener) authListener.unsubscribe();
+      clearTimeout(failsafeTimeout);
+    };
+  }, []); // Sem dependência de [view] para evitar loop
+
+  useEffect(() => {
+    let cancelled = false; // ← FIX: evita race condition ao trocar de usuário
+
+    const loadStudentsData = async (forceSync = false) => {
+      let finalStudents: Student[] = [];
+      let loadedFromSupabase = false;
+
+      // 1. Tentar carregar do Supabase primeiro (Fonte Primária) - COM PAGINAÇÃO
+      if (isSupabaseConfigured && supabase && !forceSync) {
+        try {
+          let allData: any[] = [];
+          let errorOccurred = false;
+          let from = 0;
+          const PAGE_SIZE = 1000;
+          let hasMore = true;
+
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('students')
+              .select('*')
+              .eq('escola', 'lkm')
+              .order('nome')
+              .range(from, from + PAGE_SIZE - 1);
+
+            if (error) {
+              console.error('⚠️ Supabase Error fetching students:', error);
+              errorOccurred = true;
+              break;
+            }
+
+            if (data && data.length > 0) {
+              allData = [...allData, ...data];
+              if (data.length < PAGE_SIZE) {
+                hasMore = false;
+              } else {
+                from += PAGE_SIZE;
+              }
+            } else {
+              hasMore = false;
+            }
+          }
+
+          if (!errorOccurred && allData.length > 0) {
+            finalStudents = allData.map(s => ({
+              id: s.id,
+              nome: s.nome,
+              ra: s.ra,
+              turma: normalizeClassName(s.turma)
+            }));
+            loadedFromSupabase = true;
+            console.log(`✅ Supabase: Total de ${finalStudents.length} alunos carregados (Paginado)`);
+          }
+        } catch (e) {
+          console.warn('⚠️ Supabase: Falha ao carregar alunos:', e);
+        }
+      }
+
+      // 2. Se falhar Supabase ou for Sincronização Forçada, carregar do Google Sheets
+      if (!loadedFromSupabase || forceSync) {
+        try {
+          const sheetsStudents = await loadStudentsFromSheets();
+          if (sheetsStudents.length > 0) {
+            finalStudents = sheetsStudents.map(s => ({
+              ...s,
+              turma: normalizeClassName(s.turma)
+            }));
+            console.log(`✅ Google Sheets: Carregados ${sheetsStudents.length} alunos`);
+
+            // Sincronizar com Supabase se houver conexão E usuário logado (Permitindo para todos os perfis)
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (isSupabaseConfigured && supabase && session) {
+              try {
+                // Apaga TODOS os registros de alunos anteriores (tanto 'synced-' quanto 'lkm-')
+                // para garantir que a sincronização do Sheets seja a fonte de verdade
+                await supabase.from('students').delete().like('id', 'synced-%');
+                await supabase.from('students').delete().like('id', 'lkm-%');
+
+                // Inserir em lotes para evitar problemas de payload grande
+                const CHUNK_SIZE = 500;
+                for (let i = 0; i < sheetsStudents.length; i += CHUNK_SIZE) {
+                  const chunk = sheetsStudents.slice(i, i + CHUNK_SIZE);
+                  const studentsToInsert = chunk.map((s, index) => ({
+                    id: `lkm-synced-${Date.now()}-${i + index}`,
+                    nome: s.nome,
+                    ra: s.ra,
+                    turma: normalizeClassName(s.turma),
+                    escola: 'lkm'
+                  }));
+
+                  const { error } = await supabase.from('students').insert(studentsToInsert);
+                  if (error) {
+                    console.error(`❌ Erro ao sincronizar lote ${i / CHUNK_SIZE}:`, error.message);
+                  }
+                }
+                console.log('✅ Supabase: Sincronização concluída com escola=lkm');
+              } catch (syncError) {
+                console.warn('⚠️ Supabase: Erro crítico na sincronização:', syncError);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Google Sheets: Falha ao carregar');
+        }
+      }
+
+      // 4. Último fallback: Dados locais (SEM mesclagem quando Supabase/Sheets carregou)
+      if (finalStudents.length === 0) {
+        // ← FIX: normalizar turmas do STUDENTS_DB antes de usar como fallback
+        finalStudents = STUDENTS_DB.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
+        console.log(`⚠️ Local: Usando ${STUDENTS_DB.length} alunos (studentsData.ts)`);
+      }
+      // ← FIX: removido o bloco de mesclagem com STUDENTS_DB quando o servidor já
+      // retornou dados. Esse bloco causava mistura de alunos entre turmas ao trocar
+      // de turma, pois adicionava alunos do arquivo local sobre os do Supabase.
+
+      // Garante que TODOS os estudantes na lista final tenham a turma normalizada
+      finalStudents = finalStudents.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
+
+      // Ordenação alfabética dos alunos por nome (para todas as turmas)
+      finalStudents = finalStudents.sort((a, b) =>
+        a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
+      );
+
+      if (!cancelled) setStudents(finalStudents); // ← FIX: guard de cancelamento
+
+      // Gerar lista de turmas dinamicamente — inclui turmas da planilha mesmo sem alunos
+      // ← FIX: usar Set com chave normalizada para evitar duplicatas por formatação diferente
+      const fromStudents = finalStudents.map(s => normalizeClassName(s.turma));
+      const fromSheetsRaw: string[] = (window as any).__allDetectedClasses || [];
+      const fromSheets = fromSheetsRaw.map(t => normalizeClassName(t));
+      // ← FIX: turmas locais SOMENTE como fallback quando não há dados do servidor.
+      // Antes era sempre incluído, gerando turmas "fantasmas" no dropdown.
+      const fromLocalDB = finalStudents.length === 0
+        ? STUDENTS_DB.map(s => normalizeClassName(s.turma))
+        : [];
+      // ← FIX: deduplicação por valor normalizado — evita que o mesmo nome apareça
+      // duas vezes com grafias diferentes (ex: "7ºAno A" e "7ºANO A"), o que causava
+      // o select ficar dessincronizado após recarregamento assíncrono das turmas.
+
+      // ← FIX: desduplicação por chave normalizada — garante que variações de grafia
+      // (ex: "7ºAno A" vs "7ºANO A") não gerem entradas duplicadas no dropdown.
+      // Isso evitava que o select ficasse dessincronizado após recarregamento async do Sheets.
+      const seenNorm = new Set<string>();
+      const uniqueClasses = [...fromStudents, ...fromSheets, ...fromLocalDB]
+        .filter(t => {
+          if (!t || t === '---') return false;
+          const low = t.toLowerCase();
+          if (low.includes('desconsidera') || low.includes('desconsidere')) return false;
+          const normKey = normalizeClassName(t).toUpperCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^A-Z0-9 ]/g, '');
+          if (seenNorm.has(normKey)) return false;
+          seenNorm.add(normKey);
+          return true;
+        });
+
+      const sortedClasses = uniqueClasses.sort((a, b) => {
+        const getOrder = (s: string) => {
+          const norm = s.toUpperCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^A-Z0-9]/g, '');
+
+          if (norm.includes('6ANO')) return 1;
+          if (norm.includes('7ANO')) return 2;
+          if (norm.includes('8ANO')) return 3;
+          if (norm.includes('9ANO')) return 4;
+          if (norm.includes('1SERIE')) return 5;
+          if (norm.includes('2SERIE')) return 6;
+          if (norm.includes('3SERIE')) return 7;
+          return 99;
+        };
+
+        const orderA = getOrder(a);
+        const orderB = getOrder(b);
+
+        if (orderA !== orderB) return orderA - orderB;
+
+        // Para turmas da mesma série, ordena por letra (A, B, C...)
+        return a.localeCompare(b, 'pt-BR', { numeric: true });
+      });
+
+      if (!cancelled) setClasses(sortedClasses); // ← FIX: guard de cancelamento
+    };
+
+    loadStudentsData();
+    (window as any).refreshStudents = (sync = false) => loadStudentsData(sync);
+
+    return () => { cancelled = true; }; // ← FIX: cleanup cancela resultado de req anterior
+  }, [user]);
+
+  const handleSyncStudents = async () => {
+    setLoading(true);
+    try {
+      // Re-executa loadStudentsData com força de sincronização
+      const loadFn = (window as any).refreshStudents;
+      if (loadFn) await loadFn(true);
+      alert("Sincronização com Google Sheets concluída com sucesso!");
+    } catch (err) {
+      alert("Erro ao sincronizar alunos.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadCloudIncidents();
+      loadTotalIncidentsCount();
+      loadSourceCounts();
+    }
+  }, [user]);
+
+  // Mapeia um registro bruto do Supabase para o tipo Incident
+  const mapSupabaseToIncident = (i: any): Incident => ({
+    id: i.id,
+    studentName: i.student_name,
+    ra: i.ra,
+    classRoom: i.class_room,
+    professorName: i.professor_name,
+    discipline: i.discipline,
+    date: i.date,
+    time: i.time,
+    registerDate: i.register_date,
+    returnDate: i.return_date,
+    description: i.description,
+    irregularities: i.irregularities,
+    category: i.category,
+    severity: i.severity as any,
+    status: i.status as any,
+    source: i.source as any,
+    pdfUrl: i.pdf_url,
+    authorEmail: i.author_email,
+    managementFeedback: i.management_feedback,
+    managementFeedbackAt: i.management_feedback_at,
+    managementFeedbackReadAt: i.management_feedback_read_at,
+    lastViewedAt: i.last_viewed_at,
+    // Dados estruturados conforme Resolução SEDUC nº 68/2026 (coluna jsonb)
+    measureData: i.measure_data
+      ? (typeof i.measure_data === 'string' ? JSON.parse(i.measure_data) : i.measure_data)
+      : undefined,
+    // Triagem automática por histórico do aluno (coluna jsonb)
+    resolucao68: i.resolucao_68
+      ? (typeof i.resolucao_68 === 'string' ? JSON.parse(i.resolucao_68) : i.resolucao_68)
+      : undefined,
+  });
+
+  const loadCloudIncidents = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      // ── Filtro de 30 dias: apenas registros recentes são carregados na tabela,
+      // para manter o Painel de Registros rápido. O TOTAL real de ocorrências
+      // (independente da janela de 30 dias) é buscado separadamente por
+      // loadTotalIncidentsCount(), via consulta leve de contagem.
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const cutoffISO = thirtyDaysAgo.toISOString();
+
+      console.log(`📅 [LOAD] Carregando registros a partir de: ${cutoffISO}`);
+
+      const { data: incData, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .eq('escola', 'lkm')
+        .gte('created_at', cutoffISO)
+        .order('created_at', { ascending: false });
+
+      if (!error && incData) {
+        const mapped: Incident[] = incData.map(mapSupabaseToIncident);
+        setIncidents(mapped);
+        localStorage.setItem('lkm_incidents_cache', JSON.stringify(mapped));
+        console.log(`✅ [LOAD] ${mapped.length} registros dos últimos 30 dias carregados.`);
+      }
+    } catch (e) { console.warn("Sincronização offline."); }
+  };
+
+  // Busca APENAS a contagem total de ocorrências da escola (gestão + professores),
+  // sem baixar os dados de cada registro — consulta leve, usada só para exibir
+  // o número real no card "Total de Ocorrências" do Painel da Gestão.
+  const loadTotalIncidentsCount = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { count, error } = await supabase
+        .from('incidents')
+        .select('*', { count: 'exact', head: true })
+        .eq('escola', 'lkm');
+
+      if (!error && typeof count === 'number') {
+        setTotalIncidentsCount(count);
+        console.log(`🔢 [COUNT] Total real de ocorrências na escola: ${count}`);
+      }
+    } catch (e) { console.warn("Erro ao buscar total de ocorrências:", e); }
+  };
+
+  // Busca as contagens totais de ocorrências separadas por origem (professor x gestão),
+  // também via consulta leve (count), usadas nos pequenos círculos ao lado do
+  // card "Total de Ocorrências" no Painel da Gestão.
+  const loadSourceCounts = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const [profRes, gestaoRes] = await Promise.all([
+        supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('escola', 'lkm').eq('source', 'professor'),
+        supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('escola', 'lkm').eq('source', 'gestao'),
+      ]);
+
+      if (!profRes.error && typeof profRes.count === 'number') {
+        setProfessorIncidentsCount(profRes.count);
+      }
+      if (!gestaoRes.error && typeof gestaoRes.count === 'number') {
+        setManagementIncidentsCount(gestaoRes.count);
+      }
+      console.log(`🔢 [COUNT] Professores: ${profRes.count} | Gestão: ${gestaoRes.count}`);
+    } catch (e) { console.warn("Erro ao buscar contagens por origem:", e); }
+  };
+
+  // Busca o histórico COMPLETO de um aluno específico (todos os registros, sem limite de data)
+  const loadFullStudentHistory = async (ra: string): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .eq('escola', 'lkm')
+        .eq('ra', ra)
+        .order('created_at', { ascending: false });
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar histórico completo:", e); }
+    return [];
+  };
+
+  // Busca registros anteriores a 30 dias para consulta/impressão (sem alterar o estado principal)
+  const loadArchivedIncidents = async (filters?: { studentName?: string; classRoom?: string; dateFrom?: string; dateTo?: string }): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      // Busca TODOS os registros — sem filtro de data — para garantir que
+      // registros antigos (com created_at nulo ou inconsistente) sejam encontrados
+      let query = supabase
+        .from('incidents')
+        .select('*')
+        .eq('escola', 'lkm')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (filters?.studentName) {
+        query = query.ilike('student_name', `%${filters.studentName}%`);
+      }
+      if (filters?.classRoom) {
+        query = query.eq('class_room', filters.classRoom);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar arquivo histórico:", e); }
+    return [];
+  };
+
+  // Busca TODOS os registros de um determinado status (sem o limite de 30 dias),
+  // usada pelo filtro de status do Painel de Registros para que "Pendente",
+  // "Em andamento", "Resolvida" e "Visualizada" mostrem o histórico completo.
+  const loadIncidentsByStatus = async (status: string): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      let query = supabase
+        .from('incidents')
+        .select('*')
+        .eq('escola', 'lkm')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+
+      if (status.toLowerCase() === 'visualizada') {
+        // "Visualizada" inclui tanto o status literal quanto registros
+        // marcados via lastViewedAt (visualização do PDF).
+        query = query.or('status.eq.Visualizada,last_viewed_at.not.is.null');
+      } else {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar registros por status:", e); }
+    return [];
+  };
+
+  const syncPendingRecords = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!navigator.onLine || !isSupabaseConfigured || !supabase || !session) return;
+
+    const cached = localStorage.getItem('lkm_incidents_cache');
+    if (!cached) return;
+
+    const currentIncidents: Incident[] = JSON.parse(cached);
+    const pending = currentIncidents.filter(i => i.isPendingSync);
+
+    if (pending.length === 0) return;
+
+    console.log(`🔄 [SYNC] Tentando sincronizar ${pending.length} registros pendentes...`);
+    let syncedIds: string[] = [];
+
+    for (const item of pending) {
+      try {
+        // Tenta salvar no Supabase
+        const { error } = await supabase.from('incidents').insert({
+          id: item.id,
+          escola: 'lkm',
+          student_name: item.studentName,
+          ra: item.ra,
+          class_room: item.classRoom,
+          professor_name: item.professorName,
+          discipline: item.discipline,
+          date: item.date,
+          time: item.time,
+          register_date: item.registerDate,
+          return_date: item.returnDate,
+          description: item.description,
+          irregularities: item.irregularities,
+          category: item.category,
+          severity: item.severity,
+          status: item.status,
+          source: item.source,
+          pdf_url: item.pdfUrl,
+          author_email: item.authorEmail,
+          measure_data: item.measureData ? JSON.stringify(item.measureData) : null,
+          resolucao_68: item.resolucao68 ? JSON.stringify(item.resolucao68) : null
+        });
+
+        if (!error) {
+          syncedIds.push(item.id);
+          // Tenta salvar no Google Sheets também
+          try { await saveToGoogleSheets(item); } catch (e) { console.warn("Erro ao sincronizar com Sheets durante background sync"); }
+        }
+      } catch (e) {
+        console.error("Erro na sincronização de fundo:", e);
+      }
+    }
+
+    if (syncedIds.length > 0) {
+      const updatedList = currentIncidents.map(inc =>
+        syncedIds.includes(inc.id) ? { ...inc, isPendingSync: false } : inc
+      );
+      setIncidents(updatedList);
+      localStorage.setItem('lkm_incidents_cache', JSON.stringify(updatedList));
+      console.log(`✅ [SYNC] ${syncedIds.length} registros sincronizados com sucesso.`);
+    }
+  };
+
+  // Listener para voltar a ficar online
+  useEffect(() => {
+    window.addEventListener('online', syncPendingRecords);
+    return () => window.removeEventListener('online', syncPendingRecords);
+  }, []);
+
+  const handleSaveIncident = async (newIncident: Incident | Incident[]) => {
+    if (!user) return;
+    const items = (Array.isArray(newIncident) ? newIncident : [newIncident]).map(i => ({
+      ...i, authorEmail: user.email
+    }));
+
+    // Atualização otimista
+    const updatedList = [...items, ...incidents];
+    setIncidents(updatedList);
+    localStorage.setItem('lkm_incidents_cache', JSON.stringify(updatedList));
+    // Atualiza otimisticamente o total real de ocorrências também
+    setTotalIncidentsCount(prev => prev + items.length);
+    // Atualiza otimisticamente os totais por origem (professor x gestão)
+    const newProfCount = items.filter(i => i.source === 'professor').length;
+    const newGestaoCount = items.filter(i => i.source === 'gestao').length;
+    if (newProfCount > 0) setProfessorIncidentsCount(prev => prev + newProfCount);
+    if (newGestaoCount > 0) setManagementIncidentsCount(prev => prev + newGestaoCount);
+
+    let hasError = false;
+
+    // Importação dinâmica para evitar circular dependency ou carregar desnecessariamente
+    const { uploadPDFToStorage } = await import('./services/pdfService');
+
+    for (let item of items) {
+      try {
+        // 1. Verificar se precisa gerar PDF (se ainda não tem pdfUrl)
+        if (!item.pdfUrl) {
+          console.log(`📄 Gerando PDF para: ${item.studentName}`);
+          const uploadedUrl = await uploadPDFToStorage(item);
+          if (uploadedUrl) {
+            item.pdfUrl = uploadedUrl;
+            // Atualizar no cache também
+            const cacheUpdate = updatedList.map(inc => inc.id === item.id ? { ...inc, pdfUrl: uploadedUrl } : inc);
+            setIncidents(cacheUpdate);
+            localStorage.setItem('lkm_incidents_cache', JSON.stringify(cacheUpdate));
+          }
+        }
+
+        // 2. Salvar no Google Sheets
+        await saveToGoogleSheets(item);
+
+        // 3. Salvar no Supabase
+        if (isSupabaseConfigured && supabase) {
+          const { error } = await supabase.from('incidents').insert({
+            id: item.id,
+            escola: 'lkm',
+            student_name: item.studentName,
+            ra: item.ra,
+            class_room: item.classRoom,
+            professor_name: item.professorName,
+            discipline: item.discipline,
+            date: item.date,
+            time: item.time,
+            register_date: item.registerDate,
+            return_date: item.returnDate,
+            description: item.description,
+            irregularities: item.irregularities,
+            category: item.category,
+            severity: item.severity,
+            status: item.status,
+            source: item.source,
+            pdf_url: item.pdfUrl,
+            author_email: item.authorEmail,
+            measure_data: item.measureData ? JSON.stringify(item.measureData) : null,
+            resolucao_68: item.resolucao68 ? JSON.stringify(item.resolucao68) : null
+          });
+
+          if (error) {
+            console.error("❌ [SUPABASE] Erro ao salvar incidente:", error.message);
+            hasError = true;
+          }
+        }
+      } catch (err) {
+        console.error("❌ [ERROR] Falha na persistência:", err);
+        hasError = true;
+        // Marcar individualmente como pendente no cache se falhar
+        const currentCache = JSON.parse(localStorage.getItem('lkm_incidents_cache') || '[]');
+        const updatedCache = currentCache.map((inc: Incident) =>
+          inc.id === item.id ? { ...inc, isPendingSync: true } : inc
+        );
+        setIncidents(updatedCache);
+        localStorage.setItem('lkm_incidents_cache', JSON.stringify(updatedCache));
+      }
+    }
+
+    if (hasError) {
+      alert("⚠️ REGISTRO SALVO LOCALMENTE: No momento não há conexão estável. Seu registro foi guardado e será enviado automaticamente para a plataforma assim que a internet voltar.");
+    }
+  };
+
+  const handleDeleteIncident = async (id: string) => {
+    const inc = incidents.find(i => i.id === id);
+    if (!inc || !user) return;
+
+    if (inc.authorEmail && inc.authorEmail !== user.email && user.role !== 'gestor') {
+      alert("ACESSO NEGADO: Você só pode excluir seus próprios registros.");
+      return;
+    }
+
+    if (!window.confirm("CONFIRMAR EXCLUSÃO PERMANENTE?")) return;
+
+    // Backup para rollback em caso de erro
+    const previousIncidents = [...incidents];
+
+    // Filtro otimista na UI
+    const filtered = incidents.filter(i => i.id !== id);
+    setIncidents(filtered);
+    localStorage.setItem('lkm_incidents_cache', JSON.stringify(filtered));
+    // Atualiza otimisticamente o total real de ocorrências também
+    setTotalIncidentsCount(prev => Math.max(0, prev - 1));
+    // Atualiza otimisticamente o total por origem (professor x gestão)
+    if (inc.source === 'professor') setProfessorIncidentsCount(prev => Math.max(0, prev - 1));
+    if (inc.source === 'gestao') setManagementIncidentsCount(prev => Math.max(0, prev - 1));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        console.log(`🗑️ [DELETE] Tentando excluir incidente: ${id}`);
+        const { error } = await supabase.from('incidents').delete().eq('id', id);
+
+        if (error) {
+          console.error('❌ [DELETE] Erro ao excluir do banco:', error);
+          // Rollback em caso de erro de permissão ou rede
+          setIncidents(previousIncidents);
+          localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
+          setTotalIncidentsCount(prev => prev + 1);
+          if (inc.source === 'professor') setProfessorIncidentsCount(prev => prev + 1);
+          if (inc.source === 'gestao') setManagementIncidentsCount(prev => prev + 1);
+
+          if (error.message.includes('permission denied')) {
+            alert("ERRO DE PERMISSÃO: O banco de dados não permitiu a exclusão. Verifique se você é o autor ou se tem nível de Gestor.");
+          } else {
+            alert(`Ocorreu um erro ao excluir do servidor: ${error.message}`);
+          }
+        } else {
+          console.log('✅ [DELETE] Excluído com sucesso do banco de dados');
+        }
+      } catch (err) {
+        console.error('❌ [DELETE] Erro inesperado:', err);
+        setIncidents(previousIncidents);
+        localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
+        setTotalIncidentsCount(prev => prev + 1);
+        if (inc.source === 'professor') setProfessorIncidentsCount(prev => prev + 1);
+        if (inc.source === 'gestao') setManagementIncidentsCount(prev => prev + 1);
+        alert("Erro de conexão ao tentar excluir. O registro foi restaurado.");
+      }
+    }
+  };
+
+  const handleUpdateIncident = async (updated: Incident) => {
+    if (!user) return;
+
+    // Atualização local
+    const newIncidents = incidents.map(i => i.id === updated.id ? updated : i);
+    setIncidents(newIncidents);
+    localStorage.setItem('lkm_incidents_cache', JSON.stringify(newIncidents));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('incidents')
+          .update({
+            status: updated.status,
+            management_feedback: updated.managementFeedback,
+            last_viewed_at: updated.lastViewedAt
+          })
+          .eq('id', updated.id);
+
+        if (error) {
+          console.error('❌ [UPDATE] Erro ao atualizar no banco:', error);
+          alert(`Erro ao salvar atualização: ${error.message}`);
+        } else {
+          console.log('✅ [UPDATE] Atualizado com sucesso no banco');
+        }
+      } catch (err) {
+        console.error('❌ [UPDATE] Erro inesperado:', err);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    lockedUserRef.current = null; // Libera a trava ao sair
+    if (isSupabaseConfigured && supabase) await supabase.auth.signOut();
+    setUser(null);
+    setView('login');
+  };
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full bg-blue-900 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Portal Lydia Kitz 2026...</p>
+      </div>
+    );
+  }
+
+  if (view === 'login') return <Login onLogin={u => {
+    loginInProgressRef.current = true; // Bloqueia onAuthStateChange durante transição
+    lockedUserRef.current = u;
+    setUser(u);
+    setView('dashboard');
+    // Libera após 3s — tempo suficiente para eventos do Supabase passarem
+    setTimeout(() => { loginInProgressRef.current = false; }, 3000);
+  }} />;
+
+  if (view === 'resetPassword') {
+    return (
+      <ResetPassword
+        onComplete={async () => {
+          // Após resetar senha, fazer logout e voltar para login
+          if (isSupabaseConfigured && supabase) {
+            await supabase.auth.signOut();
+          }
+          // Limpar hash da URL
+          window.history.replaceState(null, '', window.location.pathname);
+          setView('login');
+        }}
+        onCancel={async () => {
+          // Cancelar reset, fazer logout e voltar para login
+          if (isSupabaseConfigured && supabase) {
+            await supabase.auth.signOut();
+          }
+          window.history.replaceState(null, '', window.location.pathname);
+          setView('login');
+        }}
+      />
+    );
+  }
+
+  const hasDualAccess = DUAL_ACCESS_EMAILS.includes((user?.email || "").toLowerCase().trim());
+
+  const handleToggleView = () => {
+    setViewMode(prev => prev === 'gestor' ? 'professor' : 'gestor');
+  };
+
+  // Deve ser declarado antes de commonProps
+  const normalizedUserEmail = user?.email?.toLowerCase().trim() || '';
+  const isExclusiveManagement = GESTAO_EMAILS_HARDCODED.includes(normalizedUserEmail);
+
+  // Filtragem de ocorrências por perfil:
+  // Gestão: vê TODAS as ocorrências
+  // Professor: vê APENAS as próprias (author_email === email logado)
+  // Registros legados sem authorEmail: incluídos apenas se source === 'professor'
+  const incidentsForProfessor = incidents.filter(inc => {
+    if (inc.authorEmail) {
+      return inc.authorEmail.toLowerCase().trim() === (user?.email || '').toLowerCase().trim();
+    }
+    return inc.source === 'professor';
+  });
+
+  const commonProps = {
+    user: user!,
+    incidents: incidents,           // Gestão sempre recebe todos
+    // Total real de ocorrências da escola (contagem no banco, sem limite de 30 dias)
+    totalIncidentsCount: totalIncidentsCount,
+    professorIncidentsCount: professorIncidentsCount,
+    managementIncidentsCount: managementIncidentsCount,
+    students: students,
+    classes: classes,
+    onSave: handleSaveIncident,
+    onDelete: handleDeleteIncident,
+    onUpdateIncident: handleUpdateIncident,
+    onLogout: handleLogout,
+    onOpenSearch: () => setSearchModalOpen(true),
+    onSyncStudents: handleSyncStudents,
+    onLoadFullStudentHistory: loadFullStudentHistory,
+    onLoadArchivedIncidents: loadArchivedIncidents,
+    onLoadIncidentsByStatus: loadIncidentsByStatus,
+    onToggleView: hasDualAccess ? handleToggleView : undefined,
+    viewMode: viewMode,
+    onOpenRating: hasRatedApp ? undefined : () => setShowRatingPopup(true),
+  };
+
+  // Props para a visão do professor — ocorrências filtradas pelo email
+  // (apenas os registros do próprio professor logado; gestão e outros professores
+  // continuam ocultos, mesmo com o filtro "Todos os Status" selecionado)
+  const professorProps = {
+    ...commonProps,
+    incidents: incidentsForProfessor,
+  };
+
+  const shouldShowGestorView = isExclusiveManagement || (hasDualAccess ? viewMode === 'gestor' : user?.role === 'gestor');
+
+  return (
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
+      {shouldShowGestorView ? <Dashboard {...commonProps} /> : (
+        hasDualAccess ? (
+          <ProfessorErrorBoundary onLogout={handleLogout}>
+            <ProfessorView {...professorProps} />
+          </ProfessorErrorBoundary>
+        ) :
+        view === 'unauthorized' ? (
+          <div className="h-screen w-full flex flex-col items-center justify-center text-white p-6 text-center">
+            <h1 className="text-2xl font-black mb-4 uppercase">Acesso Não Autorizado</h1>
+            <p className="text-gray-400 mb-8 max-w-md uppercase text-[10px] tracking-widest leading-loose">
+              Seu e-mail ({user?.email}) está autenticado, mas não consta na lista de professores autorizados da EE Lydia Kitz Moreira.
+            </p>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full font-black text-xs uppercase transition-all"> Sair da Conta </button>
+          </div>
+        ) : (isExclusiveManagement ? <Dashboard {...commonProps} /> : (
+          <ProfessorErrorBoundary onLogout={handleLogout}>
+            <ProfessorView {...professorProps} />
+          </ProfessorErrorBoundary>
+        ))
+      )}
+
+      {/* Modal de Busca Permanente — inline para evitar dependência de arquivo externo */}
+      {searchModalOpen && <SearchModalInline incidents={incidents} students={students} onClose={() => setSearchModalOpen(false)} />}
+
+      <AppRatingPopup
+        isOpen={showRatingPopup}
+        onClose={() => setShowRatingPopup(false)}
+        userEmail={user?.email}
+        onRated={() => setHasRatedApp(true)}
+      />
+
+      {/* Marcador de Versão e Depuração Administrativa */}
+      <div className="fixed bottom-2 left-2 text-[8px] font-black text-gray-500/30 uppercase pointer-events-none select-none z-[100] flex gap-4">
+        <span>Build Version: 1.15.5</span>
+        <span>User: {user?.email || 'OFFLINE'}</span>
+        <span>Role: {user?.role || 'NONE'}</span>
+        <span>Management: {isExclusiveManagement ? 'EXCLUSIVE' : 'NORMAL'}</span>
+      </div>
+    </div>
+  );
+};
+
+export default App;
