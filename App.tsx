@@ -795,6 +795,33 @@ const App = () => {
     return [];
   };
 
+  // Busca TODOS os registros de um determinado status (sem o limite de 30 dias),
+  // usada pelo filtro de status do Painel de Registros para que "Pendente",
+  // "Em andamento", "Resolvida" e "Visualizada" mostrem o histórico completo.
+  const loadIncidentsByStatus = async (status: string): Promise<Incident[]> => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      let query = supabase
+        .from('incidents')
+        .select('*')
+        .eq('escola', 'lkm')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+
+      if (status.toLowerCase() === 'visualizada') {
+        // "Visualizada" inclui tanto o status literal quanto registros
+        // marcados via lastViewedAt (visualização do PDF).
+        query = query.or('status.eq.Visualizada,last_viewed_at.not.is.null');
+      } else {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) return data.map(mapSupabaseToIncident);
+    } catch (e) { console.warn("Erro ao buscar registros por status:", e); }
+    return [];
+  };
+
   const syncPendingRecords = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!navigator.onLine || !isSupabaseConfigured || !supabase || !session) return;
@@ -1129,6 +1156,7 @@ const App = () => {
     onSyncStudents: handleSyncStudents,
     onLoadFullStudentHistory: loadFullStudentHistory,
     onLoadArchivedIncidents: loadArchivedIncidents,
+    onLoadIncidentsByStatus: loadIncidentsByStatus,
     onToggleView: hasDualAccess ? handleToggleView : undefined,
     viewMode: viewMode,
     onOpenRating: hasRatedApp ? undefined : () => setShowRatingPopup(true),
