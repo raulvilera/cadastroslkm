@@ -192,6 +192,10 @@ const App = () => {
   // Total real de ocorrências da escola (gestão + professores), obtido via consulta
   // de contagem (sem baixar os registros) — usado no card "Total de Ocorrências".
   const [totalIncidentsCount, setTotalIncidentsCount] = useState<number>(0);
+  // Totais reais separados por origem do registro (source), também via consulta
+  // leve de contagem — usados nos pequenos círculos de Professores/Gestão.
+  const [professorIncidentsCount, setProfessorIncidentsCount] = useState<number>(0);
+  const [managementIncidentsCount, setManagementIncidentsCount] = useState<number>(0);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -644,6 +648,7 @@ const App = () => {
     if (user) {
       loadCloudIncidents();
       loadTotalIncidentsCount();
+      loadSourceCounts();
     }
   }, [user]);
 
@@ -726,6 +731,27 @@ const App = () => {
         console.log(`🔢 [COUNT] Total real de ocorrências na escola: ${count}`);
       }
     } catch (e) { console.warn("Erro ao buscar total de ocorrências:", e); }
+  };
+
+  // Busca as contagens totais de ocorrências separadas por origem (professor x gestão),
+  // também via consulta leve (count), usadas nos pequenos círculos ao lado do
+  // card "Total de Ocorrências" no Painel da Gestão.
+  const loadSourceCounts = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const [profRes, gestaoRes] = await Promise.all([
+        supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('escola', 'lkm').eq('source', 'professor'),
+        supabase.from('incidents').select('*', { count: 'exact', head: true }).eq('escola', 'lkm').eq('source', 'gestao'),
+      ]);
+
+      if (!profRes.error && typeof profRes.count === 'number') {
+        setProfessorIncidentsCount(profRes.count);
+      }
+      if (!gestaoRes.error && typeof gestaoRes.count === 'number') {
+        setManagementIncidentsCount(gestaoRes.count);
+      }
+      console.log(`🔢 [COUNT] Professores: ${profRes.count} | Gestão: ${gestaoRes.count}`);
+    } catch (e) { console.warn("Erro ao buscar contagens por origem:", e); }
   };
 
   // Busca o histórico COMPLETO de um aluno específico (todos os registros, sem limite de data)
@@ -849,6 +875,11 @@ const App = () => {
     localStorage.setItem('lkm_incidents_cache', JSON.stringify(updatedList));
     // Atualiza otimisticamente o total real de ocorrências também
     setTotalIncidentsCount(prev => prev + items.length);
+    // Atualiza otimisticamente os totais por origem (professor x gestão)
+    const newProfCount = items.filter(i => i.source === 'professor').length;
+    const newGestaoCount = items.filter(i => i.source === 'gestao').length;
+    if (newProfCount > 0) setProfessorIncidentsCount(prev => prev + newProfCount);
+    if (newGestaoCount > 0) setManagementIncidentsCount(prev => prev + newGestaoCount);
 
     let hasError = false;
 
@@ -942,6 +973,9 @@ const App = () => {
     localStorage.setItem('lkm_incidents_cache', JSON.stringify(filtered));
     // Atualiza otimisticamente o total real de ocorrências também
     setTotalIncidentsCount(prev => Math.max(0, prev - 1));
+    // Atualiza otimisticamente o total por origem (professor x gestão)
+    if (inc.source === 'professor') setProfessorIncidentsCount(prev => Math.max(0, prev - 1));
+    if (inc.source === 'gestao') setManagementIncidentsCount(prev => Math.max(0, prev - 1));
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -954,6 +988,8 @@ const App = () => {
           setIncidents(previousIncidents);
           localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
           setTotalIncidentsCount(prev => prev + 1);
+          if (inc.source === 'professor') setProfessorIncidentsCount(prev => prev + 1);
+          if (inc.source === 'gestao') setManagementIncidentsCount(prev => prev + 1);
 
           if (error.message.includes('permission denied')) {
             alert("ERRO DE PERMISSÃO: O banco de dados não permitiu a exclusão. Verifique se você é o autor ou se tem nível de Gestor.");
@@ -968,6 +1004,8 @@ const App = () => {
         setIncidents(previousIncidents);
         localStorage.setItem('lkm_incidents_cache', JSON.stringify(previousIncidents));
         setTotalIncidentsCount(prev => prev + 1);
+        if (inc.source === 'professor') setProfessorIncidentsCount(prev => prev + 1);
+        if (inc.source === 'gestao') setManagementIncidentsCount(prev => prev + 1);
         alert("Erro de conexão ao tentar excluir. O registro foi restaurado.");
       }
     }
@@ -1079,6 +1117,8 @@ const App = () => {
     incidents: incidents,           // Gestão sempre recebe todos
     // Total real de ocorrências da escola (contagem no banco, sem limite de 30 dias)
     totalIncidentsCount: totalIncidentsCount,
+    professorIncidentsCount: professorIncidentsCount,
+    managementIncidentsCount: managementIncidentsCount,
     students: students,
     classes: classes,
     onSave: handleSaveIncident,
