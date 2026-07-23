@@ -4,7 +4,7 @@ import { normalizeClassName } from '../utils/formatters';
 /**
  * URL do seu Google Apps Script implantado como Web App.
  */
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDCvttoBq03jYdUL3VEGNBSBfsEs3dbERJ96zjCxXetK7vQriheJOkPStzSRIpptsw/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby57ovkml0klQeueza2YshZGZf5IoTH3k4jedsvxdyyqZvbtGaDbSTNG9XicOm_5P-0/exec';
 
 /**
  * Carrega dados da URL do Apps Script via JSONP.
