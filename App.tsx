@@ -495,9 +495,11 @@ const App = () => {
       }
 
       // 2. Se falhar Supabase ou for Sincronização Forçada, carregar do Google Sheets
+      let sheetsSyncCount = 0; // ← quantos alunos realmente vieram do Sheets nesta chamada
       if (!loadedFromSupabase || forceSync) {
         try {
           const sheetsStudents = await loadStudentsFromSheets();
+          sheetsSyncCount = sheetsStudents.length;
           if (sheetsStudents.length > 0) {
             finalStudents = sheetsStudents.map(s => ({
               ...s,
@@ -622,6 +624,11 @@ const App = () => {
       });
 
       if (!cancelled) setClasses(sortedClasses); // ← FIX: guard de cancelamento
+
+      // ← FIX: retorna o resultado real da sincronização, para que quem chamou
+      // (ex: botão "Sincronizar Alunos") possa exibir uma mensagem fiel ao que
+      // de fato aconteceu, em vez de sempre dizer "sucesso".
+      return { sheetsSyncCount, totalStudents: finalStudents.length, loadedFromSupabase };
     };
 
     loadStudentsData();
@@ -635,8 +642,22 @@ const App = () => {
     try {
       // Re-executa loadStudentsData com força de sincronização
       const loadFn = (window as any).refreshStudents;
-      if (loadFn) await loadFn(true);
-      alert("Sincronização com Google Sheets concluída com sucesso!");
+      const result = loadFn ? await loadFn(true) : null;
+
+      // ← FIX: mensagem fiel ao resultado real, em vez de sempre "sucesso".
+      // Antes, mesmo com 0 alunos lidos da planilha (ex: falha de JSONP/timeout),
+      // o alerta dizia "concluída com sucesso", escondendo o problema.
+      if (result && result.sheetsSyncCount > 0) {
+        alert(`Sincronização concluída! ${result.sheetsSyncCount} alunos lidos do Google Sheets.`);
+      } else {
+        alert(
+          "A sincronização rodou, mas nenhum aluno foi lido do Google Sheets.\n\n" +
+          "Verifique:\n" +
+          "• Se o Apps Script foi implantado como 'Nova versão' após a última edição\n" +
+          "• Se a aba BANCODEDADOSGERAL não teve o cabeçalho de turmas movido/alterado\n" +
+          "• O console do navegador (F12) para detalhes do erro"
+        );
+      }
     } catch (err) {
       alert("Erro ao sincronizar alunos.");
     } finally {
