@@ -99,6 +99,28 @@ function doGet(e) {
         callback = params.callback || params.jsonp;
         var sheetName = params.sheetName || DEFAULT_SHEET;
 
+        // ── Ação de debug: retorna estrutura crua da planilha
+        if (params.action === 'debugStructure') {
+            var ssDbg = SpreadsheetApp.openById(SPREADSHEET_ID);
+            var sheetDbg = ssDbg.getSheetByName(sheetName || DEFAULT_SHEET);
+            if (!sheetDbg) {
+                return jsonResponse({ success: false, error: 'Aba não encontrada para debug.' }, callback);
+            }
+            var dataDbg = sheetDbg.getDataRange().getValues();
+            // Retorna as primeiras 5 linhas cruas (até 30 colunas cada)
+            var preview = dataDbg.slice(0, 8).map(function(row) {
+                return row.slice(0, 30).map(function(cell) {
+                    return String(cell);
+                });
+            });
+            return jsonResponse({
+                success: true,
+                totalRows: dataDbg.length,
+                totalCols: dataDbg[0] ? dataDbg[0].length : 0,
+                preview: preview
+            }, callback);
+        }
+
         // ── Ação de checar avaliação
         if (params.action === 'checkRating' && params.email) {
             var ssRating = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -175,28 +197,64 @@ function doGet(e) {
         var headers = headerRow.map(function (h) { return normalizeStr(h); });
         var subHeaders = subHeaderRow.map(function (h) { return normalizeStr(h); });
 
-        // ── 3. Identificar todos os blocos de turma
+        // ── 3. Identificar todos os blocos de turma com detecção dinâmica de colunas
         var classBlocks = [];
 
         for (var i = 0; i < headers.length; i++) {
             if (!isClassHeader(headerRow[i])) continue;
 
             var className = normalizeStr(headerRow[i]);
-            var nameIdx = i;  // Coluna do NOME do aluno = mesma coluna do título da turma
-            var raIdx = -1; // Será descoberto abaixo
+            var nameIdx = -1;
+            var raIdx = -1;
 
-            // Procura "RA" nas colunas imediatamente seguintes
-            for (var j = i + 1; j < Math.min(i + MAX_RA_SCAN_COLS, headers.length); j++) {
-                if (subHeaders[j] === 'RA' || headers[j] === 'RA') {
-                    raIdx = j;
+            // Busca RA e Nome nas colunas vizinhas (de i-1 até i+5)
+            var colStart = Math.max(0, i - 1);
+            var colEnd = Math.min(headers.length - 1, i + 5);
+
+            // A) Encontrar raIdx pelo sub-cabeçalho 'RA'
+            for (var c = colStart; c <= colEnd; c++) {
+                if (subHeaders[c] === 'RA' || headers[c] === 'RA') {
+                    raIdx = c;
                     break;
                 }
             }
 
-            // Se não achou "RA", usa a convenção da escola: RA está 3 colunas à direita do nome
+            // Se não achou 'RA' pelo cabeçalho, inspeciona amostras das primeiras linhas de dados
             if (raIdx === -1) {
-                raIdx = i + 3;
+                for (var testRow = headerRowIndex + 2; testRow < Math.min(data.length, headerRowIndex + 15); testRow++) {
+                    for (var c = colStart; c <= colEnd; c++) {
+                        var cellVal = String(data[testRow][c] || '').trim();
+                        // RA geralmente tem números (ex: 1158650395sp)
+                        if (/\d{6,}/.test(cellVal) || /sp$/i.test(cellVal)) {
+                            raIdx = c;
+                            break;
+                        }
+                    }
+                    if (raIdx !== -1) break;
+                }
             }
+            if (raIdx === -1) raIdx = i + 3; // Fallback caso não encontre
+
+            // B) Encontrar nameIdx (coluna com nomes de pessoas)
+            for (var c = colStart; c <= colEnd; c++) {
+                if (c === raIdx) continue;
+                var subH = subHeaders[c] || '';
+                if (subH === 'Nº' || subH === 'FOTOS' || subH === 'RA' || subH === 'NO') continue;
+
+                // Testa se a coluna contém nomes nas linhas de dados
+                var nameScore = 0;
+                for (var testRow = headerRowIndex + 2; testRow < Math.min(data.length, headerRowIndex + 15); testRow++) {
+                    var cellVal = String(data[testRow][c] || '').trim();
+                    if (cellVal && isNaN(Number(cellVal)) && cellVal.length > 3 && !isClassHeader(cellVal) && !/ano|serie|fotos/i.test(cellVal)) {
+                        nameScore++;
+                    }
+                }
+                if (nameScore >= 2) {
+                    nameIdx = c;
+                    break;
+                }
+            }
+            if (nameIdx === -1) nameIdx = i; // Fallback
 
             classBlocks.push({
                 className: className,
