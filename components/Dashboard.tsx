@@ -374,8 +374,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
     }
 
     const newIncidents: Incident[] = selectedStudents.map((nome, index) => {
-      const studentData = students.find(s => s.nome === nome && normalizeClassName(s.turma) === normalizeClassName(classRoom));
-      const ra = studentData ? studentData.ra : '---';
+      const normClass = normalizeClassName(classRoom);
+      const studentData = students.find(s => s.nome === nome && normalizeClassName(s.turma) === normClass);
+      let ra = studentData && studentData.ra && studentData.ra !== '---' ? studentData.ra : '';
+      if (!ra) {
+        const normName = nome.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const localMatch = STUDENTS_DB.find(s => s.nome.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normName);
+        ra = localMatch ? localMatch.ra : '---';
+      }
       return {
         id: index === 0 ? uniqueId : crypto.randomUUID(),
         classRoom,
@@ -896,11 +902,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incidents, totalIncidentsCo
                     <h3 className="text-yellow-400 font-black text-[9px] uppercase tracking-widest mb-3">CONFERÊNCIA DE NOMES E RAs</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                       {selectedStudents.length > 0 ? [...selectedStudents].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((name, i) => {
-                        const student = students.find(s => s.nome === name && normalizeClassName(s.turma) === normalizeClassName(classRoom));
+                        const normClass = normalizeClassName(classRoom);
+                        const student = students.find(s => s.nome === name && normalizeClassName(s.turma) === normClass);
+                        let displayRa = student && student.ra && student.ra !== '---' ? student.ra : '';
+                        if (!displayRa) {
+                          const normName = name.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                          const localMatch = STUDENTS_DB.find(s => s.nome.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normName);
+                          displayRa = localMatch ? localMatch.ra : '---';
+                        }
                         return (
                           <div key={i} className="flex justify-between items-center bg-white/10 px-3 py-2 rounded-lg border border-white/5">
                             <span className="text-[9px] font-bold text-white uppercase truncate mr-2">{name}</span>
-                            <span className="bg-yellow-400 text-blue-900 px-2 py-0.5 rounded text-[10px] font-black shadow-sm font-mono">{student?.ra}</span>
+                            <span className="bg-yellow-400 text-blue-900 px-2 py-0.5 rounded text-[10px] font-black shadow-sm font-mono">{displayRa}</span>
                           </div>
                         );
                       }) : (

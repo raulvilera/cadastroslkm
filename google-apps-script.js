@@ -229,7 +229,8 @@ function doGet(e) {
                 if (isClassHeader(rawName)) continue;
 
                 var raStr = (rawRA !== null && rawRA !== undefined) ? String(rawRA).trim() : '';
-                if (!raStr || isNaN(Number(raStr))) {
+                var raCheck = raStr.toUpperCase().replace(/\s+/g, '');
+                if (!raStr || raCheck === 'RA' || raCheck === 'NOME' || raCheck === '---') {
                     raStr = '---';
                 }
 

@@ -555,8 +555,29 @@ const App = () => {
       // retornou dados. Esse bloco causava mistura de alunos entre turmas ao trocar
       // de turma, pois adicionava alunos do arquivo local sobre os do Supabase.
 
-      // Garante que TODOS os estudantes na lista final tenham a turma normalizada
-      finalStudents = finalStudents.map(s => ({ ...s, turma: normalizeClassName(s.turma) }));
+      // Mapeia RAs locais (STUDENTS_DB) como fallback para preenchimento se RA vier vazio ou '---'
+      const localRaMap = new Map<string, string>();
+      STUDENTS_DB.forEach(s => {
+        if (s.nome && s.ra && s.ra !== '---') {
+          const key = s.nome.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          localRaMap.set(key, s.ra);
+        }
+      });
+
+      // Garante que TODOS os estudantes na lista final tenham a turma normalizada e o RA preenchido
+      finalStudents = finalStudents.map(s => {
+        const normTurma = normalizeClassName(s.turma);
+        let validRa = (s.ra && s.ra !== '---' && s.ra.trim() !== '') ? s.ra.trim() : '';
+        if (!validRa) {
+          const key = (s.nome || '').trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          validRa = localRaMap.get(key) || '---';
+        }
+        return {
+          ...s,
+          ra: validRa,
+          turma: normTurma
+        };
+      });
 
       // Ordenação alfabética dos alunos por nome (para todas as turmas)
       finalStudents = finalStudents.sort((a, b) =>
