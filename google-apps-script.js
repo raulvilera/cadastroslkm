@@ -75,11 +75,17 @@ function isClassHeader(val) {
 }
 
 /**
- * Retorna uma resposta JSON padronizada.
+ * Retorna uma resposta JSON padronizada ou JSONP (se callback fornecido).
  */
-function jsonResponse(obj) {
+function jsonResponse(obj, callback) {
+    var jsonStr = JSON.stringify(obj);
+    if (callback) {
+        return ContentService
+            .createTextOutput(callback + '(' + jsonStr + ')')
+            .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
     return ContentService
-        .createTextOutput(JSON.stringify(obj))
+        .createTextOutput(jsonStr)
         .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -87,9 +93,29 @@ function jsonResponse(obj) {
 // ─── doGet: LEITURA DE ALUNOS ────────────────────────────────
 
 function doGet(e) {
+    var callback = null;
     try {
-        var params = e.parameter || {};
+        var params = (e && e.parameter) ? e.parameter : {};
+        callback = params.callback || params.jsonp;
         var sheetName = params.sheetName || DEFAULT_SHEET;
+
+        // ── Ação de checar avaliação
+        if (params.action === 'checkRating' && params.email) {
+            var ssRating = SpreadsheetApp.openById(SPREADSHEET_ID);
+            var sheetRating = ssRating.getSheetByName('AVALIACOESAPP');
+            var hasRated = false;
+            if (sheetRating) {
+                var ratingData = sheetRating.getDataRange().getValues();
+                var emailNorm = normalizeStr(params.email);
+                for (var r = 1; r < ratingData.length; r++) {
+                    if (normalizeStr(ratingData[r][2]) === emailNorm) {
+                        hasRated = true;
+                        break;
+                    }
+                }
+            }
+            return jsonResponse({ success: true, hasRated: hasRated }, callback);
+        }
 
         var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
         var sheet = ss.getSheetByName(sheetName);
@@ -101,7 +127,7 @@ function doGet(e) {
                 success: false,
                 error: 'Aba "' + sheetName + '" não encontrada.',
                 availableSheets: allSheets
-            });
+            }, callback);
         }
 
         var data = sheet.getDataRange().getValues();
@@ -112,7 +138,7 @@ function doGet(e) {
                 success: false,
                 error: 'A planilha está vazia.',
                 availableSheets: allSheets
-            });
+            }, callback);
         }
 
         // ── 1. Encontrar a linha de cabeçalho de turmas
@@ -235,13 +261,13 @@ function doGet(e) {
                 }),
                 availableSheets: allSheets
             }
-        });
+        }, callback);
 
     } catch (err) {
         return jsonResponse({
             success: false,
             error: 'Erro interno no doGet: ' + err.toString()
-        });
+        }, callback);
     }
 }
 

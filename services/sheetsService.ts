@@ -7,9 +7,40 @@ import { normalizeClassName } from '../utils/formatters';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwduIWTMdhhfjfs3N7WoEG1hCYv7kkmVfNmJtSqDZ2alwWltSHtJNJwcB3qADDl2vw/exec';
 
 /**
- * Carrega dados da URL do Apps Script via JSONP.
- * JSONP contorna bloqueio de CORS porque a resposta é carregada
- * como uma tag <script>, não como uma requisição fetch/XHR.
+ * Realiza requisição com fallback: tenta fetch() direto via HTTP GET.
+ * O Google Apps Script suporta CORS nativo para requisições GET.
+ * Se o fetch falhar (ex: restrições estritas de rede ou CSP), tenta JSONP.
+ */
+const fetchWithFallback = async (url: string, timeoutMs = 15000): Promise<any> => {
+  // 1. Tentar fetch() nativo com AbortController
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && typeof data === 'object') {
+        return data;
+      }
+    }
+  } catch (fetchErr) {
+    console.warn('⚠️ Fetch direto ao Apps Script falhou ou deu timeout, tentando JSONP fallback...', fetchErr);
+  }
+
+  // 2. Fallback para JSONP
+  return jsonpRequest(url, timeoutMs);
+};
+
+/**
+ * Carrega dados via JSONP (caso o fetch falhe).
+ * Suporta resposta JSON pura ou embrulhada em callback JS.
  */
 const jsonpRequest = (url: string, timeoutMs = 15000): Promise<any> => {
   return new Promise((resolve, reject) => {
@@ -56,7 +87,7 @@ const jsonpRequest = (url: string, timeoutMs = 15000): Promise<any> => {
  */
 export const loadStudentsFromSheets = async (): Promise<Student[]> => {
   try {
-    const data = await jsonpRequest(`${GOOGLE_SCRIPT_URL}?sheetName=BANCODEDADOSGERAL`);
+    const data = await fetchWithFallback(`${GOOGLE_SCRIPT_URL}?sheetName=BANCODEDADOSGERAL`);
 
     if (data.success && Array.isArray(data.students)) {
       console.log(`✅ Google Sheets: Carregados ${data.students.length} alunos`);
@@ -188,7 +219,7 @@ export const checkIfUserHasRatedApp = async (email?: string): Promise<boolean> =
   if (!email) return false;
   try {
     const url = `${GOOGLE_SCRIPT_URL}?action=checkRating&email=${encodeURIComponent(email)}`;
-    const data = await jsonpRequest(url);
+    const data = await fetchWithFallback(url);
     return !!(data && data.success && data.hasRated);
   } catch (err) {
     console.error('Erro ao verificar se o professor já avaliou o app:', err);
