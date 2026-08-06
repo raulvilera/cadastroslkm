@@ -61,6 +61,15 @@ interface DocContext {
    *  documento caber em uma única página, independentemente do volume
    *  de texto (descrição, encaminhamentos, etc). 1 = tamanho normal. */
   scale: number;
+  /** Página atual (1-based). Usada para saber quando aplicar o corte
+   *  equilibrado (softBottomPage1), que só vale para a 1ª página. */
+  pageIndex: number;
+  /** Quando o conteúdo não cabe inteiro em uma página mesmo no piso de
+   *  legibilidade (MIN_SCALE), este é o "fundo" artificial da página 1,
+   *  calculado para distribuir o conteúdo de forma equilibrada entre a
+   *  1ª e a 2ª página (em vez de lotar a 1ª e deixar a 2ª quase vazia).
+   *  null = usa o fundo físico normal da página. */
+  softBottomPage1: number | null;
 }
 
 /** Piso mínimo de escala — abaixo disso o texto ficaria ilegível, então
@@ -92,7 +101,7 @@ const createBaseDoc = async (): Promise<DocContext> => {
     console.error("Erro ao carregar logos:", err);
   }
 
-  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0, scale: 1 };
+  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0, scale: 1, pageIndex: 1, softBottomPage1: null };
 };
 
 /**
@@ -117,6 +126,8 @@ const measureContentHeight = (
     lkmData: null,
     y: startY,
     scale,
+    pageIndex: 1,
+    softBottomPage1: null,
   };
   buildFn(scratchCtx, incident);
   return scratchCtx.y;
@@ -145,6 +156,57 @@ const fitScaleForDocument = (
     if (height <= available) return Math.round(scale * 100) / 100;
   }
   return MIN_SCALE;
+};
+
+/**
+ * Decide como paginar um documento de página única (fora do dossiê):
+ * 1) Se couber inteiro em uma página com escala entre MIN_SCALE e 1,
+ *    usa essa escala normalmente (comportamento de sempre, sem desperdício).
+ * 2) Se nem no piso de legibilidade (MIN_SCALE) couber em uma página, o
+ *    documento vai ocupar 2 (ou mais) páginas. Nesse caso, calcula um
+ *    "corte" para a página 1 que distribui o conteúdo de forma equilibrada
+ *    entre a 1ª e a 2ª página, em vez de lotar a 1ª e deixar a 2ª quase vazia.
+ *    Se o conteúdo for tão extenso que nem dividindo ao meio caberia em
+ *    2 páginas, deixa o fluxo natural (ensureSpace) cuidar da paginação.
+ */
+const computePaginationPlan = (
+  buildFn: (ctx: DocContext, incident: Incident) => void,
+  incident: Incident,
+  startY: number,
+  pageWidth: number,
+  pageHeight: number,
+  contentWidth: number
+): { scale: number; softBottomPage1: number | null } => {
+  const available1 = pageHeight - 22 - startY;
+  const availableN = pageHeight - 22 - 15;
+
+  const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
+  if (heightAtFullSize <= available1) return { scale: 1, softBottomPage1: null };
+
+  for (let scale = 0.97; scale >= MIN_SCALE; scale -= 0.03) {
+    const height = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, scale);
+    if (height <= available1) return { scale: Math.round(scale * 100) / 100, softBottomPage1: null };
+  }
+
+  // Não coube em uma página nem no piso de legibilidade: vai precisar de
+  // mais páginas. Mede o total nesse piso para decidir como distribuir.
+  const totalHeight = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, MIN_SCALE);
+  let pagesNeeded = 1;
+  let remaining = totalHeight - available1;
+  while (remaining > 0) {
+    pagesNeeded++;
+    remaining -= availableN;
+  }
+
+  if (pagesNeeded <= 2) {
+    // Alvo: metade do conteúdo em cada página (limitado à capacidade real da página 1).
+    const target1 = Math.min(available1, totalHeight / 2);
+    return { scale: MIN_SCALE, softBottomPage1: startY + target1 };
+  }
+
+  // Conteúdo muito extenso (3+ páginas): deixa o fluxo natural cuidar da
+  // paginação, sem corte artificial.
+  return { scale: MIN_SCALE, softBottomPage1: null };
 };
 
 const drawPageFrame = (ctx: DocContext) => {
@@ -189,10 +251,17 @@ const newPage = (ctx: DocContext) => {
   ctx.doc.addPage();
   drawPageFrame(ctx);
   ctx.y = 15;
+  ctx.pageIndex += 1;
 };
 
 const ensureSpace = (ctx: DocContext, neededHeight: number) => {
-  if (ctx.y + neededHeight > ctx.pageHeight - 22) {
+  // Na página 1 de um documento cujo conteúdo foi planejado para se
+  // distribuir de forma equilibrada em 2 páginas, usamos um "fundo"
+  // artificial mais cedo em vez do fundo físico da página.
+  const bottom = (ctx.pageIndex === 1 && ctx.softBottomPage1 !== null)
+    ? ctx.softBottomPage1
+    : ctx.pageHeight - 22;
+  if (ctx.y + neededHeight > bottom) {
     newPage(ctx);
   }
 };
@@ -856,7 +925,9 @@ const buildDoc = async (incident: Incident): Promise<jsPDF> => {
       break;
   }
 
-  ctx.scale = fitScaleForDocument(builder, incident, startY, ctx.pageWidth, ctx.pageHeight, ctx.contentWidth);
+  const plan = computePaginationPlan(builder, incident, startY, ctx.pageWidth, ctx.pageHeight, ctx.contentWidth);
+  ctx.scale = plan.scale;
+  ctx.softBottomPage1 = plan.softBottomPage1;
   builder(ctx, incident);
 
   return ctx.doc;
