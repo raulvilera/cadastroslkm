@@ -65,11 +65,12 @@ interface DocContext {
 
 /** Piso mínimo de escala — abaixo disso o texto ficaria ilegível, então
  *  preferimos permitir uma 2ª página (via ensureSpace) a comprometer a nitidez. */
-const MIN_SCALE = 0.55;
+const MIN_SCALE = 0.82;
 
 /** Tamanho de fonte já com o fator de encolhimento do documento aplicado,
- *  nunca abaixo de 5.5pt (piso de legibilidade). */
-const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale, 5.5);
+ *  nunca abaixo de 7.5pt (piso de legibilidade — abaixo disso texto impresso/
+ *  fotografado para os pais fica quase ilegível). */
+const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale, 7.5);
 
 /** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
