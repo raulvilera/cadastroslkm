@@ -178,7 +178,8 @@ const computePaginationPlan = (
   contentWidth: number
 ): { scale: number; softBottomPage1: number | null } => {
   const available1 = pageHeight - 22 - startY;
-  const availableN = pageHeight - 22 - 15;
+  // Páginas 2+ começam em y=42 (abaixo do brasão desenhado por drawPageFrame/newPage).
+  const availableN = pageHeight - 22 - 42;
 
   const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
   if (heightAtFullSize <= available1) return { scale: 1, softBottomPage1: null };
@@ -250,7 +251,11 @@ const drawHeaderBlock = (ctx: DocContext): number => {
 const newPage = (ctx: DocContext) => {
   ctx.doc.addPage();
   drawPageFrame(ctx);
-  ctx.y = 15;
+  // O brasão (desenhado por drawPageFrame) ocupa até ~y=39 no canto
+  // superior esquerdo, independente da escala do documento. Começar o
+  // conteúdo em y=15 (como antes) fazia o texto sobrepor o brasão nas
+  // páginas 2+. Início mais abaixo evita a sobreposição.
+  ctx.y = 42;
   ctx.pageIndex += 1;
 };
 
