@@ -86,13 +86,24 @@ const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale,
 /** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
 
+/** Fator de entrelinha aplicado a TODO o texto do documento (jsPDF usa
+ *  1.15 por padrão, o que deixa linhas de um mesmo parágrafo muito
+ *  coladas). 1.35 dá um respiro visível entre as linhas sem alongar
+ *  demais o documento. Definido uma única vez em createBaseDoc/
+ *  measureContentHeight para valer em toda a geração do PDF. */
+const LINE_HEIGHT_FACTOR = 1.35;
+
 /** Altura de cada linha dentro de um parágrafo/lista quebrado em várias
- *  linhas (via splitTextToSize). Ajustada para acompanhar o aumento do
- *  tamanho de fonte padrão, mantendo um espaçamento confortável. */
-const LINE_H = 7.2;
+ *  linhas (via splitTextToSize), calculada a partir do tamanho de fonte
+ *  padrão do corpo do texto (10.5pt) e do LINE_HEIGHT_FACTOR acima —
+ *  ou seja, ela reflete a altura REAL que o jsPDF desenha, em vez de um
+ *  valor arbitrário maior que sobrava como espaço em branco extra entre
+ *  os blocos (o que empurrava conteúdo para páginas seguintes). */
+const LINE_H = 10.5 * 0.3528 * LINE_HEIGHT_FACTOR; // ≈ 5.0mm
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
+  doc.setLineHeightFactor(LINE_HEIGHT_FACTOR);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;
@@ -124,8 +135,10 @@ const measureContentHeight = (
   contentWidth: number,
   scale: number
 ): number => {
+  const scratchDoc = new jsPDF();
+  scratchDoc.setLineHeightFactor(LINE_HEIGHT_FACTOR);
   const scratchCtx: DocContext = {
-    doc: new jsPDF(),
+    doc: scratchDoc,
     pageWidth,
     pageHeight: 100000, // "infinita" — evita quebra de página durante a medição
     contentWidth,
@@ -302,11 +315,11 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setFontSize(fs(ctx, 11.5));
   ctx.doc.setTextColor(0, 43, 92);
   ctx.doc.text(text, MARGIN, ctx.y);
-  ctx.y += sp(ctx, 3.5);
+  ctx.y += sp(ctx, 2.5);
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 3);
+  ctx.y += sp(ctx, 2);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
@@ -321,7 +334,7 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
@@ -330,9 +343,9 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
@@ -342,9 +355,9 @@ const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) =>
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
 };
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
@@ -353,9 +366,9 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
@@ -366,17 +379,17 @@ const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight 
   // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
-  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 10));
-  ensureSpace(ctx, boxHeight + sp(ctx, 5));
+  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 8));
+  ensureSpace(ctx, boxHeight + sp(ctx, 3));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
-  ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 7), { maxWidth: ctx.contentWidth - 8 });
-  ctx.y += boxHeight + sp(ctx, 5);
+  ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 6), { maxWidth: ctx.contentWidth - 8 });
+  ctx.y += boxHeight + sp(ctx, 3);
 };
 
 const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
-  ensureSpace(ctx, sp(ctx, 32));
-  ctx.y += sp(ctx, 12);
+  ensureSpace(ctx, sp(ctx, 26));
+  ctx.y += sp(ctx, 8);
   ctx.doc.setDrawColor(0, 0, 0);
   ctx.doc.setLineWidth(0.3);
   if (labels.length === 1) {
@@ -395,7 +408,7 @@ const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
     ctx.doc.text(labels[0], MARGIN + (lineSize / 2), ctx.y, { align: 'center' });
     ctx.doc.text(labels[1], ctx.pageWidth - MARGIN - (lineSize / 2), ctx.y, { align: 'center' });
   }
-  ctx.y += sp(ctx, 10);
+  ctx.y += sp(ctx, 7);
 };
 
 const writeLegalFooterNote = (ctx: DocContext, extra?: string) => {
