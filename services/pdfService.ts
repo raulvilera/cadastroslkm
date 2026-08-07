@@ -70,18 +70,27 @@ interface DocContext {
    *  1ª e a 2ª página (em vez de lotar a 1ª e deixar a 2ª quase vazia).
    *  null = usa o fundo físico normal da página. */
   softBottomPage1: number | null;
+  /** Quando true, o documento nunca cria uma nova página: mesmo que o
+   *  conteúdo, no piso mínimo de escala (MIN_SCALE), ainda não caiba, o
+   *  texto continua sendo desenhado na página 1 em vez de transbordar
+   *  para uma 2ª página. Usado nos documentos de página única, onde a
+   *  regra é NUNCA ultrapassar 1 página. O dossiê de Transferência
+   *  Cautelar (várias peças, cada uma com sua própria página) não usa
+   *  esse modo. */
+  singlePageMode: boolean;
 }
 
-/** Piso mínimo de escala. Fixado em 1 — o documento NUNCA encolhe fonte
- *  abaixo do tamanho padrão; se o conteúdo não couber em uma página no
- *  tamanho padrão, ele simplesmente continua em uma 2ª página (ver
- *  computePaginationPlan / ensureSpace), em vez de reduzir a letra. */
-const MIN_SCALE = 1;
+/** Piso mínimo de escala. O documento NUNCA deve ultrapassar uma única
+ *  página impressa — por isso, quando o conteúdo não cabe no tamanho
+ *  padrão, a fonte e os espaçamentos são encolhidos progressivamente até
+ *  este piso (ver computePaginationPlan / fitScaleForDocument). Abaixo
+ *  deste valor a letra fica pequena demais para impressão, mas ainda é
+ *  priorizado caber em 1 página a manter o tamanho padrão. */
+const MIN_SCALE = 0.55;
 
 /** Tamanho de fonte já com o fator de encolhimento do documento aplicado,
- *  nunca abaixo de 7.5pt (piso de legibilidade — abaixo disso texto impresso/
- *  fotografado para os pais fica quase ilegível). */
-const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale, 7.5);
+ *  nunca abaixo de 6pt (piso mínimo absoluto de legibilidade). */
+const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale, 6);
 
 /** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
@@ -108,7 +117,7 @@ const createBaseDoc = async (): Promise<DocContext> => {
     console.error("Erro ao carregar logos:", err);
   }
 
-  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0, scale: 1, pageIndex: 1, softBottomPage1: null };
+  return { doc, pageWidth, pageHeight, contentWidth, brasaoData, lkmData, y: 0, scale: 1, pageIndex: 1, softBottomPage1: null, singlePageMode: false };
 };
 
 /**
@@ -135,6 +144,7 @@ const measureContentHeight = (
     scale,
     pageIndex: 1,
     softBottomPage1: null,
+    singlePageMode: false,
   };
   buildFn(scratchCtx, incident);
   return scratchCtx.y;
@@ -158,23 +168,23 @@ const fitScaleForDocument = (
   const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
   if (heightAtFullSize <= available) return 1;
 
-  for (let scale = 0.97; scale >= MIN_SCALE; scale -= 0.03) {
+  for (let scale = 0.98; scale >= MIN_SCALE; scale -= 0.02) {
     const height = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, scale);
     if (height <= available) return Math.round(scale * 100) / 100;
   }
+  // Mesmo no piso de escala o conteúdo não coube: ainda assim retorna o
+  // piso (nunca ultrapassa 1 página — ver nota em MIN_SCALE).
   return MIN_SCALE;
 };
 
 /**
- * Decide como paginar um documento de página única (fora do dossiê):
+ * Decide a escala de um documento de página única (fora do dossiê), de
+ * forma a SEMPRE caber em exatamente 1 página:
  * 1) Se couber inteiro em uma página com escala entre MIN_SCALE e 1,
  *    usa essa escala normalmente (comportamento de sempre, sem desperdício).
- * 2) Se nem no piso de legibilidade (MIN_SCALE) couber em uma página, o
- *    documento vai ocupar 2 (ou mais) páginas. Nesse caso, calcula um
- *    "corte" para a página 1 que distribui o conteúdo de forma equilibrada
- *    entre a 1ª e a 2ª página, em vez de lotar a 1ª e deixar a 2ª quase vazia.
- *    Se o conteúdo for tão extenso que nem dividindo ao meio caberia em
- *    2 páginas, deixa o fluxo natural (ensureSpace) cuidar da paginação.
+ * 2) Se nem no piso mínimo de escala (MIN_SCALE) couber, ainda assim usa o
+ *    piso — o modo singlePageMode (ver DocContext / ensureSpace) impede
+ *    que uma 2ª página seja criada em qualquer hipótese.
  */
 const computePaginationPlan = (
   buildFn: (ctx: DocContext, incident: Incident) => void,
@@ -185,35 +195,18 @@ const computePaginationPlan = (
   contentWidth: number
 ): { scale: number; softBottomPage1: number | null } => {
   const available1 = pageHeight - 22 - startY;
-  // Páginas 2+ começam em y=42 (abaixo do brasão desenhado por drawPageFrame/newPage).
-  const availableN = pageHeight - 22 - 42;
 
   const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
   if (heightAtFullSize <= available1) return { scale: 1, softBottomPage1: null };
 
-  for (let scale = 0.97; scale >= MIN_SCALE; scale -= 0.03) {
+  for (let scale = 0.98; scale >= MIN_SCALE; scale -= 0.02) {
     const height = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, scale);
     if (height <= available1) return { scale: Math.round(scale * 100) / 100, softBottomPage1: null };
   }
 
-  // Não coube em uma página nem no piso de legibilidade: vai precisar de
-  // mais páginas. Mede o total nesse piso para decidir como distribuir.
-  const totalHeight = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, MIN_SCALE);
-  let pagesNeeded = 1;
-  let remaining = totalHeight - available1;
-  while (remaining > 0) {
-    pagesNeeded++;
-    remaining -= availableN;
-  }
-
-  if (pagesNeeded <= 2) {
-    // Alvo: metade do conteúdo em cada página (limitado à capacidade real da página 1).
-    const target1 = Math.min(available1, totalHeight / 2);
-    return { scale: MIN_SCALE, softBottomPage1: startY + target1 };
-  }
-
-  // Conteúdo muito extenso (3+ páginas): deixa o fluxo natural cuidar da
-  // paginação, sem corte artificial.
+  // Mesmo no piso mínimo de escala o conteúdo não coube: ainda assim usa
+  // o piso e NUNCA quebra para uma 2ª página (ver DocContext.singlePageMode
+  // / ensureSpace). O documento é garantido a ter exatamente 1 página.
   return { scale: MIN_SCALE, softBottomPage1: null };
 };
 
@@ -267,6 +260,12 @@ const newPage = (ctx: DocContext) => {
 };
 
 const ensureSpace = (ctx: DocContext, neededHeight: number) => {
+  // Modo "1 página garantida": mesmo que o conteúdo, já no piso mínimo de
+  // escala, ultrapasse o fundo físico da página, NUNCA cria uma 2ª página
+  // — o desenho continua na página 1. Isso é intencional: a regra do
+  // documento é não ultrapassar 1 página em hipótese alguma.
+  if (ctx.singlePageMode) return;
+
   // Na página 1 de um documento cujo conteúdo foi planejado para se
   // distribuir de forma equilibrada em 2 páginas, usamos um "fundo"
   // artificial mais cedo em vez do fundo físico da página.
@@ -637,6 +636,14 @@ const buildRelatorioCircunstanciado = (ctx: DocContext, incident: Incident) => {
       : "Não há matrícula decorrente de decisão judicial."
   );
 
+  writeParagraph(
+    ctx,
+    "Este relatório evita juízos morais, expressões estigmatizantes, exposição indevida da vida privada do(a) estudante " +
+    "e informações não verificadas, demonstrando o cumprimento das ações previstas no DOC - Documento Orientador para a " +
+    "Convivência - Protocolo 179 e o esgotamento ou a insuficiência das estratégias anteriores (Art. 15, §§ 1º e 3º).",
+    { size: 8.3, color: [90, 90, 90] }
+  );
+
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Direção da Unidade Escolar"]);
   writeLegalFooterNote(ctx);
@@ -665,6 +672,14 @@ const buildNotificacaoFamilia = (ctx: DocContext, incident: Incident) => {
   if (d?.manifestacaoEstudanteFamilia) {
     writeSectionTitle(ctx, "MANIFESTAÇÃO APRESENTADA");
     writeParagraph(ctx, d.manifestacaoEstudanteFamilia);
+  } else {
+    writeParagraph(
+      ctx,
+      "A ausência de manifestação registrada, desde que devidamente notificados a família ou os responsáveis legais, não " +
+      "impede o prosseguimento do procedimento, devendo a unidade escolar registrar as tentativas de contato realizadas " +
+      "(Art. 17, § 4º).",
+      { size: 8.3, color: [90, 90, 90] }
+    );
   }
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
@@ -694,6 +709,15 @@ const buildAtaConselho = (ctx: DocContext, incident: Incident) => {
 
   writeBoxedText(ctx, "FUNDAMENTAÇÃO DA DECISÃO", d?.fundamentacaoDecisaoConselho || "NÃO INFORMADO", 35);
 
+  writeParagraph(
+    ctx,
+    "Esta decisão será comunicada formalmente ao(à) estudante e à família ou aos responsáveis legais em documento próprio " +
+    "(Art. 18). Todos os documentos e informações que subsidiaram a decisão, inclusive este relatório circunstanciado e a " +
+    "presente ata, serão arquivados na unidade escolar em caráter reservado, à disposição das autoridades competentes " +
+    "(Art. 18, § 1º).",
+    { size: 8.3, color: [90, 90, 90] }
+  );
+
   writeParagraph(ctx, `GUARULHOS, ${d?.dataReuniaoConselho || incident.date}.`);
   writeSignatureLines(ctx, ["Presidência do Conselho de Escola", "Secretaria / Registro da Ata"]);
   writeLegalFooterNote(ctx);
@@ -722,6 +746,14 @@ const buildComunicacaoDecisaoFinal = (ctx: DocContext, incident: Incident) => {
   writeNumberedItem(ctx, "1", `Recurso à URE de circunscrição da unidade escolar de origem, no prazo de ${d?.prazoRecursoDias || 5} dias a contar desta comunicação (Art. 18, § 2º).`);
   writeNumberedItem(ctx, "2", "A URE analisará o procedimento no prazo de 5 (cinco) dias, considerando a excepcionalidade da situação, a regularidade das providências adotadas e o atendimento ao Regimento Escolar (Art. 18, § 3º).");
   writeNumberedItem(ctx, "3", "Da decisão da URE caberá recurso ao Conselho Estadual de Educação, no prazo de 10 (dez) dias, sem efeito suspensivo (Art. 18, § 4º).");
+
+  writeParagraph(
+    ctx,
+    "Todos os documentos e informações que subsidiaram esta decisão, inclusive o relatório circunstanciado e a ata " +
+    "deliberativa do Conselho de Escola, encontram-se arquivados na unidade escolar, em caráter reservado, à disposição " +
+    "das autoridades competentes (Art. 18, § 1º).",
+    { size: 8.3, color: [90, 90, 90] }
+  );
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Ciência do Estudante / Família", "Assinatura da Direção / Gestão"]);
@@ -875,6 +907,9 @@ const buildDoc = async (incident: Incident): Promise<jsPDF> => {
   const plan = computePaginationPlan(builder, incident, startY, ctx.pageWidth, ctx.pageHeight, ctx.contentWidth);
   ctx.scale = plan.scale;
   ctx.softBottomPage1 = plan.softBottomPage1;
+  // Garante 1 única página: mesmo que o conteúdo não caiba no piso mínimo
+  // de escala, o desenho não transborda para uma 2ª página.
+  ctx.singlePageMode = true;
   builder(ctx, incident);
 
   return ctx.doc;
