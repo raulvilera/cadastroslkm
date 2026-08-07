@@ -315,11 +315,11 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setFontSize(fs(ctx, 11.5));
   ctx.doc.setTextColor(0, 43, 92);
   ctx.doc.text(text, MARGIN, ctx.y);
-  ctx.y += sp(ctx, 2.5);
+  ctx.y += sp(ctx, 4);
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 2);
+  ctx.y += sp(ctx, 3.5);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
@@ -343,9 +343,9 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
@@ -366,9 +366,9 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.75));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.75);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
