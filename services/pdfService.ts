@@ -72,9 +72,11 @@ interface DocContext {
   softBottomPage1: number | null;
 }
 
-/** Piso mínimo de escala — abaixo disso o texto ficaria ilegível, então
- *  preferimos permitir uma 2ª página (via ensureSpace) a comprometer a nitidez. */
-const MIN_SCALE = 0.9;
+/** Piso mínimo de escala. Fixado em 1 — o documento NUNCA encolhe fonte
+ *  abaixo do tamanho padrão; se o conteúdo não couber em uma página no
+ *  tamanho padrão, ele simplesmente continua em uma 2ª página (ver
+ *  computePaginationPlan / ensureSpace), em vez de reduzir a letra. */
+const MIN_SCALE = 1;
 
 /** Tamanho de fonte já com o fator de encolhimento do documento aplicado,
  *  nunca abaixo de 7.5pt (piso de legibilidade — abaixo disso texto impresso/
@@ -85,9 +87,9 @@ const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale,
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
 
 /** Altura de cada linha dentro de um parágrafo/lista quebrado em várias
- *  linhas (via splitTextToSize). Um pouco maior que o padrão anterior (5)
- *  para dar mais respiro entre as linhas de texto. */
-const LINE_H = 5.6;
+ *  linhas (via splitTextToSize). Ajustada para acompanhar o aumento do
+ *  tamanho de fonte padrão, mantendo um espaçamento confortável. */
+const LINE_H = 6.2;
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
@@ -279,15 +281,14 @@ const ensureSpace = (ctx: DocContext, neededHeight: number) => {
 const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
   ensureSpace(ctx, subtitle ? sp(ctx, 20) : sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 13.5));
+  ctx.doc.setFontSize(fs(ctx, 15));
   ctx.doc.setTextColor(0, 84, 166);
   const lines = ctx.doc.splitTextToSize(title, ctx.contentWidth);
   ctx.doc.text(lines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
   ctx.y += lines.length * sp(ctx, 6) + sp(ctx, 1);
   if (subtitle) {
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(fs(ctx, 8.5));
-    ctx.doc.setTextColor(90, 90, 90);
+    ctx.doc.setFontSize(fs(ctx, 9.5));
     const subLines = ctx.doc.splitTextToSize(subtitle, ctx.contentWidth);
     ctx.doc.text(subLines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
     ctx.y += subLines.length * sp(ctx, 4) + sp(ctx, 2);
@@ -298,7 +299,7 @@ const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
 const writeSectionTitle = (ctx: DocContext, text: string) => {
   ensureSpace(ctx, sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 10.5));
+  ctx.doc.setFontSize(fs(ctx, 11.5));
   ctx.doc.setTextColor(0, 43, 92);
   ctx.doc.text(text, MARGIN, ctx.y);
   ctx.y += sp(ctx, 3.5);
@@ -310,7 +311,7 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 9.3));
+  ctx.doc.setFontSize(fs(ctx, 10.5));
   ctx.doc.setTextColor(0, 0, 0);
   const text = `${label}: `;
   const valueText = (value && value.trim()) ? value.trim() : "NÃO INFORMADO";
@@ -325,7 +326,7 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 9.3));
+  ctx.doc.setFontSize(fs(ctx, 10.5));
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
@@ -336,7 +337,7 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 9.3));
+  ctx.doc.setFontSize(fs(ctx, 10.5));
   ctx.doc.setTextColor(0, 0, 0);
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
@@ -348,7 +349,7 @@ const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) =>
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
   ctx.doc.setFont("helvetica", opts.bold ? "bold" : "normal");
-  ctx.doc.setFontSize(fs(ctx, opts.size || 9.5));
+  ctx.doc.setFontSize(fs(ctx, opts.size || 10.5));
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
@@ -360,7 +361,7 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
   writeSectionTitle(ctx, label);
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 9.3));
+  ctx.doc.setFontSize(fs(ctx, 10.5));
   ctx.doc.setTextColor(0, 0, 0);
   // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
@@ -382,7 +383,7 @@ const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
     ctx.doc.line((ctx.pageWidth / 2) - 45, ctx.y, (ctx.pageWidth / 2) + 45, ctx.y);
     ctx.y += sp(ctx, 5);
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(fs(ctx, 8.5));
+    ctx.doc.setFontSize(fs(ctx, 9.5));
     ctx.doc.text(labels[0], ctx.pageWidth / 2, ctx.y, { align: 'center' });
   } else {
     const lineSize = 75;
@@ -390,7 +391,7 @@ const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
     ctx.doc.line(ctx.pageWidth - MARGIN - lineSize, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
     ctx.y += sp(ctx, 5);
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(fs(ctx, 8.5));
+    ctx.doc.setFontSize(fs(ctx, 9.5));
     ctx.doc.text(labels[0], MARGIN + (lineSize / 2), ctx.y, { align: 'center' });
     ctx.doc.text(labels[1], ctx.pageWidth - MARGIN - (lineSize / 2), ctx.y, { align: 'center' });
   }
