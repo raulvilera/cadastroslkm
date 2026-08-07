@@ -293,7 +293,7 @@ const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
     ctx.doc.text(subLines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
     ctx.y += subLines.length * sp(ctx, 4) + sp(ctx, 2);
   }
-  ctx.y += sp(ctx, 8);
+  ctx.y += sp(ctx, 5);
 };
 
 const writeSectionTitle = (ctx: DocContext, text: string) => {
@@ -306,7 +306,7 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 4);
+  ctx.y += sp(ctx, 3);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
@@ -321,7 +321,7 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
@@ -353,9 +353,9 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 3));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 3);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
@@ -422,7 +422,7 @@ const identificationBlock = (ctx: DocContext, incident: Incident) => {
   writeLabelValue(ctx, "Data do registro", incident.registerDate || incident.date);
   const registroPorLabel = incident.source === 'professor' ? 'Professor(a)' : 'Direção/Gestão';
   writeLabelValue(ctx, `Responsável pelo registro (${registroPorLabel})`, incident.professorName);
-  ctx.y += sp(ctx, 2);
+  ctx.y += sp(ctx, 1);
 };
 
 // Art. 9º, § 1º — o registro deve conter "síntese da análise inicial e
@@ -594,7 +594,7 @@ const buildAfastamentoPreventivo = (ctx: DocContext, incident: Incident) => {
     { size: 8.5, color: [90, 90, 90] }
   );
 
-  writeBoxedText(ctx, "MOTIVAÇÃO E DESCRIÇÃO DOS FATOS", incident.description, 40);
+  writeBoxedText(ctx, "MOTIVAÇÃO E DESCRIÇÃO DOS FATOS", incident.description, 28);
 
   writeSectionTitle(ctx, "COMUNICAÇÃO FORMAL À FAMÍLIA (ART. 12, § 1º)");
   writeNumberedItem(ctx, "I", "Descrição objetiva da situação que motivou a medida: vide \"MOTIVAÇÃO E DESCRIÇÃO DOS FATOS\" acima e hipótese legal indicada neste documento.");
