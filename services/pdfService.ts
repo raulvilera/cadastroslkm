@@ -183,11 +183,10 @@ const fitScaleForDocument = (
  * 1) Se couber inteiro em uma página com escala entre MIN_SCALE e 1,
  *    usa essa escala normalmente (comportamento de sempre, sem desperdício).
  * 2) Se nem no piso de legibilidade (MIN_SCALE) couber em uma página, o
- *    documento vai ocupar 2 (ou mais) páginas. Nesse caso, calcula um
- *    "corte" para a página 1 que distribui o conteúdo de forma equilibrada
- *    entre a 1ª e a 2ª página, em vez de lotar a 1ª e deixar a 2ª quase vazia.
- *    Se o conteúdo for tão extenso que nem dividindo ao meio caberia em
- *    2 páginas, deixa o fluxo natural (ensureSpace) cuidar da paginação.
+ *    documento vai ocupar 2 (ou mais) páginas. Nesse caso o fluxo natural
+ *    (ensureSpace) cuida da paginação, preenchendo a página 1 até o fundo
+ *    físico antes de passar o excedente para a página seguinte — sem cortes
+ *    artificiais que deixem a página 1 com espaço em branco no final.
  */
 const computePaginationPlan = (
   buildFn: (ctx: DocContext, incident: Incident) => void,
@@ -198,8 +197,6 @@ const computePaginationPlan = (
   contentWidth: number
 ): { scale: number; softBottomPage1: number | null } => {
   const available1 = pageHeight - 22 - startY;
-  // Páginas 2+ começam em y=42 (abaixo do brasão desenhado por drawPageFrame/newPage).
-  const availableN = pageHeight - 22 - 42;
 
   const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
   if (heightAtFullSize <= available1) return { scale: 1, softBottomPage1: null };
@@ -209,24 +206,9 @@ const computePaginationPlan = (
     if (height <= available1) return { scale: Math.round(scale * 100) / 100, softBottomPage1: null };
   }
 
-  // Não coube em uma página nem no piso de legibilidade: vai precisar de
-  // mais páginas. Mede o total nesse piso para decidir como distribuir.
-  const totalHeight = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, MIN_SCALE);
-  let pagesNeeded = 1;
-  let remaining = totalHeight - available1;
-  while (remaining > 0) {
-    pagesNeeded++;
-    remaining -= availableN;
-  }
-
-  if (pagesNeeded <= 2) {
-    // Alvo: metade do conteúdo em cada página (limitado à capacidade real da página 1).
-    const target1 = Math.min(available1, totalHeight / 2);
-    return { scale: MIN_SCALE, softBottomPage1: startY + target1 };
-  }
-
-  // Conteúdo muito extenso (3+ páginas): deixa o fluxo natural cuidar da
-  // paginação, sem corte artificial.
+  // Não coube em uma página nem no piso de legibilidade: o documento vai
+  // ocupar 2+ páginas. Deixa o fluxo natural (ensureSpace) decidir onde
+  // quebrar, preenchendo a página 1 por completo.
   return { scale: MIN_SCALE, softBottomPage1: null };
 };
 
