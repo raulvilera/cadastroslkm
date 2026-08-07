@@ -86,24 +86,13 @@ const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale,
 /** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
 
-/** Fator de entrelinha aplicado a TODO o texto do documento (jsPDF usa
- *  1.15 por padrão, o que deixa linhas de um mesmo parágrafo muito
- *  coladas). 1.35 dá um respiro visível entre as linhas sem alongar
- *  demais o documento. Definido uma única vez em createBaseDoc/
- *  measureContentHeight para valer em toda a geração do PDF. */
-const LINE_HEIGHT_FACTOR = 1.35;
-
 /** Altura de cada linha dentro de um parágrafo/lista quebrado em várias
- *  linhas (via splitTextToSize), calculada a partir do tamanho de fonte
- *  padrão do corpo do texto (10.5pt) e do LINE_HEIGHT_FACTOR acima —
- *  ou seja, ela reflete a altura REAL que o jsPDF desenha, em vez de um
- *  valor arbitrário maior que sobrava como espaço em branco extra entre
- *  os blocos (o que empurrava conteúdo para páginas seguintes). */
-const LINE_H = 10.5 * 0.3528 * LINE_HEIGHT_FACTOR; // ≈ 5.0mm
+ *  linhas (via splitTextToSize). Ajustada para acompanhar o aumento do
+ *  tamanho de fonte padrão, mantendo um espaçamento confortável. */
+const LINE_H = 7.2;
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
-  doc.setLineHeightFactor(LINE_HEIGHT_FACTOR);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;
@@ -135,10 +124,8 @@ const measureContentHeight = (
   contentWidth: number,
   scale: number
 ): number => {
-  const scratchDoc = new jsPDF();
-  scratchDoc.setLineHeightFactor(LINE_HEIGHT_FACTOR);
   const scratchCtx: DocContext = {
-    doc: scratchDoc,
+    doc: new jsPDF(),
     pageWidth,
     pageHeight: 100000, // "infinita" — evita quebra de página durante a medição
     contentWidth,
@@ -183,10 +170,11 @@ const fitScaleForDocument = (
  * 1) Se couber inteiro em uma página com escala entre MIN_SCALE e 1,
  *    usa essa escala normalmente (comportamento de sempre, sem desperdício).
  * 2) Se nem no piso de legibilidade (MIN_SCALE) couber em uma página, o
- *    documento vai ocupar 2 (ou mais) páginas. Nesse caso o fluxo natural
- *    (ensureSpace) cuida da paginação, preenchendo a página 1 até o fundo
- *    físico antes de passar o excedente para a página seguinte — sem cortes
- *    artificiais que deixem a página 1 com espaço em branco no final.
+ *    documento vai ocupar 2 (ou mais) páginas. Nesse caso, calcula um
+ *    "corte" para a página 1 que distribui o conteúdo de forma equilibrada
+ *    entre a 1ª e a 2ª página, em vez de lotar a 1ª e deixar a 2ª quase vazia.
+ *    Se o conteúdo for tão extenso que nem dividindo ao meio caberia em
+ *    2 páginas, deixa o fluxo natural (ensureSpace) cuidar da paginação.
  */
 const computePaginationPlan = (
   buildFn: (ctx: DocContext, incident: Incident) => void,
@@ -197,6 +185,8 @@ const computePaginationPlan = (
   contentWidth: number
 ): { scale: number; softBottomPage1: number | null } => {
   const available1 = pageHeight - 22 - startY;
+  // Páginas 2+ começam em y=42 (abaixo do brasão desenhado por drawPageFrame/newPage).
+  const availableN = pageHeight - 22 - 42;
 
   const heightAtFullSize = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, 1);
   if (heightAtFullSize <= available1) return { scale: 1, softBottomPage1: null };
@@ -206,9 +196,24 @@ const computePaginationPlan = (
     if (height <= available1) return { scale: Math.round(scale * 100) / 100, softBottomPage1: null };
   }
 
-  // Não coube em uma página nem no piso de legibilidade: o documento vai
-  // ocupar 2+ páginas. Deixa o fluxo natural (ensureSpace) decidir onde
-  // quebrar, preenchendo a página 1 por completo.
+  // Não coube em uma página nem no piso de legibilidade: vai precisar de
+  // mais páginas. Mede o total nesse piso para decidir como distribuir.
+  const totalHeight = measureContentHeight(buildFn, incident, startY, pageWidth, contentWidth, MIN_SCALE);
+  let pagesNeeded = 1;
+  let remaining = totalHeight - available1;
+  while (remaining > 0) {
+    pagesNeeded++;
+    remaining -= availableN;
+  }
+
+  if (pagesNeeded <= 2) {
+    // Alvo: metade do conteúdo em cada página (limitado à capacidade real da página 1).
+    const target1 = Math.min(available1, totalHeight / 2);
+    return { scale: MIN_SCALE, softBottomPage1: startY + target1 };
+  }
+
+  // Conteúdo muito extenso (3+ páginas): deixa o fluxo natural cuidar da
+  // paginação, sem corte artificial.
   return { scale: MIN_SCALE, softBottomPage1: null };
 };
 
@@ -301,7 +306,7 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 6);
+  ctx.y += sp(ctx, 3);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
@@ -316,7 +321,7 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
@@ -325,9 +330,9 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
@@ -337,9 +342,9 @@ const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) =>
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
@@ -348,9 +353,9 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.75));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.75);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
@@ -361,17 +366,17 @@ const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight 
   // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
-  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 8));
-  ensureSpace(ctx, boxHeight + sp(ctx, 3));
+  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 10));
+  ensureSpace(ctx, boxHeight + sp(ctx, 5));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
-  ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 6), { maxWidth: ctx.contentWidth - 8 });
-  ctx.y += boxHeight + sp(ctx, 3);
+  ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 7), { maxWidth: ctx.contentWidth - 8 });
+  ctx.y += boxHeight + sp(ctx, 5);
 };
 
 const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
-  ensureSpace(ctx, sp(ctx, 26));
-  ctx.y += sp(ctx, 8);
+  ensureSpace(ctx, sp(ctx, 32));
+  ctx.y += sp(ctx, 12);
   ctx.doc.setDrawColor(0, 0, 0);
   ctx.doc.setLineWidth(0.3);
   if (labels.length === 1) {
@@ -390,7 +395,7 @@ const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
     ctx.doc.text(labels[0], MARGIN + (lineSize / 2), ctx.y, { align: 'center' });
     ctx.doc.text(labels[1], ctx.pageWidth - MARGIN - (lineSize / 2), ctx.y, { align: 'center' });
   }
-  ctx.y += sp(ctx, 7);
+  ctx.y += sp(ctx, 10);
 };
 
 const writeLegalFooterNote = (ctx: DocContext, extra?: string) => {
@@ -591,37 +596,6 @@ const buildAfastamentoPreventivo = (ctx: DocContext, incident: Incident) => {
 
   writeBoxedText(ctx, "MOTIVAÇÃO E DESCRIÇÃO DOS FATOS", incident.description, 28);
 
-  writeSectionTitle(ctx, "COMUNICAÇÃO FORMAL À FAMÍLIA (ART. 12, § 1º)");
-  writeNumberedItem(ctx, "I", "Descrição objetiva da situação que motivou a medida: vide \"MOTIVAÇÃO E DESCRIÇÃO DOS FATOS\" acima e hipótese legal indicada neste documento.");
-  writeNumberedItem(ctx, "II", "O AFASTAMENTO PREVENTIVO TEMPORÁRIO possui caráter cautelar, excepcional e temporário, não constituindo punição, sanção definitiva ou decisão automática de transferência cautelar (Art. 11, § 2º).");
-  writeNumberedItem(
-    ctx,
-    "III",
-    d?.planoContinuidadePedagogica
-      ? `Continuidade das atividades pedagógicas: ${d.planoContinuidadePedagogica}`
-      : "Será assegurada a continuidade das atividades pedagógicas por meio de plano de estudos, atividades orientadas ou outra estratégia compatível com a etapa de ensino do(a) estudante, conforme Art. 11, § 3º."
-  );
-  writeNumberedItem(
-    ctx,
-    "IV",
-    "Próximos procedimentos: a Direção elaborará os registros e, se necessário, o relatório circunstanciado; ao término do prazo informado, " +
-    "havendo deliberação fundamentada, a medida poderá ser prorrogada por igual período ou seguida de transferência cautelar; não havendo " +
-    "tal deliberação, o(a) estudante retornará às atividades presenciais, com plano de acompanhamento quando necessário (Art. 11, §§ 6º a 8º)."
-  );
-  writeNumberedItem(
-    ctx,
-    "V",
-    "Canais para manifestação: a família ou os responsáveis legais poderão se manifestar presencialmente na Direção da unidade escolar, " +
-    "dentro do horário de funcionamento, por escrito protocolado na secretaria, ou pelo telefone institucional informado no cabeçalho deste " +
-    "documento, em qualquer momento durante o prazo da medida (Art. 12, § 3º)."
-  );
-
-  writeSectionTitle(ctx, "OUTRAS COMUNICAÇÕES INSTITUCIONAIS (ART. 12, CAPUT)");
-  writeChecklistItem(ctx, !!d?.comunicadoFamilia, "Comunicação formal à família ou aos responsáveis legais realizada");
-  writeChecklistItem(ctx, !!d?.comunicadoURE, "Comunicação à Unidade Regional de Ensino (URE) realizada");
-  writeChecklistItem(ctx, !!d?.comunicadoRedeProtetiva, "Comunicação aos órgãos da rede protetiva ou demais órgãos competentes (quando exigível)");
-  writeChecklistItem(ctx, !!d?.oportunidadeManifestacaoAssegurada, "Oportunidade de manifestação assegurada ao(à) estudante e à família, com garantias análogas ao contraditório e à ampla defesa (Art. 12, § 3º)");
-
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Ciência da Família / Responsável", "Assinatura da Direção / Gestão"]);
   writeLegalFooterNote(ctx);
@@ -663,14 +637,6 @@ const buildRelatorioCircunstanciado = (ctx: DocContext, incident: Incident) => {
       : "Não há matrícula decorrente de decisão judicial."
   );
 
-  writeParagraph(
-    ctx,
-    "Este relatório evita juízos morais, expressões estigmatizantes, exposição indevida da vida privada do(a) estudante " +
-    "e informações não verificadas, demonstrando o cumprimento das ações previstas no DOC - Documento Orientador para a " +
-    "Convivência - Protocolo 179 e o esgotamento ou a insuficiência das estratégias anteriores (Art. 15, §§ 1º e 3º).",
-    { size: 8.3, color: [90, 90, 90] }
-  );
-
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Direção da Unidade Escolar"]);
   writeLegalFooterNote(ctx);
@@ -699,14 +665,6 @@ const buildNotificacaoFamilia = (ctx: DocContext, incident: Incident) => {
   if (d?.manifestacaoEstudanteFamilia) {
     writeSectionTitle(ctx, "MANIFESTAÇÃO APRESENTADA");
     writeParagraph(ctx, d.manifestacaoEstudanteFamilia);
-  } else {
-    writeParagraph(
-      ctx,
-      "A ausência de manifestação registrada, desde que devidamente notificados a família ou os responsáveis legais, não " +
-      "impede o prosseguimento do procedimento, devendo a unidade escolar registrar as tentativas de contato realizadas " +
-      "(Art. 17, § 4º).",
-      { size: 8.3, color: [90, 90, 90] }
-    );
   }
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
@@ -736,15 +694,6 @@ const buildAtaConselho = (ctx: DocContext, incident: Incident) => {
 
   writeBoxedText(ctx, "FUNDAMENTAÇÃO DA DECISÃO", d?.fundamentacaoDecisaoConselho || "NÃO INFORMADO", 35);
 
-  writeParagraph(
-    ctx,
-    "Esta decisão será comunicada formalmente ao(à) estudante e à família ou aos responsáveis legais em documento próprio " +
-    "(Art. 18). Todos os documentos e informações que subsidiaram a decisão, inclusive este relatório circunstanciado e a " +
-    "presente ata, serão arquivados na unidade escolar em caráter reservado, à disposição das autoridades competentes " +
-    "(Art. 18, § 1º).",
-    { size: 8.3, color: [90, 90, 90] }
-  );
-
   writeParagraph(ctx, `GUARULHOS, ${d?.dataReuniaoConselho || incident.date}.`);
   writeSignatureLines(ctx, ["Presidência do Conselho de Escola", "Secretaria / Registro da Ata"]);
   writeLegalFooterNote(ctx);
@@ -773,14 +722,6 @@ const buildComunicacaoDecisaoFinal = (ctx: DocContext, incident: Incident) => {
   writeNumberedItem(ctx, "1", `Recurso à URE de circunscrição da unidade escolar de origem, no prazo de ${d?.prazoRecursoDias || 5} dias a contar desta comunicação (Art. 18, § 2º).`);
   writeNumberedItem(ctx, "2", "A URE analisará o procedimento no prazo de 5 (cinco) dias, considerando a excepcionalidade da situação, a regularidade das providências adotadas e o atendimento ao Regimento Escolar (Art. 18, § 3º).");
   writeNumberedItem(ctx, "3", "Da decisão da URE caberá recurso ao Conselho Estadual de Educação, no prazo de 10 (dez) dias, sem efeito suspensivo (Art. 18, § 4º).");
-
-  writeParagraph(
-    ctx,
-    "Todos os documentos e informações que subsidiaram esta decisão, inclusive o relatório circunstanciado e a ata " +
-    "deliberativa do Conselho de Escola, encontram-se arquivados na unidade escolar, em caráter reservado, à disposição " +
-    "das autoridades competentes (Art. 18, § 1º).",
-    { size: 8.3, color: [90, 90, 90] }
-  );
 
   writeParagraph(ctx, `GUARULHOS, ${incident.date}.`);
   writeSignatureLines(ctx, ["Ciência do Estudante / Família", "Assinatura da Direção / Gestão"]);
