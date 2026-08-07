@@ -89,7 +89,7 @@ const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
 /** Altura de cada linha dentro de um parágrafo/lista quebrado em várias
  *  linhas (via splitTextToSize). Ajustada para acompanhar o aumento do
  *  tamanho de fonte padrão, mantendo um espaçamento confortável. */
-const LINE_H = 6.2;
+const LINE_H = 7.2;
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
@@ -306,7 +306,7 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 6);
+  ctx.y += sp(ctx, 4);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
@@ -330,9 +330,9 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 3);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
@@ -342,9 +342,9 @@ const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) =>
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
@@ -355,7 +355,7 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
   ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 3));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, LINE_H);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 3);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
@@ -367,11 +367,11 @@ const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight 
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
   const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 10));
-  ensureSpace(ctx, boxHeight + sp(ctx, 4));
+  ensureSpace(ctx, boxHeight + sp(ctx, 5));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
   ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 7), { maxWidth: ctx.contentWidth - 8 });
-  ctx.y += boxHeight + sp(ctx, 8);
+  ctx.y += boxHeight + sp(ctx, 5);
 };
 
 const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
