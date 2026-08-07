@@ -74,7 +74,7 @@ interface DocContext {
 
 /** Piso mínimo de escala — abaixo disso o texto ficaria ilegível, então
  *  preferimos permitir uma 2ª página (via ensureSpace) a comprometer a nitidez. */
-const MIN_SCALE = 0.82;
+const MIN_SCALE = 0.9;
 
 /** Tamanho de fonte já com o fator de encolhimento do documento aplicado,
  *  nunca abaixo de 7.5pt (piso de legibilidade — abaixo disso texto impresso/
@@ -83,6 +83,11 @@ const fs = (ctx: DocContext, base: number): number => Math.max(base * ctx.scale,
 
 /** Espaçamento/altura de linha já com o fator de encolhimento aplicado. */
 const sp = (ctx: DocContext, base: number): number => base * ctx.scale;
+
+/** Altura de cada linha dentro de um parágrafo/lista quebrado em várias
+ *  linhas (via splitTextToSize). Um pouco maior que o padrão anterior (5)
+ *  para dar mais respiro entre as linhas de texto. */
+const LINE_H = 5.6;
 
 const createBaseDoc = async (): Promise<DocContext> => {
   const doc = new jsPDF();
@@ -311,11 +316,11 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
   const valueText = (value && value.trim()) ? value.trim() : "NÃO INFORMADO";
   const full = text + valueText;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 1));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 1.5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
@@ -324,9 +329,9 @@ const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 2));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 3);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 3);
 };
 
 const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
@@ -336,9 +341,9 @@ const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) =>
   const box = checked ? "[X]" : "[ ]";
   const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 1.5));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 2);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
 };
 
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
@@ -347,9 +352,9 @@ const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; c
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, 5) + sp(ctx, 3));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 3));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, 5) + sp(ctx, 5);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, LINE_H);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
@@ -360,7 +365,7 @@ const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight 
   // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
-  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, 5) + sp(ctx, 10));
+  const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 10));
   ensureSpace(ctx, boxHeight + sp(ctx, 4));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
