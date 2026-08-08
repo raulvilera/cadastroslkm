@@ -305,7 +305,7 @@ const writeSectionTitle = (ctx: DocContext, text: string) => {
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 2.5);
+  ctx.y += sp(ctx, 4);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
