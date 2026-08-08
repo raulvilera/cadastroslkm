@@ -231,7 +231,7 @@ const drawPageFrame = (ctx: DocContext) => {
 const drawHeaderBlock = (ctx: DocContext): number => {
   const { doc, pageWidth } = ctx;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   const headerLines = [
     "GOVERNO DO ESTADO DE SÃO PAULO",
@@ -280,14 +280,14 @@ const ensureSpace = (ctx: DocContext, neededHeight: number) => {
 const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
   ensureSpace(ctx, subtitle ? sp(ctx, 20) : sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 15));
+  ctx.doc.setFontSize(fs(ctx, 17));
   ctx.doc.setTextColor(0, 84, 166);
   const lines = ctx.doc.splitTextToSize(title, ctx.contentWidth);
   ctx.doc.text(lines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
   ctx.y += lines.length * sp(ctx, 6) + sp(ctx, 1);
   if (subtitle) {
     ctx.doc.setFont("helvetica", "normal");
-    ctx.doc.setFontSize(fs(ctx, 9.5));
+    ctx.doc.setFontSize(fs(ctx, 11));
     const subLines = ctx.doc.splitTextToSize(subtitle, ctx.contentWidth);
     ctx.doc.text(subLines, ctx.pageWidth / 2, ctx.y, { align: 'center' });
     ctx.y += subLines.length * sp(ctx, 4) + sp(ctx, 2);
@@ -298,19 +298,19 @@ const writeDocTitle = (ctx: DocContext, title: string, subtitle?: string) => {
 const writeSectionTitle = (ctx: DocContext, text: string) => {
   ensureSpace(ctx, sp(ctx, 14));
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 11.5));
+  ctx.doc.setFontSize(fs(ctx, 13));
   ctx.doc.setTextColor(0, 43, 92);
   ctx.doc.text(text, MARGIN, ctx.y);
   ctx.y += sp(ctx, 3.5);
   ctx.doc.setDrawColor(0, 84, 166);
   ctx.doc.setLineWidth(0.4);
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
-  ctx.y += sp(ctx, 3);
+  ctx.y += sp(ctx, 2.5);
 };
 
 const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) => {
   ctx.doc.setFont("helvetica", "bold");
-  ctx.doc.setFontSize(fs(ctx, 10.5));
+  ctx.doc.setFontSize(fs(ctx, 12));
   ctx.doc.setTextColor(0, 0, 0);
   const text = `${label}: `;
   const valueText = (value && value.trim()) ? value.trim() : "NÃO INFORMADO";
@@ -320,57 +320,57 @@ const writeLabelValue = (ctx: DocContext, label: string, value?: string | null) 
   // Renderiza com o rótulo em negrito e o valor em fonte normal, em uma única chamada
   // (simplificação: todo o bloco em negrito mantém legibilidade e padronização visual)
   ctx.doc.text(lines, MARGIN, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.5);
 };
 
 const writeNumberedItem = (ctx: DocContext, numeral: string, text: string) => {
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 10.5));
+  ctx.doc.setFontSize(fs(ctx, 11.5));
   ctx.doc.setTextColor(0, 0, 0);
   const full = `${numeral} – ${text || "NÃO INFORMADO"}`;
-  const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
-  ctx.doc.text(lines, MARGIN + 2, ctx.y);
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
-};
-
-const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
-  ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 10.5));
-  ctx.doc.setTextColor(0, 0, 0);
-  const box = checked ? "[X]" : "[ ]";
-  const full = `${box} ${label}`;
   const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
   ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1));
   ctx.doc.text(lines, MARGIN + 2, ctx.y);
   ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1);
 };
 
+const writeChecklistItem = (ctx: DocContext, checked: boolean, label: string) => {
+  ctx.doc.setFont("helvetica", "normal");
+  ctx.doc.setFontSize(fs(ctx, 11.5));
+  ctx.doc.setTextColor(0, 0, 0);
+  const box = checked ? "[X]" : "[ ]";
+  const full = `${box} ${label}`;
+  const lines = ctx.doc.splitTextToSize(full, ctx.contentWidth - 3);
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 0.8));
+  ctx.doc.text(lines, MARGIN + 2, ctx.y);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 0.8);
+};
+
 const writeParagraph = (ctx: DocContext, text: string, opts: { bold?: boolean; color?: [number, number, number]; size?: number } = {}) => {
   ctx.doc.setFont("helvetica", opts.bold ? "bold" : "normal");
-  ctx.doc.setFontSize(fs(ctx, opts.size || 10.5));
+  ctx.doc.setFontSize(fs(ctx, opts.size || 12));
   const c = opts.color || [0, 0, 0];
   ctx.doc.setTextColor(c[0], c[1], c[2]);
   const lines = ctx.doc.splitTextToSize(text, ctx.contentWidth);
-  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 2));
+  ensureSpace(ctx, lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5));
   ctx.doc.text(lines, MARGIN, ctx.y, { align: 'justify', maxWidth: ctx.contentWidth });
-  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 2);
+  ctx.y += lines.length * sp(ctx, LINE_H) + sp(ctx, 1.5);
 };
 
 const writeBoxedText = (ctx: DocContext, label: string, text: string, minHeight = 40) => {
   writeSectionTitle(ctx, label);
   ctx.doc.setFont("helvetica", "normal");
-  ctx.doc.setFontSize(fs(ctx, 10.5));
+  ctx.doc.setFontSize(fs(ctx, 11.5));
   ctx.doc.setTextColor(0, 0, 0);
   // Fonte definida ANTES de medir as linhas — assim a quebra de texto já
   // reflete o tamanho reduzido, permitindo caber mais texto por linha.
   const lines = ctx.doc.splitTextToSize((text || "NÃO INFORMADO").toUpperCase(), ctx.contentWidth - 10);
   const boxHeight = Math.max(sp(ctx, minHeight), lines.length * sp(ctx, LINE_H) + sp(ctx, 10));
-  ensureSpace(ctx, boxHeight + sp(ctx, 5));
+  ensureSpace(ctx, boxHeight + sp(ctx, 4));
   ctx.doc.setDrawColor(180, 180, 180);
   ctx.doc.rect(MARGIN, ctx.y, ctx.contentWidth, boxHeight);
   ctx.doc.text(lines, MARGIN + 4, ctx.y + sp(ctx, 7), { maxWidth: ctx.contentWidth - 8 });
-  ctx.y += boxHeight + sp(ctx, 5);
+  ctx.y += boxHeight + sp(ctx, 4);
 };
 
 const writeSignatureLines = (ctx: DocContext, labels: string[]) => {
@@ -405,7 +405,7 @@ const writeLegalFooterNote = (ctx: DocContext, extra?: string) => {
   ctx.doc.line(MARGIN, ctx.y, ctx.pageWidth - MARGIN, ctx.y);
   ctx.y += sp(ctx, 4);
   ctx.doc.setFont("helvetica", "italic");
-  ctx.doc.setFontSize(fs(ctx, 7));
+  ctx.doc.setFontSize(fs(ctx, 8.5));
   ctx.doc.setTextColor(110, 110, 110);
   const base = `Documento elaborado em conformidade com a ${RESOLUCAO_REF}, em complemento ao DOC - Documento Orientador para a Convivência - Protocolo 179.`;
   const text = extra ? `${base} ${extra}` : base;
