@@ -35,16 +35,6 @@ var MAX_HEADER_SCAN_ROWS = 30;
 var MAX_RA_SCAN_COLS = 15;
 
 
-// ─── SEGURANÇA (LGPD) ───────────────────────────────────────
-/**
- * Confere o segredo enviado pelo proxy (/api/sheets) com a propriedade do script
- * PROXY_SECRET (Configurações do projeto → Propriedades do script).
- */
-function isAuthorizedRequest_(secret) {
-    var expected = PropertiesService.getScriptProperties().getProperty('PROXY_SECRET');
-    return !!expected && secret === expected;
-}
-
 // ─── UTILITÁRIOS ────────────────────────────────────────────
 
 /**
@@ -106,10 +96,6 @@ function doGet(e) {
     var callback = null;
     try {
         var params = (e && e.parameter) ? e.parameter : {};
-        // LGPD: só o proxy da aplicação (que conhece o segredo) pode consultar a planilha
-        if (!isAuthorizedRequest_(params.secret)) {
-            return jsonResponse({ success: false, error: 'Não autorizado.' });
-        }
         callback = params.callback || params.jsonp;
         var sheetName = params.sheetName || DEFAULT_SHEET;
 
@@ -355,12 +341,6 @@ function doPost(e) {
         }
 
         var payload = JSON.parse(e.postData.contents);
-
-        // LGPD: só o proxy da aplicação pode gravar na planilha
-        if (!isAuthorizedRequest_(payload.secret)) {
-            return jsonResponse({ success: false, error: 'Não autorizado.' });
-        }
-        delete payload.secret;
 
         // Campos obrigatórios
         if (!payload.sheetName) {
