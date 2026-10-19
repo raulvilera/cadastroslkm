@@ -1,84 +1,50 @@
 import { Incident, Student } from '../types';
 import { normalizeClassName } from '../utils/formatters';
+import { supabase } from './supabaseClient';
 
 /**
- * URL do seu Google Apps Script implantado como Web App.
+ * Todas as leituras e gravações na planilha passam pelo servidor (/api/sheets).
+ * O navegador nunca conhece a URL do Apps Script nem o segredo do proxy (LGPD).
  */
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwduIWTMdhhfjfs3N7WoEG1hCYv7kkmVfNmJtSqDZ2alwWltSHtJNJwcB3qADDl2vw/exec';
+const GOOGLE_SCRIPT_URL = '/api/sheets';
 
-/**
- * Realiza requisição com fallback: tenta fetch() direto via HTTP GET.
- * O Google Apps Script suporta CORS nativo para requisições GET.
- * Se o fetch falhar (ex: restrições estritas de rede ou CSP), tenta JSONP.
- */
-const fetchWithFallback = async (url: string, timeoutMs = 15000): Promise<any> => {
-  // 1. Tentar fetch() nativo com AbortController
+const getAccessToken = async (): Promise<string | null> => {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data && typeof data === 'object') {
-        return data;
-      }
-    }
-  } catch (fetchErr) {
-    console.warn('⚠️ Fetch direto ao Apps Script falhou ou deu timeout, tentando JSONP fallback...', fetchErr);
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
   }
-
-  // 2. Fallback para JSONP
-  return jsonpRequest(url, timeoutMs);
 };
 
-/**
- * Carrega dados via JSONP (caso o fetch falhe).
- * Suporta resposta JSON pura ou embrulhada em callback JS.
- */
-const jsonpRequest = (url: string, timeoutMs = 15000): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const callbackName = `__jsonp_cb_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-    const script = document.createElement('script');
-    let settled = false;
+const sheetsFetch = async (url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
+  const token = await getAccessToken();
+  const headers = new Headers(init.headers || {});
+  if (token) headers.set('Authorization', `Bearer ${token}`);
 
-    const cleanup = () => {
-      delete (window as any)[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      clearTimeout(timer);
-    };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(new Error('JSONP: tempo limite excedido ao contatar o Google Apps Script.'));
-    }, timeoutMs);
+const fetchWithFallback = async (url: string, timeoutMs = 15000): Promise<any> => {
+  const res = await sheetsFetch(url, { method: 'GET', headers: { Accept: 'application/json' } }, timeoutMs);
+  if (!res.ok) throw new Error(`Falha ao consultar a planilha (HTTP ${res.status})`);
+  return res.json();
+};
 
-    (window as any)[callbackName] = (data: any) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(new Error('JSONP: falha ao carregar o script do Google Apps Script.'));
-    };
-
-    const separator = url.includes('?') ? '&' : '?';
-    script.src = `${url}${separator}callback=${callbackName}`;
-    document.body.appendChild(script);
+const postToSheets = async (payload: Record<string, unknown>) => {
+  const res = await sheetsFetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
+  if (!res.ok) throw new Error(`Falha ao gravar na planilha (HTTP ${res.status})`);
+  return res;
 };
 
 /**
@@ -180,15 +146,7 @@ export const saveToGoogleSheets = async (incident: Incident) => {
       values: values
     };
 
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-    });
+    await postToSheets(payload);
 
     return true;
   } catch (error) {
@@ -212,8 +170,7 @@ export interface AppRatingPayload {
 
 /**
  * Verifica no backend (Apps Script) se este e-mail de professor
- * já enviou uma avaliação do app. Usa JSONP, assim como as demais
- * leituras (evita bloqueio de CORS).
+ * já enviou uma avaliação do app (pelo proxy autenticado).
  */
 export const checkIfUserHasRatedApp = async (email?: string): Promise<boolean> => {
   if (!email) return false;
@@ -254,15 +211,7 @@ export const saveAppRatingToSheets = async (rating: AppRatingPayload) => {
       values: values,
     };
 
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-    });
+    await postToSheets(payload);
 
     return true;
   } catch (error) {

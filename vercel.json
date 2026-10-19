@@ -47,7 +47,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!sw\\.js|manifest\\.json|pwa-.*\\.png|assets/.*).*)",
+      "source": "/((?!sw\\.js|manifest\\.json|pwa-.*\\.png|assets/.*|api/.*).*)",
       "destination": "/index.html"
     }
   ]
